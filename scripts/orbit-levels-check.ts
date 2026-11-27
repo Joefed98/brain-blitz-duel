@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { innerLobe, lapPhases, orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BIG } from "../src/lib/arcade/orbit";
+import { innerLobe, lapPhases, orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BIG, ORBIT_REV_LOST } from "../src/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): ORBIT_REV_LOST
 import {
   orbitLevelFields,
   orbitRev3CanSetCheckpoint,
@@ -39,7 +39,7 @@ import {
 } from "../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
-import { ORBIT_LEVEL_BANKS } from "../src/lib/duel/orbitRev3Course.server";
+import { ORBIT_LADDER_BANKS, ORBIT_LEVEL_BANKS } from "../src/lib/duel/orbitRev3Course.server"; // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: rooms deal its ladder banks)
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { PRACTICE_CHALLENGES, goalMet } from "../src/lib/duel/practiceChallenges";
@@ -108,10 +108,12 @@ function slipFrom(s: OrbitRev3State): { after: OrbitRev3State; tick: number } | 
   const N = 24;
   for (let n = 0; n < N; n++) {
     const plain = dealAt("orbit", "normal", n) as unknown as Puzzle;
-    const e = ORBIT_FUEL_BANK[((plain.seed % ORBIT_FUEL_BANK.length) + ORBIT_FUEL_BANK.length) % ORBIT_FUEL_BANK.length]!;
-    if (!("level" in plain) && plain.orbitRev === ORBIT_REV_BIG && json(plain.planets) === json(e.planets) && json(plain.holes) === json(e.holes) && json(plain.extras) === json(e.extras)) same++;
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: rooms deal its ladder banks): this line and the label below.
+    const e = ORBIT_LADDER_BANKS.normal[((plain.seed % ORBIT_LADDER_BANKS.normal.length) + ORBIT_LADDER_BANKS.normal.length) % ORBIT_LADDER_BANKS.normal.length]!;
+    // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): the next line and the label below it.
+    if (!("level" in plain) && plain.orbitRev === ORBIT_REV_LOST && json(plain.planets) === json(e.planets) && json(plain.holes) === json(e.holes) && json(plain.extras) === json(e.extras)) same++;
   }
-  ok(same === N, `a Normal deal has no level and is the Normal bank's course on orbitRev 16 (${same} / ${N})`);
+  ok(same === N, `a Normal deal has no level and is the Normal ladder bank's course on orbitRev 17 (${same} / ${N})`); // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17); 27 Nov 2026 (its ladder bank)
   const s = startOf(puzzleOf(ORBIT_FUEL_BANK[0]!));
   ok(s.tank === undefined && s.cpAuto === undefined && s.cpNone === undefined && s.fuel === ORBIT_FUEL_MAX && json(orbitLevelFields("normal")) === "{}" && json(orbitLevelFields(undefined)) === "{}", "a Normal start carries no level field and a 160-tick tank");
 
@@ -149,12 +151,14 @@ function slipFrom(s: OrbitRev3State): { after: OrbitRev3State; tick: number } | 
     const N = 12;
     for (let n = 0; n < N; n++) {
       const p = dealAt("orbit", level, n) as unknown as Puzzle;
-      const e = bank[((p.seed % bank.length) + bank.length) % bank.length]!;
+      // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: rooms deal its ladder banks): this line and the label below.
+      const ladder = ORBIT_LADDER_BANKS[level]; const e = ladder[((p.seed % ladder.length) + ladder.length) % ladder.length]!;
       const notNormal = !ORBIT_FUEL_BANK.some((x) => json(x.planets) === json(p.planets));
-      if (p.level === level && p.orbitRev === ORBIT_REV_BIG && json(p.planets) === json(e.planets) && json(p.holes) === json(e.holes) && json(p.extras) === json(e.extras) && notNormal) dealt++;
+      // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): the next line and the label below.
+      if (p.level === level && p.orbitRev === ORBIT_REV_LOST && json(p.planets) === json(e.planets) && json(p.holes) === json(e.holes) && json(p.extras) === json(e.extras) && notNormal) dealt++;
       if (puzzleTimeLimitMs(p as never) <= 120_000 && orbitRev3Game.runTicks <= 120 * 60) clock++;
     }
-    ok(dealt === N, `${level}: a ${level} deal carries level and orbitRev 16 and is the level bank's course, never Normal's (${dealt} / ${N})`);
+    ok(dealt === N, `${level}: a ${level} deal carries level and orbitRev 17 and is the level's ladder bank's course, never Normal's (${dealt} / ${N})`); // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17); 27 Nov 2026 (its ladder banks)
     ok(clock === N, `${level}: the clock is at most 120 s (${orbitRev3Game.runTicks / 60} s run; ${clock} / ${N})`);
     const s = startOf(puzzleOf(bank[0]!, level));
     ok(s.tank === rules.tank && s.fuel === rules.tank && (s.cpAuto ?? 0) === (rules.checkpoints === "auto" ? 1 : 0) && (s.cpNone ?? 0) === (rules.checkpoints === "none" ? 1 : 0) && s.grace === 1 && s.big === 1, `${level}: the start carries the level's tank and checkpoint rule, with grace and orbitRev 16's planets`);

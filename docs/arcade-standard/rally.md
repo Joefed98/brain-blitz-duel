@@ -1,5 +1,103 @@
 # Rally on the arcade scoring standard (rallyRev 12, 29 Oct 2026)
 
+## rallyRev 14 (D5's ladder, 23 Nov 2026): spin shots measured, Normal's lines lowered, the levels' paddles
+
+New stamp **rallyRev 14** (`RALLY_REV_LADDER`), dealt at Normal and every level; rallyRev 13 rounds (every level) and
+every older stamp replay and score exactly as before (`scripts/fixtures/rally-ladder-legacy.json.gz`, recorded on
+polish/d5 428cd79a before any change; rally-ladder-check section 1). Checks written for rallyRev 13 pin
+`rallyPreLadder` (`DEAL_PINS`). States add `ladder: 1`, folded into the checkpoint checksum last.
+
+**First, the bot learnt spin shots** (Joe, 23 Nov 2026: a strong player uses them), on rallyRev 14 with the Oct 2026
+fixes only, so every older check keeps the bot it was proved with (rally-ladder-check replays the legacy fixture's bot
+runs and requires exactly the recorded logs):
+
+- `SPIN_TRY` (great 0.3, near 0.6, elite 0.9, flawless 1): when a ball is about to land (as seen, at most 34 ticks away)
+  and no other ball lands soon after, the player weighs eight sweeps (2.5–8 px a tick either way) and five contact points
+  on the paddle, plays each forward through the sim from what it has seen (the lagged view stepped on with its own
+  finger's moves since), and keeps the one whose curling ball strikes a pink pad or a gold target soonest, for the wall
+  bounces' small seeded nudges as dealt and as two other draws (a shot aimed at a curve, never at one bounce). The sweep
+  runs 7 ticks before the contact to 3 after; the finger keeps its top speed.
+- `PLACE_SD` (the spec's aim-error bot): where the paddle is put for each ball carries a seeded normal error (average 10 px,
+  elite 4 px, flawless 0), so the paddle's width tells.
+
+Then Normal was refitted by Joe's rule (each feature part full at about what the realistic elite takes on three runs in
+four; the core moves only if that isn't enough). Measured with the new bot on 64 Normal deals: the elite's
+three-in-four figures are 15 gold-ball hits, 5 pink pads, 3 gold targets and 3 spin shots. With the features there and
+the core left at 23 the elite reached 200 on 11 % of runs (and the planner below proved only 51 of 220 Normal seeds), so
+the core line moved too, as little as gives the aim: to 19 (47 % on the proved deals; 20 gave 29 %):
+
+| Part | Max | rallyRev 13 | rallyRev 14 (Normal) |
+| --- | --- | --- | --- |
+| Gold-ball hits | 130 | full at 23 | full at 19 |
+| Pink pads | 30 | 3 each (full at 10) | 6 each (full at 5) |
+| Gold targets | 30 | 5 for each of the 6 | 10 each (full at 3 of the 6) |
+| Spin shots | 10 | 2 each (full at 5) | about 3 each (full at 3) |
+
+Rally's average and elite players return gold balls at close rates (the five gold balls and Joe's reaction limit, not the
+player's skill, cap the count: the flawless player's median is 18, the elite's 18, the average's 14), so a core line the
+elite can fill also lifts the average: Normal's average is 145 on rallyRev 14 against 115 on rallyRev 13 (today's bot; 105
+for the bot with the placement error on rallyRev 13's lines). This is the one point where Joe's two aims for Normal (elite
+40–60 % at 200, the average close to today's) pull apart for Rally; the elite aim is met and the average's rise is Joe's to
+judge.
+
+### Levels (D5, 23 Nov 2026)
+
+The lever is **the paddle's width** (retroLevels.ts `RALLY_LEVELS_V14`, mirrored by the level registry): each level takes
+about two fifths off the paddle, with the bumpers on court from the first serve on Hard and Expert instead of arriving
+later (none at all on Easy), so the step shows before the first return.
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Paddle (px, start → narrowest) | 168 → 84 | 120 → 40 | 72 → 28 | 48 → 24 |
+| Bumpers | none | from 30 s and 45 s | both from the first serve | both from the first serve |
+| Lives | 4 | 2 | 2 | 1 |
+| Ball's top speed | 86 % | 100 % | 115 % | 125 % |
+| Gold-ball hits full at | 20 | 19 | 15 | 16 |
+| Pink pads full at | 6 (5 each) | 5 (6 each) | 5 | 4 |
+| Gold targets full at | 3 (10 each) | 3 | 3 | 3 |
+| Spin shots full at | 3 | 3 | 2 (5 each) | 3 |
+| Seeds dealt (proved of tried) | 100 of 122 | 100 of 152 | 100 of 122 | 100 of 134 |
+
+Each level carries its own scoring lines (decision 12), set from the realistic elite's runs on each level's proved
+candidates so the elite's share of runs at 200 steps down each level (`RALLY_V14_LINES` for Normal). The renderer draws
+each bumper from the sim's own arrival tick (`rallyBumperFromTick`).
+
+**The ladder** (`scripts/fixtures/d5-ladder-rally.json.gz`: 96 deals a level, the ladder's average and realistic elite
+under the human limits, graded by the server; `bun scripts/d5-ladder-record.ts rally --deals=96`):
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Average player, mean | 170.2 | 145.1 | 122.2 | 72.4 |
+| Realistic elite, mean | 194.3 | 183.9 | 176.8 | 171.1 |
+| Elite runs at 200 | 78 % | 47 % | 39 % | 28 % |
+
+On rallyRev 13 (today's deal, today's bot, 96 deals) the averages were 139.5 / 114.9 / 98.1 / 85.4 and the elite 161.4 /
+139.0 / 121.1 / 106.3 with no run at 200 at any level. The spec's targets were average 150–180 / 55–75 / 25–45 and elite
+195+ / 150–175 / 120–150: Hard's and Expert's averages sit above them because the lines the elite needs for 200 lift every
+player (see Normal above). The spec's risk (a 24 px paddle against a 14 px ball at 125 % may be past a human-paced player,
+floor 32) did not bite: the planner held to the limits proves 200 on 100 of 134 Expert seeds.
+
+**Proof**: every dealt seed at every level has a stored witness at exactly 200 through the server's replay, played by the
+flawless player held to the human limits (below); rally-ladder-check replays a tenth (all with `CHECKS_FULL=1`).
+
+Checks and tools: `scripts/rally-ladder-check.ts` (~15 s; `--full`), `bun scripts/rally-level-deal.ts [--check]`,
+`bun scripts/rally-oracle.ts` (a report), `bun scripts/d5-ladder.ts rally`, the lever picture
+`src/lib/levels/pictures/retro-action/rally.tsx`.
+
+### The proof: the flawless player held to the human limits
+
+`scripts/rally-oracle.ts`: the skill-band bot's flawless player with the fixes and the spin shots, seeing the court 0.15 s
+late (its tracking lag, HUMAN_LIMITS' move time) and turning to a new ball one reaction later (never sooner than 0.25 s).
+A seed is dealt at a level only when one of six draws of its reactions scores exactly 200 through the server's replay
+(`scripts/rally-level-deal.ts`, `src/lib/duel/rallyLevelDeals.server.ts`, the witnesses in
+`scripts/fixtures/rally-level-deal-witness.json.gz`; `--check` replays every witness and rebuilds the deal file byte for
+byte).
+
+The renderer draws each bumper from the tick the sim brings it on court (`rallyBumperFromTick`: a level's own times on
+rallyRev 13 and 14; it drew Normal's 30 s and 45 s on every level before, so on rallyRev 13's levels a bumper could
+bounce balls before it showed). A gold target shows what it pays on rallyRev 14 (`rallyBonusPtsOf`: 10), and the reveal's
+target figure is the part's own points (`rallyBonusPartPoints`); every older stamp shows exactly what it did.
+
 ## rallyRev 13: lives and spin shots (the Retro overhaul, 15 Nov 2026)
 
 Joe's review (docs/design/game-reviews/retro.md "Rally"): lives instead of ending on a missed blue ball, teach spin in

@@ -49,7 +49,7 @@ import {
   moonDeal,
   moonGameFor,
   MODE_RIDE,
-  MOON_BIG_REV,
+  MOON_MID_REV,
   MOON_SCROLLS,
   MOON_SKY,
   type MoonState,
@@ -309,10 +309,10 @@ export function ninjaIntroState(): NinjaState {
   return { ...s, hitTick: -999, pickTick: -999 };
 }
 
-/** Moon Climb's intro still (the live ricoRev 4, the bigger ninja): seed 0's tower, its witness riding the first sky lantern. */
+/** Moon Climb's intro still (the live ricoRev 5, the 30 × 60 ninja): seed 0's tower, its witness riding the first sky lantern. */
 export function moonIntroState(): MoonState {
-  const moonGame = moonGameFor(MOON_BIG_REV);
-  const at = new Map(moonDeal(0, MOON_BIG_REV).witness.map((e) => [e.t, e.a]));
+  const moonGame = moonGameFor(MOON_MID_REV);
+  const at = new Map(moonDeal(0, MOON_MID_REV).witness.map((e) => [e.t, e.a]));
   let s = moonGame.init(0);
   while (!(s.mode === MODE_RIDE && s.ride < 80) && !s.ended) {
     const a = at.get(s.tick + 1);
@@ -504,14 +504,14 @@ function Reveal(props: PuzzleRevealProps) {
   return isNinjaRev(rev) ? <NinjaReveal {...props} /> : <RicoV1Reveal {...props} />;
 }
 
-/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 4 (Moon Climb, the bigger ninja). */
+/** The seed is generated on the server; every run is replayed there for scoring. Rooms and practice deal ricoRev 5 (Moon Climb, the 30 × 60 ninja). */
 export const ricochetPuzzle: PuzzleDefinition = {
   key: "ricochet",
   name: gameDisplayName("ricochet"),
   category: "arcade",
   timeLimitMs: (NINJA_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "ricochet", seed: 1, ricoRev: MOON_BIG_REV }) satisfies RicoPuzzleData,
+  generate: () => ({ type: "ricochet", seed: 1, ricoRev: MOON_MID_REV }) satisfies RicoPuzzleData,
   check: () => false,
   revealHeading: "Your climb",
   IntroExample,

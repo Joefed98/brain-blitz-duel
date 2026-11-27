@@ -41,6 +41,8 @@ import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel } from "../src/lib/levels/levels";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { swingLevelWitness, swingSlideSubmission, type SwingWitness } from "./swing-slide-deal";
+import { pinSwingPreLadder } from "../src/lib/duel/arcade.server";
+pinSwingPreLadder(true); // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): this check proves swingRev 18's levels.
 
 console.error = () => {};
 let checks = 0;

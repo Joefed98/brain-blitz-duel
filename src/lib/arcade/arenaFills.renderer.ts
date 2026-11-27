@@ -19,7 +19,7 @@
  * Nothing here is imported by a sim, grader or server code, and nothing here reads or writes
  * a sim: scores, timing, inputs and replays are untouched.
  */
-import { SWING_REV_BIG, SWING_REV_SLIDE } from "./swing";
+import { SWING_REV_BIG, SWING_REV_LADDER, SWING_REV_SLIDE } from "./swing";
 import { jungleDeepWater, paintJungleSides } from "./swingJungle.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
@@ -610,7 +610,7 @@ export function swingJungleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneV
 
 /** Grappler's fill for a stored revision: the jungle's river on swingRev 17 (at the world's scene), the cave's lava before. */
 export function swingFillFor(rev?: number | null, scene: () => SwingFillScene = () => ({ depth: 0 })): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
-  return rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? (ctx, view) => swingJungleFill(ctx, view, scene()) : swingFill;
+  return rev === SWING_REV_SLIDE || rev === SWING_REV_BIG || rev === SWING_REV_LADDER ? (ctx, view) => swingJungleFill(ctx, view, scene()) : swingFill;
 }
 
 /** 17. Fission: under the arena's floor, a dark teal ground (the floor's soft edge) that settles into the dark under the arrows. */

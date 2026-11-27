@@ -53,7 +53,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V13 } from "../src/lib/arcade/beat";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
@@ -193,7 +193,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // to swingRev 15 (swing-rework-check).
     // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 11],
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 12],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -282,7 +283,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
   // Text pass (4 Nov 2026): the help is a list of parts ("A good run (100 points)" was internal wording, now gone).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Tempo's help reads beatRev 12's spec.
-  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V12)), "the \"?\" help states the parts rooms deal");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's beatRev 13): Tempo's help reads beatRev 13's spec.
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V13)), "the \"?\" help states the parts rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

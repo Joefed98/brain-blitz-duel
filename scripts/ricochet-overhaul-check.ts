@@ -43,7 +43,8 @@ import {
   KATANA_HALF, KATANA_LEN, MOON_CORE_FULL_M, MOON_REV, MOON_SCROLLS, MOON_SKY, NINJA_CHECKPOINT_INTERVAL, NINJA_INPUT_TAP,
   NINJA_KNOCK, NINJA_PX_PER_M, NINJA_RUN_SECONDS, NINJA_START, NINJA_WALL_L, NINJA_WALL_R, NINJA_WORLD_W, SHURIKEN_R,
   moonCheckpoint, moonDeal, moonGame, ninjaMetres, type MoonState,
-  MOON_BIG_BODY, MOON_BIG_HH, MOON_BIG_HW, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_LEDGE_HW, MOON_SKY_R, MOON_STD_SPEC, MODE_FLIGHT, NINJA_BODY,
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5): the MOON_MID_* names.
+  MOON_BIG_BODY, MOON_BIG_HH, MOON_BIG_HW, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_MID_BODY, MOON_MID_HH, MOON_MID_HW, MOON_MID_REV, MOON_MID_STD_SPEC, MOON_LEDGE_HW, MOON_SKY_R, MOON_STD_SPEC, MODE_FLIGHT, NINJA_BODY,
   NINJA_LEAP_TICKS, katanaTouches, moonGameFor, moonLeapTicks, moonLedgeX, moonSkyAt, ninjaBodyFor, ninjaSurface, MOON_FLOW_SLIDE, SURF_MOSS,
 } from "../src/lib/arcade/ricochetNinja";
 import {
@@ -52,7 +53,7 @@ import {
 } from "../src/lib/arcade/ricochetNinja.renderer";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
-import { generateRicochet, pinRicoPreBig } from "../src/lib/duel/arcade.server";
+import { generateRicochet, pinRicoPreBig, pinRicoPreMid } from "../src/lib/duel/arcade.server"; // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5: pinRicoPreMid)
 import { DEAL_PIN_NAMES } from "../src/lib/duel/dealEra";
 import { POST_RECORDING_PINS } from "./deal-identity-lib";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
@@ -384,14 +385,20 @@ if (process.argv.includes("--record")) {
   ok(L.runs.every((r) => replayMoonRun(r.seed, r.raw).score === r.score), "ricoRev 4 a: a stored round with no stamp argument still replays as ricoRev 3");
 
   // b. The deal.
-  ok(MOON_BIG_REV === 4 && generateRicochet().ricoRev === MOON_BIG_REV, "ricoRev 4 b: rooms deal ricoRev 4");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5, the 30 × 60 ninja, plan row C3.5): rooms deal ricoRev 5; ricoRev 4 is dealt under the ricoPreMid pin, and the live bands, spec and stamps are rev 5's.
+  ok(MOON_BIG_REV === 4 && MOON_MID_REV === 5 && generateRicochet().ricoRev === MOON_MID_REV, "ricoRev 4 b: rooms deal ricoRev 5 (the 30 × 60 ninja, 22 Nov 2026)");
+  const wasMid = pinRicoPreMid(true);
+  ok(generateRicochet().ricoRev === MOON_BIG_REV, "ricoRev 4 b: the ricoPreMid pin deals ricoRev 4");
+  pinRicoPreMid(wasMid);
   const was = pinRicoPreBig(true);
   ok(generateRicochet().ricoRev === MOON_REV, "ricoRev 4 b: the ricoPreBig pin deals ricoRev 3");
   pinRicoPreBig(was);
-  ok(LIVE_BANDS.ricochet!.rev === MOON_BIG_REV && LIVE_BANDS.ricochet!.std === MOON_BIG_STD_SPEC, "ricoRev 4 b: the live bands carry ricoRev 4's spec");
-  ok(ARCADE_STANDARD.ricochet!.spec === MOON_BIG_STD_SPEC, "ricoRev 4 b: the standard's spec is ricoRev 4's");
-  ok(/ricochet": "[^"]*ricoRev=4/.test(readFileSync("src/lib/duel/practiceStamps.data.ts", "utf8")), "ricoRev 4 b: the practice stamps carry ricoRev=4");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5): the next three lines read ricoRev 5's bands, spec and stamps.
+  ok(LIVE_BANDS.ricochet!.rev === MOON_MID_REV && LIVE_BANDS.ricochet!.std === MOON_MID_STD_SPEC, "ricoRev 4 b: the live bands carry ricoRev 5's spec");
+  ok(ARCADE_STANDARD.ricochet!.spec === MOON_MID_STD_SPEC, "ricoRev 4 b: the standard's spec is ricoRev 5's");
+  ok(/ricochet": "[^"]*ricoRev=5/.test(readFileSync("src/lib/duel/practiceStamps.data.ts", "utf8")), "ricoRev 4 b: the practice stamps carry ricoRev=5");
   ok(DEAL_PIN_NAMES.includes("ricoPreBig") && POST_RECORDING_PINS.includes("ricoPreBig"), "ricoRev 4 b: ricoPreBig is an era switch, pinned by deal-identity's recording");
+  ok(DEAL_PIN_NAMES.includes("ricoPreMid") && POST_RECORDING_PINS.includes("ricoPreMid"), "ricoRev 5 b: ricoPreMid is an era switch, pinned by deal-identity's recording"); // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
 
   // c. The body.
   const B = MOON_BIG_BODY;
@@ -407,6 +414,11 @@ if (process.argv.includes("--record")) {
   const ledge = { x: 195, lo: 400, hi: 520 };
   ok(moonLedgeX(ledge, 0, B) === 195 - MOON_LEDGE_HW - 17 && moonLedgeX(ledge, 1, B) === 195 + MOON_LEDGE_HW + 17 && moonLedgeX(ledge, 0) === 195 - MOON_LEDGE_HW - 13, "ricoRev 4 c: the ledge faces follow the body");
   ok(JSON.stringify(MOON_BIG_STD_SPEC.parts) === JSON.stringify(MOON_STD_SPEC.parts) && MOON_BIG_STD_SPEC.rev === 4 && MOON_STD_SPEC.rev === 3, "ricoRev 4 c: the parts are rev 3's exactly, under the new stamp");
+  // ricoRev 5 (the 30 × 60 ninja, 22 Nov 2026, C3.5), beside rev 4's body (Joe's approval, 23 Nov 2026).
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5): the three lines below.
+  const M = MOON_MID_BODY;
+  ok(M.hw === 15 && M.hh === 30 && MOON_MID_HW === 15 && MOON_MID_HH === 30 && ninjaBodyFor(5) === M && ninjaBodyFor(4) === B, "ricoRev 5 c: the body box 30 × 60 on ricoRev 5; rev 4's stays 34 × 68");
+  ok(M.clingX[0] === NINJA_WALL_L + 15 && M.clingX[1] === NINJA_WALL_R - 15 && M.start === (30 + 4) * 256 && moonLeapTicks(M.gap, M) === NINJA_LEAP_TICKS, "ricoRev 5 c: cling x, the floor's standing height and a wall-to-wall leap follow the body");
   const full4 = { ...s4, acted: 1, best: B.start + 300 * NINJA_PX_PER_M * 256, flow: 10, rides: MOON_SKY, scrolls: MOON_SCROLLS } as MoonState;
   ok(moonGameFor(4).score(full4) === 200 && moonGameFor(3).score({ ...full4, rev: 3, best: NINJA_START + 300 * NINJA_PX_PER_M * 256 } as MoonState) === 200, "ricoRev 4 c: every part full scores 200 on both");
 
@@ -533,6 +545,7 @@ if (process.argv.includes("--record")) {
   }
   // e. The bigger ninja.
   ok(ninjaArtScale(4) === MOON_BIG_HW / 13 && ninjaArtScale(3) === 1, "look e: rev 4 draws the figure at 17/13");
+  ok(ninjaArtScale(5) === MOON_MID_HW / 13 && Math.abs(ninjaArtScale(5) - MOON_MID_HH / 26) < 1e-9, "look e: rev 5 draws the figure at 15/13 (Joe's approval, 23 Nov 2026)"); // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
   const inkOf = (scale: number) => {
     const c = createCanvas(240, 240);
     const x = c.getContext("2d") as unknown as CanvasRenderingContext2D;
@@ -549,6 +562,8 @@ if (process.argv.includes("--record")) {
   const small1 = inkOf(1);
   const big = inkOf(ninjaArtScale(4));
   ok(big.w >= small1.w * 1.25 && big.h >= small1.h * 1.25, `look e: the bigger ninja is drawn larger (${big.w} × ${big.h} px, was ${small1.w} × ${small1.h})`);
+  const mid = inkOf(ninjaArtScale(5)); // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
+  ok(mid.w > small1.w && mid.h > small1.h && mid.w < big.w && mid.h < big.h, `look e: rev 5's 30 × 60 ninja is drawn between the two (${mid.w} × ${mid.h} px)`); // Changed with Joe's approval, 23 Nov 2026
   const src = readFileSync("src/lib/arcade/ricochetNinja.renderer.ts", "utf8");
   ok(!/rgba\(242,199,92,0\.55\)/.test(src), "look e: no gold rim round the ninja (Joe: no glowing edges)");
 }

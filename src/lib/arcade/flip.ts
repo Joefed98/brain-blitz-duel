@@ -550,6 +550,12 @@ export interface FlipState extends BandFields {
    * crash costs the level's FLIP_LEVEL_RULES crashCost. Folded into the checkpoint checksum last.
    */
   lvl?: number;
+  /**
+   * flipRev 14 at a level (D5, 23 Nov 2026; docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): 1 = the course is
+   * built on FLIP_V14_LEVEL_RULES (the running-speed ladder) and scored on its lines. Absent at Normal and on every older
+   * round (a flipRev 13 level keeps FLIP_LEVEL_RULES). Folded into the checkpoint checksum after `lvl`.
+   */
+  ladder?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -761,6 +767,8 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   if (state.grace) extra.push(state.grace, state.respawns ?? 0);
   // Levels (15 Nov 2026): a level's code last (absent at Normal), so every Normal checksum is unchanged.
   if (state.lvl) extra.push(state.lvl);
+  // flipRev 14 at a level (D5): the ladder's mark after the level's code (absent at Normal and on flipRev 13).
+  if (state.ladder) extra.push(state.ladder);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -858,6 +866,10 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null, level?: string | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  // D5 (23 Nov 2026): flipRev 14 at Easy, Hard or Expert, the running-speed ladder; flipRev 14 is never dealt at Normal
+  // (Normal stays flipRev 13), and a flipRev 14 puzzle without a level plays flipRev 13's Normal.
+  if (rev === FLIP_REV_LADDER && isFlipLevel(level)) return flipLadderGameAt(level);
+  if (rev === FLIP_REV_LADDER) return flipGraceGame;
   // Levels (15 Nov 2026): flipRev 13 at Easy, Hard or Expert (the puzzle's `level`); Normal and every older stamp as before.
   if (rev === FLIP_REV_GRACE && isFlipLevel(level)) return flipGraceGameAt(level);
   // flipRev 12 plays flipRev 11 exactly; only its deal differs (the proved courses, src/lib/duel/flipDeal.server.ts).
@@ -1063,7 +1075,8 @@ export interface FlipV8Course {
 export function flipWorldHFor(rev?: number | null): number {
   // flipRev 13 (grace) plays flipRev 12's course in the same 730 px cave (display only: the stage's and replay's world box;
   // until 15 Nov 2026 it was left off this list, so a flipRev 13 stage drew its 730 px cave shrunk into a 620 px box).
-  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL || rev === FLIP_REV_GRACE ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
+  // flipRev 14 (D5's level ladder) plays in the same cave.
+  return rev === FLIP_REV_EXPAND || rev === FLIP_REV_LIFT || rev === FLIP_REV_STD || rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL || rev === FLIP_REV_GRACE || rev === FLIP_REV_LADDER ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
 }
 export function flipWorldH(state: Pick<FlipState, "exp">): number {
   return state.exp ? FLIP_V8_WORLD_H : FLIP_WORLD_H;
@@ -1564,8 +1577,8 @@ const V8_ATTEMPTS = 40;
  * on one route the builder proved lasts the minute; re-rolled from the seed until all of them fit, so every course
  * offers exactly the same opportunities (flipV8Opportunities).
  */
-export function flipCourseV8(seed: number, level?: FlipLevel | null): FlipCourseV8 {
-  if (level) return flipCourseV8Level(seed, level);
+export function flipCourseV8(seed: number, level?: FlipLevel | null, ladder?: boolean): FlipCourseV8 {
+  if (level) return flipCourseV8Level(seed, level, ladder);
   const hit = cacheV8.get(seed | 0);
   if (hit) return hit;
   let out: FlipCourseV8 | null = null;
@@ -1589,11 +1602,12 @@ export function flipCourseV8(seed: number, level?: FlipLevel | null): FlipCourse
  * A level's course (Easy, Hard, Expert; 15 Nov 2026): flipCourseV8's build and placement exactly, on the level's own
  * speed table, moving-spike start and sweet spots (FLIP_LEVEL_RULES). Normal never comes here.
  */
-function flipCourseV8Level(seed: number, level: FlipLevel): FlipCourseV8 {
-  const key = `${level}:${seed | 0}`;
+function flipCourseV8Level(seed: number, level: FlipLevel, ladder?: boolean): FlipCourseV8 {
+  // flipRev 14 (D5): the ladder's own table, cached apart from flipRev 13's level courses.
+  const key = `${ladder ? "v14:" : ""}${level}:${seed | 0}`;
   const hit = cacheV8Level.get(key);
   if (hit) return hit;
-  const r = FLIP_LEVEL_RULES[level];
+  const r: FlipCourseRules = ladder ? FLIP_V14_LEVEL_RULES[level] : FLIP_LEVEL_RULES[level];
   let out: FlipCourseV8 | null = null;
   for (let attempt = 0; attempt < V8_ATTEMPTS && !out; attempt++) {
     const built = buildCourseV8(attempt === 0 ? seed : (Math.imul(seed | 0, 0x9e3779b1) + attempt) | 0, r);
@@ -1613,8 +1627,8 @@ function flipCourseV8Level(seed: number, level: FlipLevel): FlipCourseV8 {
 /** Rev 8 states carry the strict band mark for `acted` tracking; their score is flipV8Score's own. */
 const BAND_MARK_V8 = 3;
 
-function initV8(seed: number, level?: FlipLevel | null): FlipState {
-  const c = flipCourseV8(seed, level);
+function initV8(seed: number, level?: FlipLevel | null, ladder?: boolean): FlipState {
+  const c = flipCourseV8(seed, level, ladder);
   return {
     ...initFrom(c),
     rev: FLIP_REV,
@@ -2111,7 +2125,7 @@ export const FLIP_V13: StdSpec = {
 export const FLIP_V13_BAND_CURVE = bandCurve([0, FLIP_V13_CORE_FULL], [0, stdCore(FLIP_V13).max]);
 
 /** Clean time on flipRev 13: half seconds lived (the whole minute on a finished run) less the crashes' cost. */
-export function flipGraceUnits(state: Pick<FlipState, "ended" | "tick" | "saves" | "lvl">): number {
+export function flipGraceUnits(state: Pick<FlipState, "ended" | "tick" | "saves" | "lvl" | "ladder">): number {
   const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
   return Math.max(0, Math.floor(alive / 30) - flipCrashCost(state) * (state.saves ?? 0));
 }
@@ -2197,17 +2211,19 @@ export function flipStateLevel(state: Pick<FlipState, "lvl">): FlipLevel | null 
 }
 
 /** Half seconds of clean time a crash costs on this state: its level's, else flipRev 13's FLIP_V13_CRASH_COST. */
-export function flipCrashCost(state: Pick<FlipState, "lvl">): number {
+export function flipCrashCost(state: Pick<FlipState, "lvl" | "ladder">): number {
   const level = flipStateLevel(state);
-  return level ? FLIP_LEVEL_RULES[level].crashCost : FLIP_V13_CRASH_COST;
+  // flipRev 14 (D5): the ladder's table; a flipRev 13 level keeps the frozen FLIP_LEVEL_RULES.
+  return level ? (state.ladder ? FLIP_V14_LEVEL_RULES[level] : FLIP_LEVEL_RULES[level]).crashCost : FLIP_V13_CRASH_COST;
 }
 
 const flipLevelGames = new Map<FlipLevel, ArcadeGame<FlipState, ArcadeInputEvent | null>>();
 const flipLevelSpecs = new Map<FlipLevel, StdSpec>();
 /** The parts a flipRev 13 state scores on: its level's (perfect landings full at the level's count), else FLIP_V13. */
-export function flipGraceSpecOf(state: Pick<FlipState, "lvl">): StdSpec {
+export function flipGraceSpecOf(state: Pick<FlipState, "lvl" | "ladder">): StdSpec {
   const level = flipStateLevel(state);
   if (!level) return FLIP_V13;
+  if (state.ladder) return flipLadderSpecOf(level);
   let spec = flipLevelSpecs.get(level);
   if (!spec) {
     const full = FLIP_LEVEL_RULES[level].sweetsFull;
@@ -2239,15 +2255,92 @@ export function flipGraceGameAt(level: FlipLevel): ArcadeGame<FlipState, ArcadeI
  */
 export function prepareFlipCourse(seed: number, rev?: number | null, level?: unknown): void {
   if (rev === FLIP_REV_GRACE) flipCourseV8(seed, isFlipLevel(level) ? level : null);
+  // flipRev 14 (D5): the ladder's level course (a flipRev 14 deal without a level is flipRev 13's Normal course).
+  else if (rev === FLIP_REV_LADDER) flipCourseV8(seed, isFlipLevel(level) ? level : null, isFlipLevel(level));
 }
 
 /** Checks only: whether a course for this seed and level is in the cache (a prepared round's init is a hit). */
-export function flipCourseCached(seed: number, level?: FlipLevel | null): boolean {
-  return level ? cacheV8Level.has(`${level}:${seed | 0}`) : cacheV8.has(seed | 0);
+export function flipCourseCached(seed: number, level?: FlipLevel | null, ladder?: boolean): boolean {
+  return level ? cacheV8Level.has(`${ladder ? "v14:" : ""}${level}:${seed | 0}`) : cacheV8.has(seed | 0);
 }
 
 /** Checks only: empties the course caches (Normal's and the levels'), so the next build is a fresh one. */
 export function flipClearCourseCache(): void {
   cacheV8.clear();
   cacheV8Level.clear();
+}
+
+/* ================= flipRev 14 (D5, 23 Nov 2026): the running-speed ladder ================= */
+
+/**
+ * flipRev 14 (docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"; docs/polish-plan-final/difficulty-spec.md
+ * "Roofbound"): Easy, Hard and Expert deal flipRev 14 from their own proved deals (flipLadderDeals.server.ts); Normal
+ * stays flipRev 13 and is never dealt on 14. The lever is the running speed: each level builds its courses on its own
+ * start speed, top speed, moving-spike start and sweet spots (FLIP_V14_LEVEL_RULES, frozen here with the sim; gameLevels.ts
+ * mirrors it, flip-ladder-check), charges its own clean time a crash, and scores flipRev 13's four parts (clean time 100,
+ * perfect landings 60, double flips 20, flow streak 20 = 200) on its own full lines. Grace holds at every level (no crash
+ * ends the run). States add `ladder: 1` (folded into the checkpoint checksum after `lvl`); every flipRev 13 round, at
+ * every level, plays and scores exactly as before.
+ */
+export const FLIP_REV_LADDER = 14;
+
+/** One level of flipRev 14's ladder: the course rules plus each part's full line. */
+export interface FlipV14Rules extends FlipCourseRules {
+  /** Clean half seconds at which clean time is full (flipRev 13: FLIP_V13_CORE_FULL, 110). */
+  coreFull: number;
+  /** Double flips at which that part is full (flipRev 13: FLIP_V11_DOUBLES, 8). */
+  doublesFull: number;
+  /** Clean jumps in a row at which the flow streak is full (flipRev 13: FLIP_V11_STREAK_FULL, 50). */
+  streakFull: number;
+}
+
+const V14_SWEETS_8: readonly number[] = [6.5, 13, 19.5, 26, 32.5, 39, 45.5, 52];
+const V14_SWEETS_10: readonly number[] = [6.75, 12.25, 17.75, 23.25, 28.75, 34.25, 39.75, 45.25, 50.75, 56.25];
+
+/**
+ * The ladder (difficulty-spec.md "Roofbound", tuned to Joe's ladder test on 23 Nov 2026): Easy as the spec (3 → 7 px a
+ * tick, no moving spikes, 10-tick sweet spots, 3 perfect landings, 5 s a crash); Hard as the spec (5.5 → 12 px, moving
+ * spikes from 4 s, 20 s a crash) with perfect landings full at 5 (the spec's 7: the realistic elite took 7 of the 8 one-tick
+ * spots on 4 % of runs); Expert 6.25 → 13 px with moving spikes from 2 s (the spec's 7 px and 1 s left two courses in three
+ * without their sweet spots and the average player at 17) and perfect landings full at 5 (the spec's 9), 25 s a crash.
+ */
+export const FLIP_V14_LEVEL_RULES: Readonly<Record<FlipLevel, Readonly<FlipV14Rules>>> = {
+  easy: { speedStart: 768, speedStep: 90, stepTicks: 240, speedCap: 1792, moversFrom: null, sweetTicks: 10, sweetSeconds: V14_SWEETS_8, crashCost: 10, sweetsFull: 3, coreFull: 110, doublesFull: 8, streakFull: 50 },
+  hard: { speedStart: 1408, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 4 * TICKS_PER_SECOND, sweetTicks: 1, sweetSeconds: V14_SWEETS_8, crashCost: 40, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 },
+  expert: { speedStart: 1600, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 2 * TICKS_PER_SECOND, sweetTicks: 1, sweetSeconds: V14_SWEETS_10, crashCost: 50, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 },
+};
+
+const flipLadderSpecs = new Map<FlipLevel, StdSpec>();
+/** The parts a flipRev 14 level scores on: flipRev 13's, each full at the level's own line. */
+export function flipLadderSpecOf(level: FlipLevel): StdSpec {
+  let spec = flipLadderSpecs.get(level);
+  if (!spec) {
+    const r = FLIP_V14_LEVEL_RULES[level];
+    const of: Record<string, number> = { core: r.coreFull, sweets: r.sweetsFull, doubles: r.doublesFull, flow: r.streakFull };
+    const made: StdSpec = {
+      ...FLIP_V13,
+      rev: FLIP_REV_LADDER,
+      parts: FLIP_V13.parts.map((p) => {
+        const v = of[p.key];
+        return v === undefined ? p : { ...p, of: v };
+      }),
+    };
+    flipLadderSpecs.set(level, made);
+    spec = made;
+  }
+  return spec;
+}
+
+const flipLadderGames = new Map<FlipLevel, ArcadeGame<FlipState, ArcadeInputEvent | null>>();
+/** flipRev 14 at a level: its init builds the ladder's course and stamps `lvl` and `ladder`; step and end are flipRev 13's. */
+export function flipLadderGameAt(level: FlipLevel): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  let game = flipLadderGames.get(level);
+  if (!game) {
+    game = {
+      ...flipGraceGame,
+      init: (seed) => ({ ...initV8(seed, level, true), std: 1, flow: 1, stars: [], streak: 0, bestStreak: 0, slip: 0, grace: 1, respawns: 0, lvl: FLIP_LEVEL_CODE[level], ladder: 1 }),
+    };
+    flipLadderGames.set(level, game);
+  }
+  return game;
 }

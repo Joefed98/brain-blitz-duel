@@ -98,7 +98,8 @@ function encode(seed: number, events: ArcadeInputEvent[], rev: number, level?: s
   return encodeBastionTankRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints });
 }
 
-const dealAt = (level: Level, seed: number): PuzzleData => withSeededRandom(seed, () => generatePuzzle("bastion", { bankSeed: seed, ...(level !== "normal" ? { level } : {}) }));
+// Changed with Joe's approval, 26 Nov 2026 (D5's bastionRev 5): this check proves bastionRev 4 and 3 as dealt before the ladder.
+const dealAt = (level: Level, seed: number): PuzzleData => withSeededRandom(seed, () => generatePuzzle("bastion", { bankSeed: seed, ...(level !== "normal" ? { level } : {}) }, { pins: ["bastionPreLadder"] }));
 
 /* 1. Older stamps replay and grade exactly as before. */
 {
@@ -148,7 +149,7 @@ const dealAt = (level: Level, seed: number): PuzzleData => withSeededRandom(seed
   const pinned = generatePuzzle("bastion", {}, { pins: ["bastionPreLevels"] }) as { bastionRev?: number };
   const pinnedHard = generatePuzzle("bastion", { level: "hard" }, { pins: ["bastionPreLevels"] }) as { bastionRev?: number };
   ok(pinned.bastionRev === BASTION_REV_IRON && pinnedHard.bastionRev === BASTION_REV_IRON, "the bastionPreLevels pin deals bastionRev 3 at every level");
-  ok((generatePuzzle("bastion") as { bastionRev?: number }).bastionRev === BASTION_REV_LEVELS, "unpinned again, the live deal is bastionRev 4");
+  ok((generatePuzzle("bastion", {}, { pins: ["bastionPreLadder"] }) as { bastionRev?: number }).bastionRev === BASTION_REV_LEVELS, "unpinned again (bastionPreLadder: before the ladder), the deal is bastionRev 4"); // Changed with Joe's approval, 26 Nov 2026 (D5's bastionRev 5)
   for (const level of ["easy", "normal", "hard", "expert"] as const) {
     const p = dealAt(level, 5);
     const ms = puzzleTimeLimitMs(p);

@@ -86,6 +86,14 @@ import {
   bastionIronGame,
   bastionLevelGames,
   bastionLevelOf,
+  bastionLadderGames,
+  bastionLadderLevelOf,
+  bastionLaneXs,
+  bastionLanesOf,
+  bastionTankCount,
+  bastionTotalHp,
+  bastionLadderSettings,
+  BASTION_REV_LADDER,
   BASTION_REV_LEVELS,
   bastionTankGame,
   bastionTankRects,
@@ -101,7 +109,6 @@ import {
   BT2_WALL_Y,
   BT2_WAVE_COUNT,
   BT2_WAVE_START,
-  BT2_TANKS,
   BT2_WORLD_H,
   BT2_WORLD_W,
   type BastionTankState,
@@ -163,8 +170,11 @@ export const BT_SETTING_LOOK = [
   { sky: ["#1C1418", "#5C2A22", "#C0582E"], ridge: "#3A2626", ridgeNear: "#241A1C", field: ["#6A4F38", "#43342A"], haze: "70,48,44", hazeA: 0.5, fog: "84,60,54" },
 ] as const;
 
-/** The sky, the far land, the field, the road's lanes and the wall for a setting, over any extent (world units). */
-function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetting = 0): void {
+/**
+ * The sky, the far land, the field, the road's lanes and the wall for a setting, over any extent (world units). `laneX`
+ * is the road's lanes at the wall (the three-lane road by default; bastionRev 5's four-lane road, paintFourLaneBackdrop).
+ */
+function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetting = 0, laneX: readonly number[] = BT2_LANE_X): void {
   // Iron Wall's view (bastionView.ts): the horizon at HY and every depth scale s drawn as btViewS(s).
   const wx = e.x1 - e.x0;
   const look = BT_SETTING_LOOK[setting];
@@ -210,7 +220,7 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSett
     ctx.ellipse(x, y, 30 * s + 2, 6 * s + 1, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  paintRoad(ctx, setting);
+  paintRoad(ctx, setting, laneX);
   paintScenery(ctx, e, setting);
   // A faint haze where the tanks roll out.
   const haze = ctx.createLinearGradient(0, HY - 4, 0, HY + 70);
@@ -219,6 +229,22 @@ function paintBackdrop(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSett
   ctx.fillStyle = haze;
   ctx.fillRect(e.x0, HY - 4, wx, 74);
   paintWall(ctx, e);
+}
+
+/**
+ * bastionRev 5's four-lane road (Hard and Expert; D5's ladder, 23 Nov 2026): the same sky, field, asphalt, edges, scenery
+ * and wall as the three-lane backdrop, the road's 192 px half width split into four 96 px lanes (BT5_LANE_X): a worn
+ * tyre lane either side of each lane's centre and three dashed dividers between them, through the same perspective and
+ * view (bastionView.ts), so every tank still sits on its own lane and is drawn on its rectangles.
+ */
+function paintFourLaneBackdrop(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetting = 0): void {
+  paintBackdrop(ctx, e, setting, bastionLaneXs(4));
+}
+
+/** The backdrop a state's road needs: the three-lane road, or bastionRev 5's four lanes (Hard and Expert). */
+function paintBackdropFor(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetting, lanes: 3 | 4): void {
+  if (lanes === 4) paintFourLaneBackdrop(ctx, e, setting);
+  else paintBackdrop(ctx, e, setting);
 }
 
 /** A low sun: a soft glow and its disc (`rgb` as "r,g,b"). */
@@ -381,7 +407,7 @@ const ASPHALT = [
  * fine aggregate speckles and tar patches shrinking with distance, darker worn tyre lanes, solid worn edge lines and
  * worn dashed dividers, and sand drifting over the shoulders in the dust. Tanks stay the darkest thing on it.
  */
-function paintRoad(ctx: CanvasRenderingContext2D, setting: BtSetting): void {
+function paintRoad(ctx: CanvasRenderingContext2D, setting: BtSetting, laneX: readonly number[] = BT2_LANE_X): void {
   const a = ASPHALT[setting];
   const surface = ctx.createLinearGradient(0, HY, 0, BT2_WALL_Y);
   surface.addColorStop(0, a.far);
@@ -397,7 +423,7 @@ function paintRoad(ctx: CanvasRenderingContext2D, setting: BtSetting): void {
   ctx.save();
   ctx.clip();
   // Worn tyre lanes: two darker bands either side of each lane's centre.
-  for (const lx of BT2_LANE_X)
+  for (const lx of laneX)
     for (const off of [-30, 30]) {
       const x = lx + off;
       ctx.fillStyle = "rgba(20,20,24,0.10)";
@@ -465,9 +491,9 @@ function paintRoad(ctx: CanvasRenderingContext2D, setting: BtSetting): void {
       ctx.closePath();
       ctx.fill();
     }
-  // The dashed lane dividers, worn paint.
+  // The dashed lane dividers, worn paint: one between each two lanes (the three-lane road's two, the four-lane road's three).
   let n = 0;
-  for (const lx of [(BT2_LANE_X[0] + BT2_LANE_X[1]) / 2, (BT2_LANE_X[1] + BT2_LANE_X[2]) / 2]) {
+  for (const lx of laneX.slice(1).map((x, i) => (laneX[i]! + x) / 2)) {
     for (let z = 40; z < BT2_FAR + 400; z += 90) {
       const sa = btViewS(bastionScale256(z * 256) / 256);
       const sb = btViewS(bastionScale256((z + 40) * 256) / 256);
@@ -1768,6 +1794,8 @@ function paintNeedle(ctx: CanvasRenderingContext2D, x: number, y: number, look: 
 
 /** Where base hit n's crack starts on the panel's top edge (by the lane its tank came down), clear of the labels. */
 export const BT_CRACK_X = [126, 236, 336] as const;
+/** The same for bastionRev 5's four lanes (lane ids 3–6), spread over the same span. */
+export const BT5_CRACK_X = [126, 196, 266, 336] as const;
 
 /**
  * The cracks across the panel (stage 2): one for each base hit, from the panel's top edge down where that tank came
@@ -1799,7 +1827,7 @@ function paintPanelCracks(ctx: CanvasRenderingContext2D, state: BastionTankState
 
 /** Crack k's lines (world px): the main fracture and two branches, fixed for that hit and lane. */
 export function bastionCrackPath(k: number, lane: number): [number, number][][] {
-  const x0 = BT_CRACK_X[lane] ?? BT_CRACK_X[1];
+  const x0 = BT_CRACK_X[lane as 0 | 1 | 2] ?? BT5_CRACK_X[(lane - BT_CRACK_X.length) as 0 | 1 | 2 | 3] ?? BT_CRACK_X[1];
   const main: [number, number][] = [[x0, BT2_PANEL_Y + 1]];
   let x = x0;
   let y = BT2_PANEL_Y + 1;
@@ -2039,8 +2067,11 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
   // The setting (clear, dust, storm) by wave, one cross-fading into the next (display only).
   const set = bastionSettingMix(state);
   const world = { x0: 0, x1: W, y0: 0, y1: H };
-  if (set.mix < 1) deviceLayer(ctx, `bastion-set:${set.from}`, (c) => paintBackdrop(c, world, set.from));
-  deviceLayer(ctx, `bastion-set:${set.to}`, (c) => paintBackdrop(c, world, set.to), set.mix);
+  // bastionRev 5's Hard and Expert: the four-lane road (its own layers; the three-lane road's keys are unchanged).
+  const lanes = bastionLanesOf(state);
+  const road = lanes === 4 ? ":4" : "";
+  if (set.mix < 1) deviceLayer(ctx, `bastion-set:${set.from}${road}`, (c) => paintBackdropFor(c, world, set.from, lanes));
+  deviceLayer(ctx, `bastion-set:${set.to}${road}`, (c) => paintBackdropFor(c, world, set.to, lanes), set.mix);
   tankFog = BT_SETTING_LOOK[set.mix < 0.5 ? set.from : set.to].fog;
   const plan = bastionPlanOf(state);
   const weakPct = bastionWeakPctOf(state);
@@ -2080,7 +2111,7 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     const age = state.tick - m.t;
     const vx = btViewX(m.x, m.y);
     const vy = btViewY(m.y);
-    if (m.r === 3 || m.r === 4) paintRiser(ctx, `+${bastionKillPoints(m.kind, state.rev)}`, vx, vy - 14 * (0.45 + m.s256 / 256), age, BT_FX_TICKS.points, still, m.r === 4 ? BT_WEAK_GOLD : "#FFFFFF", 20);
+    if (m.r === 3 || m.r === 4) paintRiser(ctx, `+${bastionKillPoints(m.kind, state.rev, state.rev >= BASTION_REV_LADDER ? (bastionLadderSettings(state.lvl).hpFull ?? bastionTotalHp(state.rev, state.lvl)) : undefined)}`, vx, vy - 14 * (0.45 + m.s256 / 256), age, BT_FX_TICKS.points, still, m.r === 4 ? BT_WEAK_GOLD : "#FFFFFF", 20);
     else if (m.r === 0 && memory.near.get(impactKey(m)) === true) paintRiser(ctx, "CLOSE", vx, vy - 18, age, BT_FX_TICKS.close, still, "#F3E4C8", 14);
   }
   paintShells(ctx, state);
@@ -2150,7 +2181,7 @@ const impactKey = (m: Bt2Impact) => `${m.t}:${m.x}:${m.y}`;
 export function observeRun(ctx: object, state: BastionTankState): BtMemory {
   let m = memories.get(ctx);
   if (!m || m.seed !== state.seed || state.tick < m.tick) {
-    m = { seed: state.seed, tick: state.tick, prev: state, ledger: bastionLedgerStart(state.seed, BT2_TANKS, BT3_DRONES), whole: state.tick <= 1, jams: state.jams, jamAt: -1, near: new Map(), breachLanes: [], endAt: state.ended !== 0 ? endClock() - BT_END_HOLD_MS : null };
+    m = { seed: state.seed, tick: state.tick, prev: state, ledger: bastionLedgerStart(state.seed, bastionTankCount(state.rev, state.lvl), BT3_DRONES), whole: state.tick <= 1, jams: state.jams, jamAt: -1, near: new Map(), breachLanes: [], endAt: state.ended !== 0 ? endClock() - BT_END_HOLD_MS : null };
     m.ledger.tick = state.tick;
     memories.set(ctx, m);
   }
@@ -2227,7 +2258,7 @@ function paintEndCard(ctx: CanvasRenderingContext2D, state: BastionTankState, me
       drawRow(top + w * rowH, `WAVE ${w + 1}`, row.tanks, `${row.kills} / ${row.tanks.length}`, appear);
     }
   } else if (shown > 0) {
-    drawRow(top + 2 * rowH, "TANKS", [], `${state.kills} / ${BT2_TANKS}`, 1);
+    drawRow(top + 2 * rowH, "TANKS", [], `${state.kills} / ${bastionTankCount(state.rev, state.lvl)}`, 1);
   }
   if (ms >= BT_HELD_AT_MS || still) {
     const held = state.ended !== 2;
@@ -2314,8 +2345,10 @@ export function paintBastionSummary(ctx: CanvasRenderingContext2D, d: BtSummaryD
     ctx.fillText(text, w - 12, top + SUM_ROW / 2);
   };
   const k = 0.25;
-  const slot = 26;
   const x0 = 82;
+  // bastionRev 5's Expert sends nine tanks a wave: the slots narrow to keep clear of the count (eight and fewer as before).
+  const widest = Math.max(0, ...d.waves.map((w) => w.tanks.length));
+  const slot = widest > 8 ? 23 : 26;
   for (const wave of d.waves) {
     plate(y);
     label(`WAVE ${wave.wave + 1}`, y);
@@ -2470,8 +2503,16 @@ const bastionLevelArtGames = {
   normal: { ...bastionLevelGames.normal, draw: drawBastionTankArt },
   hard: { ...bastionLevelGames.hard, draw: drawBastionTankArt },
 };
-/** The art game for a stored stamp (and, on bastionRev 4, the puzzle's stored level). */
+/** bastionRev 5's games with the art, one a level (D5's ladder, 23 Nov 2026). */
+const bastionLadderArtGames = {
+  easy: { ...bastionLadderGames.easy, draw: drawBastionTankArt },
+  normal: { ...bastionLadderGames.normal, draw: drawBastionTankArt },
+  hard: { ...bastionLadderGames.hard, draw: drawBastionTankArt },
+  expert: { ...bastionLadderGames.expert, draw: drawBastionTankArt },
+};
+/** The art game for a stored stamp (and, on bastionRev 4 and 5, the puzzle's stored level). */
 export function bastionTankArtGameFor(rev?: number | null, level?: unknown) {
+  if ((rev ?? 0) >= BASTION_REV_LADDER) return bastionLadderArtGames[bastionLadderLevelOf(level)];
   if ((rev ?? 0) >= BASTION_REV_LEVELS) return bastionLevelArtGames[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? bastionIronArtGame : bastionTankArtGame;
 }
@@ -2480,7 +2521,7 @@ export function bastionTankArtGameFor(rev?: number | null, level?: unknown) {
  * The play screen's scenery beyond the world (painted once per size, world units): the same dusk, field and wall
  * carried out to the box's edges (the computer layout's sides included), darkening a little far below the world.
  */
-export function bastionScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state?: Pick<BastionTankState, "tick">): void {
+export function bastionScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state?: Pick<BastionTankState, "tick"> & Partial<Pick<BastionTankState, "rev" | "lvl">>): void {
   const e: Extent = { x0: view.left - 2, x1: view.right + 2, y0: Math.min(view.top, 0) - 2, y1: view.bottom + 2 };
   ctx.fillStyle = BT2_ART_BG;
   ctx.fillRect(e.x0, e.y0, e.x1 - e.x0, e.y1 - e.y0);
@@ -2488,8 +2529,11 @@ export function bastionScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView
   const set = state ? bastionSettingMix(state) : { from: 0 as BtSetting, to: 0 as BtSetting, mix: 1 };
   // Through the same layers as the world (a fading setting composited as one picture at the step's opacity).
   const ext = `${e.x0},${e.x1},${e.y0},${e.y1}`;
-  if (set.mix < 1) deviceLayer(ctx, `bastion-scene:${set.from}:${ext}`, (c) => paintBackdrop(c, e, set.from));
-  deviceLayer(ctx, `bastion-scene:${set.to}:${ext}`, (c) => paintBackdrop(c, e, set.to), set.mix);
+  // The road under the world as the world draws it (bastionRev 5's four lanes on Hard and Expert).
+  const lanes = state?.rev !== undefined ? bastionLanesOf(state as Pick<BastionTankState, "rev" | "lvl">) : 3;
+  const road = lanes === 4 ? ":4" : "";
+  if (set.mix < 1) deviceLayer(ctx, `bastion-scene:${set.from}:${ext}${road}`, (c) => paintBackdropFor(c, e, set.from, lanes));
+  deviceLayer(ctx, `bastion-scene:${set.to}:${ext}${road}`, (c) => paintBackdropFor(c, e, set.to, lanes), set.mix);
   if (view.bottom > H) {
     const g = ctx.createLinearGradient(0, H, 0, view.bottom);
     g.addColorStop(0, "rgba(8,6,10,0)");

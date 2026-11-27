@@ -71,7 +71,7 @@ import {
   SKYLINE_V2_BLOCK_POINTS,
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
-  SKYLINE_LEVEL_RULES,
+  SKYLINE_V12_LEVEL_RULES,
   SKYLINE_PERFECT_TOL,
   SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
@@ -142,6 +142,7 @@ import {
   HOVER_STD_GOLD,
   HOVER_STD_MAX,
   HOVER_STD_TIGHT,
+  HOVER_V12_FIT,
 } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
@@ -156,7 +157,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAVEFRONT_STD_WIDE, WAV_V14_HEAVY_HITS, WAV_V16_SAUCERS_FULL, WAV_V16_WEAK_FULL } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -188,6 +189,7 @@ import {
   SNAKE_V12_CORE_STARS,
   SNAKE_V13_CORE_STARS,
   SNAKE_V12_GOLD_CORE,
+  SNAKE_V16_LINES,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -232,7 +234,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS, RALLY_V14_EACH, RALLY_V14_EACH_TEXT, RALLY_V14_LINES } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -249,6 +251,8 @@ import {
   BURST_V11_FREE_MISSES,
   BURST_V11_MISS_COST,
   BURST_V10_WAVES,
+  BURST_V14_CLEAR_FULL,
+  BURST_V14_GOLD_FULL,
 } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp as bullseyeStdHelp, liveStdHelp } from "@/lib/arcade/liveBands";
 import {
@@ -269,7 +273,8 @@ import {
   ORBIT_XP_THREAD_CAP,
   ORBIT_XP_THREAD_PTS,
   ORBIT_XP_TRAILS,
-  ORBIT_STD,
+  ORBIT_STD_V17,
+  ORBIT_V17_LINES,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
   ORBIT_GRACE_HOLD_TICKS,
@@ -335,6 +340,10 @@ import {
   BRK_V11_GOLD_MAX,
   BRK_V11_MAX,
   BRK_V11_SPEED_MAX,
+  BRK_V13_CORE_SHORT,
+  BRK_V13_GOLD_EACH,
+  BRK_V13_SPEED_FULL_S,
+  BRK_RUN_SECONDS,
 } from "@/lib/arcade/breaker";
 import {
   FLIP_V8_COMBO_CAP,
@@ -351,7 +360,7 @@ import {
   FLIP_V13_CORE_FULL,
   FLIP_V13_CRASH_COST,
   FLIP_V13_SWEETS_FULL,
-  FLIP_LEVEL_RULES,
+  FLIP_V14_LEVEL_RULES,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -991,20 +1000,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
-        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} points.`, helpOnly: true },
-        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for ${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} more, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
-        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
+        // hoverRev 12 (D5, 23 Nov 2026): the parts' fitted full lines (HOVER_V12_FIT).
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} points, all ${HOVER_STD_TIGHT} for ${HOVER_V12_FIT.tightAt} of them.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for the most, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays for its share of stars touched, more for every one of them: all ${HOVER_STD_CHAINS} for ${HOVER_V12_FIT.chainsAt / ((HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE))} whole chains.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/hover.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy’s gaps are a quarter taller and never slide, and you start with three shields; Hard’s gaps are a quarter narrower; Expert’s are narrower still, with no shield.", helpOnly: true },
       ],
-      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
+      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200; hoverRev 12 (D5): their fitted lines.
       score: scoreList([
-        { label: "Barriers", how: `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same`, max: HOVER_STD_CORE },
-        { label: "Star chains", how: "touch a chain’s stars, more for the whole chain", max: HOVER_STD_CHAINS },
-        { label: "Gold stars", how: `${HOVER_STD_GOLD / HOVER_STARS} for each gold star`, max: HOVER_STD_GOLD },
-        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} for each tight gate flown through`, max: HOVER_STD_TIGHT },
+        { label: "Barriers", how: HOVER_V12_FIT.coreAt === HOVER_REACHABLE_GATES ? `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same` : `every barrier counts the same, all of it at ${HOVER_V12_FIT.coreAt} barriers`, max: HOVER_STD_CORE },
+        { label: "Star chains", how: `touch a chain’s stars, more for the whole chain, all of it at ${HOVER_V12_FIT.chainsAt / (HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE)} whole chains`, max: HOVER_STD_CHAINS },
+        { label: "Gold stars", how: HOVER_STD_GOLD % HOVER_V12_FIT.goldAt === 0 ? `${HOVER_STD_GOLD / HOVER_V12_FIT.goldAt} for each gold star, all of it at ${HOVER_V12_FIT.goldAt}` : `every gold star counts the same, all of it at ${HOVER_V12_FIT.goldAt}`, max: HOVER_STD_GOLD },
+        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} for each tight gate flown through`, max: HOVER_STD_TIGHT },
         { label: "Centre lines", how: "fly a tight gate along its centre line", max: HOVER_STD_CENTRE },
       ], { penalties: ["A crash ends the run"], total: HOVER_STD_MAX }),
     },
@@ -1029,11 +1041,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
-        // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
+        // skylineRev 12's ladder (D5, 23 Nov 2026): no wind on Easy, from block 8 on Hard and from the first block on Expert.
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (none on Easy, from block ${SKYLINE_V12_LEVEL_RULES.hard.windFrom} on Hard, from the first block on Expert).`, helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): skylineRev 12's block-width ladder.
         {
           action: "Levels:",
-          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, and the wind blows from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px. ${SKYLINE_V11_LIVES} lives at every level.`,
+          detail: `Easy’s blocks start wider and slide slower, a drop within ${SKYLINE_V12_LEVEL_RULES.easy.tol / 256} px is perfect, there is no wind and a wide block comes after ${SKYLINE_V12_LEVEL_RULES.easy.trimRun} trims in a row; Hard’s blocks start about half as wide, with wind from block ${SKYLINE_V12_LEVEL_RULES.hard.windFrom}; Expert’s start a quarter as wide, with wind from the first block. ${SKYLINE_V12_LEVEL_RULES.easy.lives} lives at every level.`,
           helpOnly: true,
         },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
@@ -1167,9 +1180,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks. Duck.", helpOnly: true },
         { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
-        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
-        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
-        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars pay up to ${SNAKE_STD_CAPS.gold} points: each is worth about ${((100 * SNAKE_STD_CAPS.gold) / (SNAKE_STD_GOLDS * SNAKE_V16_LINES.goldPct)).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
+        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_CAPS.lane / SNAKE_V16_LINES.laneFull}.`, helpOnly: true },
+        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds ${SNAKE_STD_CAPS.combo / SNAKE_V16_LINES.comboFull} bonus points.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. Rocks come in three sizes: one square, two squares side by side or one above the other, and a big 2 × 2 block. Keep your head off every square a rock covers.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
@@ -1177,14 +1190,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hit your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
         { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/snake.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has no rocks and no meteor shower, with 3 lives; Hard starts with 8 rocks and walls, one more every 3 seconds from 10 seconds in, with 2 lives; Expert starts with 16 rocks and walls, one more every 2 seconds from 5 seconds in, a quicker comet and 1 life.", helpOnly: true },
       ],
       // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, a big gold star counting 2; then four fixed feature parts,
-      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28).
+      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28). snakeRev 16 (D5's
+      // ladder, 23 Nov 2026): the gold stars, combos and lane rides full sooner (SNAKE_V16_LINES).
       score: scoreList([
-        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V13_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
+        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V16_LINES.fullAt} stars`, max: SNAKE_STD_CORE_MAX },
         { label: "Gold stars", how: "eat a gold star soon after it appears for more", max: SNAKE_STD_CAPS.gold },
-        { label: "Combos", how: `1 for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
-        { label: "Lane rides", how: `${SNAKE_STD_LANE_POINTS} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
+        { label: "Combos", how: `${SNAKE_STD_CAPS.combo / SNAKE_V16_LINES.comboFull} for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
+        { label: "Lane rides", how: `${SNAKE_STD_CAPS.lane / SNAKE_V16_LINES.laneFull} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
         { label: "Warp stars", how: `${SNAKE_STD_WARP_POINTS} for a star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a wormhole`, max: SNAKE_STD_CAPS.warp },
       ], { penalties: ["A crash ends the run"], total: 200 }),
     },
@@ -1203,6 +1219,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Busier each crossing:", detail: "the first has half the traffic, the next ones more, full traffic by crossing 4 and busier still after it. The first two always leave wide gaps; later traffic is tighter and faster.", helpOnly: true },
         { action: "After each crossing", detail: "you get a second on the deck before the next one.", helpOnly: true },
         { action: "Only the astronaut counts:", detail: "traffic has to touch the figure itself (its arms’ reach), not the space around it.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/cross.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy starts with half Normal’s ships and gives four lives; Hard has two thirds more ships from the start; Expert twice Normal’s ships from the start and two lives.", helpOnly: true },
       ],
       // crossRev 11 (3 Nov 2026): rows and crossings on a straight line to 150, the no-stop streak 40, close calls 10; a hit costs 15.
       // crossRev 12 (Nov 2026, the scoring audit): the hit that ends the run is free; hits take at most half the rows' points.
@@ -1228,7 +1246,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD}).` },
         { action: "Every brick scores;", detail: "a fast clear scores more." },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
@@ -1241,13 +1259,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/breaker.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy is 6 rows of one-hit bricks with a wide paddle and nothing sliding; Hard 11 rows of one-hit bricks, a narrow paddle, two rows sliding from the start and 2 balls; Expert 12 rows, the narrowest paddle and a faster ball, four rows sliding and 2 balls.", helpOnly: true },
       ],
-      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
+      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200; brkRev 13 (D5, 23 Nov 2026): Normal's lines refitted.
       score: scoreList([
-        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too`, max: BRK_V11_CORE_MAX },
+        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too, all of it at ${BRK_V9_COLS * BRK_V12_ROWS - BRK_V13_CORE_SHORT} of the ${BRK_V9_COLS * BRK_V12_ROWS}`, max: BRK_V11_CORE_MAX },
         { label: "Clear", how: "break every brick", max: BRK_V11_CLEAR_POINTS },
-        { label: "Speed", how: "clear the wall with half the time left for all of it, falling to 0 at the buzzer", max: BRK_V11_SPEED_MAX },
-        { label: "Gold bricks", how: `${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
+        { label: "Speed", how: `clear the wall with ${BRK_RUN_SECONDS - BRK_V13_SPEED_FULL_S} seconds left for all of it, falling to 0 at the buzzer`, max: BRK_V11_SPEED_MAX },
+        { label: "Gold bricks", how: `${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
       ], { penalties: ["A lost ball costs only time"], total: BRK_V11_MAX }),
     },
     // Cards & Board (30 Oct 2026; docs/arcade-standard/minesweeper.md and mahjong.md).
@@ -1415,6 +1435,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Spinner in the left lane:", detail: `${PIN_PTS_SPIN} a turn, ${PIN_PTS_SPIN_LIT} while lit. A faster ball spins it more.`, helpOnly: true },
         { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
         { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/pinball.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has longer flippers, 4 balls and a 10-second ball save; Hard shorter flippers and stronger gravity; Expert the shortest flippers, the strongest gravity and 2 balls.", helpOnly: true },
       ],
       score: liveStdHelp("pinball"),
     },
@@ -1489,6 +1511,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Stack to the top", detail: "and the run ends early, keeping its score.", helpOnly: true },
         { action: "Keep it low:", detail: "a stack within the bottom four rows at the buzzer scores extra.", helpOnly: true },
         { action: "Same pieces, same order,", detail: "for everyone.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/blockfall.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy’s pieces fall at two thirds of Normal’s speed, with five pieces shown next and longer before a piece locks; Hard’s fall four times as fast with two shown; Expert’s nearly seven times as fast with one shown.", helpOnly: true },
       ],
       score: liveStdHelp("blockfall"),
     },
@@ -1549,17 +1573,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: `A miss costs 1 of ${RALLY_V13_LIVES} lives.` },
-        { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
-        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V13_SPIN_PTS} if it scores.` },
+        { action: "Gold balls score:", detail: `each hit, +${RALLY_V14_EACH_TEXT.pads} a pink pad.` },
+        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V14_EACH.spin} if it scores.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
-        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: +${RALLY_V13_SPIN_PTS} each, up to ${RALLY_V13_SPIN_MAX}.`, helpOnly: true },
+        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V14_EACH_TEXT.pads}, and the pad moves to a new spot in its own half, so the two never overlap (the pads' ${RALLY_V12_PADS_MAX} are all yours at ${RALLY_V14_LINES.padsFull}). The spots are the same for everyone in the room.`, helpOnly: true },
+        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V14_EACH_TEXT.targets}; a miss costs nothing (the targets' ${RALLY_V12_TARGETS_MAX} are all yours at ${RALLY_V14_LINES.targetsFull}).`, helpOnly: true },
+        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: ${RALLY_V14_EACH_TEXT.spin} each, all ${RALLY_V13_SPIN_MAX} for ${RALLY_V14_LINES.spinFull}.`, helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
         { action: "Miss the blue ball", detail: `and you lose a life: it serves again from mid-court after a second and a half. Lose all ${RALLY_V13_LIVES} and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.`, helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/rally.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy’s paddle is wider, with no bumpers and 4 lives; Hard’s is narrower, with both bumpers from the first serve and 2 lives; Expert’s is the narrowest, with both bumpers, 1 life and the fastest ball.", helpOnly: true },
       ],
       // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
       // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives and spin shots.
@@ -1639,12 +1665,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it to start 8 seconds of fever. Each fever you start earns a fixed bonus.", helpOnly: true },
         { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus.", helpOnly: true },
         { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus.", helpOnly: true },
-        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for every note Perfect).", helpOnly: true },
+        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for a run of 70 % of the song’s notes).", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won’t hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/beat.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has three lanes for the whole song, half the off-beats and chords, wider timing and slower notes; Hard five lanes from the first note, busier, tighter and faster; Expert six lanes from the first note, the busiest chart and the fastest notes.", helpOnly: true },
       ],
       score: liveStdHelp("beat"),
     },
@@ -1662,6 +1690,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Katanas and shurikens", detail: "knock you down 3 m and stun you for a second. No game over; your hits are shown on the result.", helpOnly: true },
         { action: "Scrolls", detail: "are rare: three, at the top of double-jump lines.", helpOnly: true },
         { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/ricochet.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has half the blades, slower lanterns and a 2 m knock-down; Hard 1.3 times the blades, more ice and a 3.5 m knock-down; Expert 1.6 times the blades, faster shurikens, mostly ice and four faster lanterns.", helpOnly: true },
       ],
       score: liveStdHelp("ricochet"),
     },
@@ -1753,15 +1783,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A saucer flies over every 15 seconds:", detail: "shoot it down for points; it drops the purple laser (5 shots that pierce up to 3 enemies).", helpOnly: true },
         { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `The boss comes only once wave 5 is destroyed. Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing) and a core that opens for half of every ${WAV_X_CORE_PERIOD / 60} s: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss’s bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
         { action: "Weak points score:", detail: "each cannon you destroy and each boss whose open core you hit (once is enough) – six in a run.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/wavefront.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy fires one bolt at a time, at most 4 in the air, with no divers and 4 lives; Hard fires pairs from the first wave and threes from wave 3, with divers from wave 2; Expert fires threes, then fours, with divers from the first wave and 2 lives.", helpOnly: true },
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
       // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
-      score: listFromSpec(WAVEFRONT_STD_KEEP, {
+      // wavRev 16 (D5, 23 Nov 2026): the saucers full at 4 of the 5, the cannons and weak points at 5 of the 6 (Normal).
+      score: listFromSpec(WAVEFRONT_STD_WIDE, {
         core: "about half a point for each ship shot, armour hit and gunship hit, and about 8 for each wave cleared (the gunship counts as one)",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
-        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down, and for every saucer still to come when you destroy the boss`,
-        weak: "destroy cannons and hit the boss’s open core",
+        saucers: `${20 / WAV_V16_SAUCERS_FULL} for each saucer shot down, and for every saucer still to come when you destroy the boss: ${WAV_V16_SAUCERS_FULL} of the ${WAV_X_SAUCERS} fill it`,
+        weak: `${10 / WAV_V16_WEAK_FULL} for each cannon destroyed and each boss whose open core you hit: ${WAV_V16_WEAK_FULL} of the 6 fill it`,
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
@@ -1784,6 +1817,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A tank that reaches the wall hits the base.", detail: "Four hits and the run ends early (you keep your score).", helpOnly: true },
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
         { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy sends 4 tanks a wave down three lanes; Hard opens a fourth lane and sends 8; Expert sends 9 down four lanes, fast from the first wave, with a narrower reload zone and the smallest weak spots.", helpOnly: true },
       ],
       score: liveStdHelp("bastion", "Four hits on the base end the run."),
     },
@@ -1810,10 +1845,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash on the way. Clean jumps in a row make your streak; a crash starts it again from 0, and your longest streak counts.", helpOnly: true },
         { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide, a good line through the air: nothing to collect.`, helpOnly: true },
         { action: "No checkpoints needed: crashes never end the run.", detail: `You blink back with a second of shield and run on to the end of the minute, but ${FLIP_V13_CRASH_COST / 2} s comes off your clean time each time on Normal.`, helpOnly: true },
-        // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): what each level changes, from the sim's own table.
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): flipRev 14's running-speed ladder.
         {
           action: "Levels:",
-          detail: `Easy runs slower (it speeds up every 4 s), with no moving spikes, wider sweet spots and ${FLIP_LEVEL_RULES.easy.crashCost / 2} s a crash. Hard is a little faster, with moving spikes from 8 s, ${FLIP_LEVEL_RULES.hard.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.hard.sweetsFull} perfect landings for all of that part. Expert is fastest (it speeds up every 2.5 s), with moving spikes from 5 s, ${FLIP_LEVEL_RULES.expert.sweetSeconds.length} sweet spots, ${FLIP_LEVEL_RULES.expert.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.expert.sweetsFull} perfect landings for all of that part.`,
+          detail: `Easy runs slower, with no moving spikes, wider sweet spots and ${FLIP_V14_LEVEL_RULES.easy.crashCost / 2} s a crash; Hard starts faster, with moving spikes from ${(FLIP_V14_LEVEL_RULES.hard.moversFrom ?? 0) / 60} s and ${FLIP_V14_LEVEL_RULES.hard.crashCost / 2} s a crash; Expert is fastest, with moving spikes from ${(FLIP_V14_LEVEL_RULES.expert.moversFrom ?? 0) / 60} s, ${FLIP_V14_LEVEL_RULES.expert.sweetSeconds.length} sweet spots and ${FLIP_V14_LEVEL_RULES.expert.crashCost / 2} s a crash.`,
           helpOnly: true,
         },
       ],
@@ -1877,22 +1912,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don’t get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
-        { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
+        { action: `${BURST_V10_WAVES} waves:`, detail: "clear each fast for a bonus." },
+        { action: "Golden atoms:", detail: `${BURST_V14_GOLD_FULL} pay ${BURST_V10_GOLDEN_MAX}, but they hurt too.` },
         { action: "An atom touching you (golden ones too)", detail: `costs a life (3 lives). Each life but your last costs ${BURST_V10_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
-        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear earns up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. ${BURST_V14_CLEAR_FULL} of those fill the whole ${BURST_V10_CLEAR_MAX}-point bonus. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still earns.`, helpOnly: true },
+        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${Math.floor(BURST_V10_GOLDEN_MAX / BURST_V14_GOLD_FULL)}, and ${BURST_V14_GOLD_FULL} fill the ${BURST_V10_GOLDEN_MAX}-point bonus. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/burst.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has 42 atoms, one small one first, drawn a quarter bigger, and 4 lives; Hard 103 atoms, two bouncing from the start; Expert 125 atoms, three at once from the start, and 2 lives.", helpOnly: true },
       ],
       // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
       // burstRev 11 (the scoring audit, Nov 2026): the last life free, wasted shots cost, never more than half the atom points.
       score: scoreList([
         { label: "Atoms", how: `every atom and split piece popped counts the same (${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves)`, max: BURST_V10_CORE_MAX },
-        { label: "Wave clears", how: `up to ${BURST_V10_CLEAR_PER_WAVE} for each wave, more the quicker you clear it`, max: BURST_V10_CLEAR_MAX },
-        { label: "Golden atoms", how: `${BURST_V10_GOLDEN_PTS} for each golden atom`, max: BURST_V10_GOLDEN_MAX },
+        { label: "Wave clears", how: `each wave cleared quickly earns up to ${BURST_V10_CLEAR_PER_WAVE}, and ${BURST_V14_CLEAR_FULL} of those fill it`, max: BURST_V10_CLEAR_MAX },
+        { label: "Golden atoms", how: `${Math.floor(BURST_V10_GOLDEN_MAX / BURST_V14_GOLD_FULL)} for one golden atom, all of it for ${BURST_V14_GOLD_FULL}`, max: BURST_V10_GOLDEN_MAX },
       ], { penalties: [`Each life lost before your last costs ${BURST_V10_LIFE_COST}`, `Wasted shots beyond one for each atom popped (at least ${BURST_V11_FREE_MISSES} free) cost ${BURST_V11_MISS_COST} each`, "Lives and wasted shots never take more than half your atom points", "Power-ups score nothing"], total: 200 }),
     },
     orbit: {
@@ -1915,15 +1952,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Slingshot moons:", detail: `fly through one of the ${ORBIT_XP_MOONS} small moons’ soft halos without touching the moon and it flings you on at one and a half times the speed. Touching the moon is a crash.`, helpOnly: true },
         { action: "Asteroid fields:", detail: `${ORBIT_XP_FIELDS} lines of rocks across some hops. Thread the gap in the middle of the line for a bonus; hitting a rock is a crash.`, helpOnly: true },
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/orbit.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has no asteroid belts, a bigger tank and automatic checkpoints; Hard a belt round every fourth planet, a smaller tank and one checkpoint; Expert a belt round every third planet from the first, the smallest tank and no checkpoint.", helpOnly: true },
       ],
       // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: listFromSpec(ORBIT_STD, {
+      // orbitRev 17 (D5, 23 Nov 2026): the same parts, each feature full at its own line (ORBIT_V17_LINES, Normal's).
+      score: listFromSpec(ORBIT_STD_V17, {
         core: "every planet reached counts the same (one you jump past too), all of it at the sun",
-        speed: "reach the sun with half the time left for all of it, falling to 0 at the buzzer",
-        dust: "0.5 for each speck of stardust",
-        slings: "3 for each slingshot round a moon",
+        speed: `reach the sun with ${Math.round(ORBIT_V17_LINES.speedFullLeft / 60)} s left for all of it, falling to 0 at the buzzer`,
+        dust: `every speck of stardust counts the same, all of it at ${ORBIT_V17_LINES.dustFull} specks`,
+        slings: `every slingshot round a moon counts the same, all of it at ${ORBIT_V17_LINES.slingsFull}`,
         fields: "4 for each asteroid field crossed",
-        perfect: "a little for each perfect orbit",
+        perfect: `every perfect orbit counts the same, all of it at ${ORBIT_V17_LINES.perfectFull}`,
       }, ["Running out of fuel ends the run (or sends you back to your checkpoint)"]),
     },
 
@@ -1968,6 +2008,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Over the last quarter a pterodactyl swoops in behind you.", detail: "If it catches you, it is a miss. A marker at the left edge shows how far back it is.", helpOnly: true },
         { action: `The run lasts ${SWING_V16_RUN_TICKS / 60} seconds.`, detail: "Only the fastest reach the end of the course.", helpOnly: true },
         { action: "Everyone", detail: "gets the same course, vines, swinging vines, gates and par times.", helpOnly: true },
+        // Levels (D5, 23 Nov 2026; docs/arcade-standard/swing.md "Levels (D5, 23 Nov 2026)"): what each level changes.
+        { action: "Levels:", detail: "Easy has no pterodactyl and a gentler course; on Hard and Expert the pterodactyl chases you from the first vine, faster on Expert, and every stretch’s time counts, so the whole course has to be quick. Expert also has a shorter reach and seven dark platform runs.", helpOnly: true },
       ],
       score: scoreList([
         { label: "Course", how: `every stretch cleared counts by its length, all of it at ${Math.round(SWING_V17_FULL / 10)} % of the way`, max: SWING_V17_CORE },

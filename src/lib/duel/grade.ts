@@ -49,8 +49,8 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_FLOORS, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_LADDER, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -72,7 +72,7 @@ import { minigolfStdParts } from "@/lib/arcade/minigolf";
 import { poolStdParts } from "@/lib/arcade/pool";
 import { curlingStdParts } from "@/lib/arcade/curling";
 import { decodeRallyRun, replayRallyRun } from "./rally";
-import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
+import { rallyBonusCount, rallyBonusPartPoints } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
@@ -1299,9 +1299,10 @@ function gradeUnderRev(
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
         // skylineRev 10 (the scoring audit): the same fields (rev 9's play; perfect drops counted, not shared).
-        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT || puzzle.skylineRev === SKYLINE_REV_LIVES ? { golds: run.golds, milestones: run.milestones } : {}),
+        // skylineRev 12 (D5 item I5): skylineRev 11's play and fields (only the full lines changed).
+        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT || puzzle.skylineRev === SKYLINE_REV_LIVES || puzzle.skylineRev === SKYLINE_REV_FLOORS ? { golds: run.golds, milestones: run.milestones } : {}),
         // skylineRev 11 (lives): lives lost (display only; the score never reads it).
-        ...(puzzle.skylineRev === SKYLINE_REV_LIVES ? { livesLost: run.livesLost } : {}),
+        ...(puzzle.skylineRev === SKYLINE_REV_LIVES || puzzle.skylineRev === SKYLINE_REV_FLOORS ? { livesLost: run.livesLost } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1677,7 +1678,7 @@ function gradeUnderRev(
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
         ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         // pinRev 6 (the arcade scoring standard): back-to-back ramp shots, one of its features.
-        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE ? { combos: run.combos } : {}),
+        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE || puzzle.pinRev === PIN_REV_LADDER ? { combos: run.combos } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,
@@ -2045,7 +2046,8 @@ function gradeUnderRev(
         rallyRev: run.rallyRev,
         // rallyRev 10 (expansion E9): the gold bonus targets struck, for the reveal.
         // rallyRev 12 (the arcade scoring standard): 5 a target (6 before).
-        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: (run.state.exp ?? 0) >= RALLY_V12_EXP ? rallyBonusPtsOf(run.state) * rallyBonusCount(run.state) : rallyBonusPoints(run.state) } : {}),
+        // rallyRev 14 (D5's ladder): the targets part's own points (rallyBonusPartPoints; per target as before on every older stamp).
+        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: rallyBonusPartPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -2602,6 +2604,8 @@ function gradeUnderRev(
         ...(run.reason ? { reason: run.reason } : {}),
         // orbitRev 12 (the expansion to 200): the features the run took, as flat numbers.
         ...(run.xp ? { dust: run.xp.dust, dustTotal: run.xp.dustTotal, slings: run.xp.slings, slingsTotal: run.xp.slingsTotal, threads: run.xp.threads, threadsTotal: run.xp.threadsTotal, perfect: run.xp.perfect } : {}),
+        // orbitRev 17 (the lost flight): how many flights ended as lost (display only; the score never reads it).
+        ...((run.state as { lost?: number }).lost ? { lostFlights: (run.state as { lostFlights?: number }).lostFlights ?? 0 } : {}),
       };
       break;
     }

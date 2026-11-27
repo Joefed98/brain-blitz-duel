@@ -52,7 +52,9 @@ export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; pr
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 42, the larger.
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 42 parts / 6 jobs → 54 / 9 on the puzzle
   // train's combined screens (1,760 draws: about 33 a part and 196 a job, near main's 188).
-  "no-wrap-check.tsx": { parts: 54, jobs: 9, prefix: "play-nowrap", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 54 → 63 parts on A2's merge with main
+  // (2,169 draws took every part to 40–41; 63 parts give about 34 a part), jobs unchanged.
+  "no-wrap-check.tsx": { parts: 63, jobs: 9, prefix: "play-nowrap", ceiling: 40 },
 };
 
 /** The jobs PAGE_CHECK_SPLITS gives: `<prefix>-<j>` runs parts j, j + jobs, j + 2 × jobs… of its check. */
@@ -205,7 +207,8 @@ export const SHARDS: Record<string, string[]> = {
     "six-game-scoring-check.ts",
     "tap-log-check.tsx",
     "tiles-rings-check.ts",
-    "arcade-self-replay-check.ts@1/2",
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ladder entries): the self-replay entries in thirds.
+    "arcade-self-replay-check.ts@1/3",
     // Ball Tracker btRev 8's deal list: every dealt course reaches 200 (a sample at quick depth, all ~4.5 min at full), in halves.
     "balltrack-deal-check.ts@1/2",
     "puzzle-bank-check.ts@3/4",
@@ -273,7 +276,8 @@ export const SHARDS: Record<string, string[]> = {
     "swapword-check.ts",
     "tuning-b-check.ts",
     "word-game-tuning-check.ts",
-    "arcade-self-replay-check.ts@2/2",
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ladder entries): the self-replay entries in thirds.
+    "arcade-self-replay-check.ts@2/3",
     // Full-depth split (10 Nov 2026): at CHECKS_FULL=1 these ran ~340 s (swing-assault), ~540 s (cards) and ~400 s
     // (orbit-fuel) whole on CI, past run-checks' 300 s; each part is well under 200 s, the parts together the whole check.
     "swing-assault-check.ts@2/3",
@@ -369,6 +373,8 @@ export const SHARDS: Record<string, string[]> = {
   d: [
     // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
     "deal-identity-check.ts@3/4",
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ladder entries): the self-replay entries in thirds.
+    "arcade-self-replay-check.ts@3/3",
     // From g's catch-all (3 Nov 2026 rebalance; ~360 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
     "arcade-room-identity-check.ts",
     "flip-rev11-check.ts",

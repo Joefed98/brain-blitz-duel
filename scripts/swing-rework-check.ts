@@ -62,6 +62,7 @@ import {
   SWING_REV_DARK,
   SWING_REV_SLIDE,
   SWING_REV_BIG,
+  SWING_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 is the live revision)
   SWING_V17_BAND_CURVE,
   SWING_V14_CHASE_BACKOFF,
   SWING_V14_CHASE_PACE,
@@ -522,7 +523,8 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   // LIVE_BANDS follows the revision rooms deal: swingRev 16 since 1 Nov 2026 (swing-dark-check), on rev 15's straight line;
   // swingRev 17 since 3 Nov 2026 (swing-slide-check), on its own straight line (110, full at 700 per mille).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
-  ok(LIVE_BANDS.swing.rev === SWING_REV_REWORK + 3 && LIVE_BANDS.swing.rev === SWING_REV_BIG && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && bandPoints(SWING_V15_BAND_CURVE, 1000) === 140, "the help's numbers come from the revision rooms deal (rev 18, on rev 17's straight line)");
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+  ok(LIVE_BANDS.swing.rev === SWING_REV_REWORK + 4 && LIVE_BANDS.swing.rev === SWING_REV_LADDER && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && bandPoints(SWING_V15_BAND_CURVE, 1000) === 140, "the help's numbers come from the revision rooms deal (rev 19, on rev 17's straight line)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   // The jungle canopy (3 Nov 2026): hooks are vines, ledges tree platforms, the dragon a pterodactyl; the same rules.
@@ -538,7 +540,8 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   // then to swing-slide-check (swingRev 17).
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 15 one too) until one is recorded on swingRev 18");
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): the demo rule names swingRev 19.
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_LADDER\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 15 one too) until one is recorded on swingRev 19");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
   // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the intro also passes the stored level.
   ok(/puzzle\?\.type !== "swing"\) return;[\s\S]{0,200}setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(?:, level)?\)/.test(introSrc), "the round's intro builds the course ahead (the round's own init is a cache hit)");

@@ -219,7 +219,7 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
       // One board at a time, large, with a switcher of three.
       check((r.html.match(/role="tab"/g) ?? []).length === 3 && (r.html.match(/data-topsy-board=""/g) ?? []).length === 1, `${stamp} ${label}: the reveal doesn't show one board with a switcher of three`);
       check(/data-reveal-board=""/.test(r.html), `${stamp} ${label}: the board isn't marked for the reveal's fit`);
-      check(r.html.includes("/pattern-art/gravity/hole-"), `${stamp} ${label}: the reveal doesn't draw the rendered cups`);
+      check(/class="grav-socket topsy-hole/.test(r.html) && !r.html.includes("/pattern-art/gravity/hole-"), `${stamp} ${label}: the reveal doesn't draw the ringed sockets`); // Changed with Joe's approval, 22 Nov 2026
       // The par route as arrow chips (the board shown's stored route).
       check((r.html.match(/class="topsy-chip"/g) ?? []).length >= 4 && /Par route/.test(t), `${stamp} ${label}: the par route isn't drawn as arrow chips`);
       // The round's key numbers come from the stored grade, under their own "Round" label.
@@ -301,20 +301,23 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
   const reveal = renderToStaticMarkup(React.createElement(gravityMazePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: p8, myAnswer: "", myCorrect: false, myMsRemaining: 0 } as never));
   const intro = renderToStaticMarkup(React.createElement(gravityMazePuzzle.IntroExample!));
   for (const [name, html] of [["reveal", reveal], ["intro", intro]] as const) {
-    for (let i = 0; i < 6; i++) check(html.includes(`src="${topsyHoleUrl(i)}"`), `the ${name} doesn't draw cup ${i}`);
+    for (let i = 0; i < 6; i++) check(new RegExp(`class="grav-socket topsy-hole[^"]*" data-topsy-hole="${i}"[^>]*style="--ball:#`).test(html), `the ${name} doesn't draw socket ${i} in its ball's colour`); // Changed with Joe's approval, 22 Nov 2026
   }
   // The board's balls (drawn once the grid is measured) and the intro's after-tilt state carry the marbles: the home
   // balls sit in their cups.
-  check(intro.includes("topsy-sunk") && /src="\/pattern-art\/gravity\/marble-/.test(intro), "the intro's balls home don't draw a marble in their cup");
+  check(/class="grav-ball-face topsy-sunk"/.test(intro) && !/pattern-art\/gravity\/marble-/.test(intro), "the intro's balls home aren't the old gradient balls in their sockets"); // Changed with Joe's approval, 22 Nov 2026
   const board = src("src/components/puzzles/pattern/topsyBoard.tsx");
   // The stage draws the same board view once its space is measured (not in static markup).
   check(stage.includes("data-topsy-head") && /<TopsyBoardView\s+key=\{shown\}/.test(board), "the stage doesn't draw the board view");
-  check(/<TopsyMarble index=\{index\} \/>/.test(board), "the board's balls don't draw the marble sprite");
+  check(!/<TopsyMarble/.test(board) && /className=\{`grav-ball topsy-ball/.test(board), "the board's balls aren't the old gradient balls"); // Changed with Joe's approval, 22 Nov 2026
   check(topsyMarbleUrl(0).endsWith("marble-yellow.webp") && topsyHoleUrl(5).endsWith("hole-orange.webp"), "the sprite colours aren't in ball order");
   const css = src("src/polish-pattern/topsy.css");
-  for (const url of [TOPSY_BLOCK_URL, TOPSY_FLOOR_URL, TOPSY_FRAME_URL]) check(css.includes(`url("${url}")`), `topsy.css doesn't draw ${url}`);
+  check(!/url\("\/pattern-art\/gravity\//.test(css) && /\.grav-ball \{[^}]*radial-gradient/.test(src("src/polish-pattern/gravity.css")), "topsy.css draws the sprites, or gravity.css's gradient balls are gone"); // Changed with Joe's approval, 22 Nov 2026
   const art = css.slice(css.indexOf("The Pattern overhaul"));
-  check(!/topsy-[a-z]+[^{]*\{[^}]*drop-shadow\(0 0 /.test(art) && /\.grav-ball\.is-locked \{\s*filter: drop-shadow\(0 2px 2px/.test(art), "a glow is still on a Topsy-Turvy ball");
+  check(!/topsy-[a-z]+[^{]*\{[^}]*drop-shadow\(0 0 /.test(art), "a glow is still on a Topsy-Turvy ball"); // Changed with Joe's approval, 22 Nov 2026
+  // A ball home reads as locked, unlike a loose one: its socket takes the lit ring and glow in the ball's colour and the
+  // ball sits sunk in it (the old look; added on Joe's request, 22 Nov 2026).
+  check(/class="grav-socket topsy-hole is-locked is-home"[^>]*>[\s\S]*?class="grav-ball-face topsy-sunk"/.test(intro) && /\.grav-socket\.is-locked \{[^}]*0 0 0 2\.5px var\(--ball\)[^}]*0 0 9px/.test(src("src/polish-pattern/gravity.css")) && !/\.topsy-hole\.is-home \{[^}]*box-shadow/.test(css), "a ball home isn't shown locked (its socket's lit ring and glow, the ball sunk in it)"); // Added on Joe's request, 22 Nov 2026
 }
 
 /* ---------------------------------------------------------------- 8. sound */

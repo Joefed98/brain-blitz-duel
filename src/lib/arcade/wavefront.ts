@@ -7,7 +7,7 @@
  * generator carried in the state; all positions are integers in 1/256 px.
  */
 
-import { retroLevelSettings, withRetroLevel, type WavefrontLv } from "./retroLevels";
+import { retroLevelSettings, withRetroLevel, WAVEFRONT_LEVELS_WIDE, type WavefrontLv, type WavefrontLvWide } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -276,8 +276,13 @@ export interface WavBoss {
 export interface WavState extends BandFields {
   /** wavRev 15 only (the Retro overhaul, stage 3): 1 = the larger hit cells (WAV_V15_HIT_PAD on every side). */
   big?: number;
-  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
-  lv?: WavefrontLv;
+  /** wavRev 16 only (the wider formation): 1 = the grid on WAV_V16_PITCH_X and the wider shapes (WAV_FORMS_W). */
+  wide?: number;
+  /**
+   * Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. On
+   * wavRev 16 (`wide`) they are WAVEFRONT_LEVELS_WIDE's (the fire table and the full lines too).
+   */
+  lv?: WavefrontLv | WavefrontLvWide;
   /** wavRev 2 only (absent on original rounds). */
   rev?: number;
   /** wavRev 2: fly-in ticks left (formation or boss), the formation's resting fy, divers, the dive timer. */
@@ -490,7 +495,12 @@ export function wavShapeBox(state: WavState, index: number): { x: number; y: num
   if (form) return { x: state.fx + form[index]![0], y: state.fy + form[index]![1] };
   const row = Math.trunc(index / WAV_COLS);
   const col = index % WAV_COLS;
-  return { x: state.fx + col * PITCH_X, y: state.fy + row * PITCH_Y };
+  return { x: state.fx + col * wavPitchX(state), y: state.fy + row * PITCH_Y };
+}
+
+/** The grid's column pitch (px) in a state: 44, or wavRev 16's wider WAV_V16_PITCH_X. */
+export function wavPitchX(state: { wide?: number }): number {
+  return state.wide ? WAV_V16_PITCH_X : PITCH_X;
 }
 
 function step(state: WavState, input: ArcadeInputEvent | null): WavState {
@@ -1098,6 +1108,8 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     }
     // wavRev 15 (the Retro overhaul, stage 3): the larger hit cells' marker, last.
     if (state.big) extra.push(state.big);
+    // wavRev 16 (the wider formation): its marker, last.
+    if (state.wide) extra.push(state.wide);
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1324,6 +1336,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null, level?: Level | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_WIDE) return wavefrontWideFor(level);
   if (rev === WAV_REV_BIG) return wavefrontBigFor(level);
   if (rev === WAV_REV_CHARGE) return wavefrontChargeGame;
   if (rev === WAV_REV_KEEP) return wavefrontKeepGame;
@@ -1433,6 +1446,8 @@ export function wavFormSize(wave: number): { w: number; h: number } {
 /** The current wave's shape (wavRev 4, waves 2–5), or null for the grid. */
 export function wavForm(state: { shaped?: number; tunec?: number; wave: number }): readonly (readonly [number, number])[] | null {
   if (!state.shaped || state.wave < 2 || state.wave > wavWaves(state)) return null;
+  // wavRev 16: the wider shapes (and their escorts).
+  if ((state as { wide?: number }).wide) return WAV_FORMS_XW[state.wave] ?? null;
   return ((state as { x10?: number }).x10 ? WAV_FORMS_X : WAV_FORMS)[state.wave] ?? null;
 }
 
@@ -1509,7 +1524,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP || rev === WAV_REV_CHARGE || rev === WAV_REV_BIG) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP || rev === WAV_REV_CHARGE || rev === WAV_REV_BIG || rev === WAV_REV_WIDE) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -1830,7 +1845,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     let hi = -WAV_WORLD_W;
     s.shapes.forEach((code, i) => {
       if (code === 0) return;
-      const ox = form ? form[i]![0] : (i % WAV_COLS) * PITCH_X;
+      const ox = form ? form[i]![0] : (i % WAV_COLS) * wavPitchX(s);
       lo = Math.min(lo, ox);
       hi = Math.max(hi, ox);
     });
@@ -1862,16 +1877,18 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.fireIn = WAV_X_FIRE_EVERY;
   }
 
-  // Divers (from wave 3), as wavRev 5.
+  // Divers (from wave 3), as wavRev 5. wavRev 16 at a level: from the level's wave (none on Easy), two at once from its
+  // own (wavWideLv; Normal and every older revision exactly as before).
+  const lvW = wavWideLv(s);
   if (!entering && !s.boss) {
     s.diveIn = (s.diveIn ?? 0) - 1;
-    if (s.wave >= WAV_DIVE_FROM_WAVE && (s.diveIn ?? 0) <= 0) {
-      s.diveIn = wavDiveEvery(s.wave);
+    if ((lvW ? lvW.diveFrom > 0 && s.wave >= lvW.diveFrom : s.wave >= WAV_DIVE_FROM_WAVE) && (s.diveIn ?? 0) <= 0) {
+      s.diveIn = lvW ? wavDiveEveryFrom(s.wave, lvW.diveFrom) : wavDiveEvery(s.wave);
       const pool: number[] = [];
       s.shapes.forEach((code, i) => {
         if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i)) pool.push(i);
       });
-      if (pool.length > 1 && (s.divers ?? []).length < wavMaxDivers(s.wave)) {
+      if (pool.length > 1 && (s.divers ?? []).length < (lvW ? (s.wave >= lvW.diveTwoFrom ? 2 : 1) : wavMaxDivers(s.wave))) {
         const pick = rngBelow(s.rng, pool.length);
         const sway = rngBelow(pick.state, 81);
         const lead = rngBelow(sway.state, 61);
@@ -1939,7 +1956,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       const sides = [0, 1].filter((k) => guns[k]! > 0).map((k) => wavCannonX(boss, k));
       const centre = w / 2;
       const all = pattern.value === 0 ? [...sides, centre] : pattern.value === 1 ? sides : [clampInt(s.shipX - boss.x, 8, w - 8)];
-      for (const gx of all.length ? all : [centre]) if (s.reds.length < MAX_RED) s.reds.push({ x: (boss.x + gx) * FP, y: muzzle });
+      for (const gx of all.length ? all : [centre]) if (s.reds.length < (lvW ? lvW.maxRed : MAX_RED)) s.reds.push({ x: (boss.x + gx) * FP, y: muzzle });
     }
   }
 
@@ -2134,22 +2151,25 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.shapes.forEach((code, i) => {
       if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i) && rowOf(i) >= lowest - 1) shooters.push(i);
     });
-    let volley = 1;
-    if (s.wave >= DOUBLE_FROM_WAVE) {
-      const roll = rngBelow(s.rng, 3);
-      s.rng = roll.state;
-      if (roll.value === 0) volley = 2;
-    }
-    let usedCol = -1;
-    for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
-      const pool = shooters.filter((i) => colOf(i) !== usedCol);
-      if (pool.length === 0) break;
-      const pick = rngBelow(s.rng, pool.length);
-      s.rng = pick.state;
-      const index = pool[pick.value] ?? 0;
-      usedCol = colOf(index);
-      const box = wavShapeBox(s, index);
-      s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+    if (lvW) wavWideVolley(s, lvW, shooters, colOf);
+    else {
+      let volley = 1;
+      if (s.wave >= DOUBLE_FROM_WAVE) {
+        const roll = rngBelow(s.rng, 3);
+        s.rng = roll.state;
+        if (roll.value === 0) volley = 2;
+      }
+      let usedCol = -1;
+      for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
+        const pool = shooters.filter((i) => colOf(i) !== usedCol);
+        if (pool.length === 0) break;
+        const pick = rngBelow(s.rng, pool.length);
+        s.rng = pick.state;
+        const index = pool[pick.value] ?? 0;
+        usedCol = colOf(index);
+        const box = wavShapeBox(s, index);
+        s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+      }
     }
     s.redIn = Math.max(RED_MIN, s.redBase - Math.trunc((s.redBase * tick) / (2 * runTicks)));
   }
@@ -2182,7 +2202,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       s.redSpeed = Math.min(s.lv ? Math.trunc((WAV_X_RED_CAP * s.lv.boltPct) / 100) : WAV_X_RED_CAP, Math.trunc((s.redSpeed * 115) / 100));
     }
     s.divers = [];
-    s.diveIn = wavDiveEvery(s.wave);
+    s.diveIn = lvW ? wavDiveEveryFrom(s.wave, Math.max(1, lvW.diveFrom)) : wavDiveEvery(s.wave);
     s.enter = WAV_BREATHER_TICKS;
     s.armour = null;
     s.waveKills = 0;
@@ -2203,7 +2223,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       for (let i = 0; i < cells; i++) s.shapes[i] = WAV_ARMOUR_CODE;
       s.armour = { col: 0, row: 0, w: cells / 2, h: 2, hp, maxHp: hp };
       if (s.r11) s.carry = wavCarriers(s.seed ?? 0, s.wave, cells);
-      const size = wavFormSizeX(s.wave);
+      const size = s.wide ? wavFormSizeXW(s.wave) : wavFormSizeX(s.wave);
       s.fx = Math.trunc((WAV_WORLD_W - size.w) / 2);
       s.fyTarget = START_Y + (s.wave - 2) * WAV_FORM_STEP_Y;
       s.fy = s.fyTarget - ENTRY_DIST;
@@ -2493,8 +2513,9 @@ export function wavStdScore(s: WavState): StdBreakdown {
     features: {
       boss: killed ? 10 : 0,
       speed: killed ? stdSpeed(10, fight, s.lv ? s.lv.killS * TICKS_PER_SECOND : WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
-      saucers: stdLine(20, wavStdSaucers(s), WAV_X_SAUCERS),
-      weak: stdLine(10, wavStdWeakPoints(s), WAV_STD_WEAK_POINTS),
+      // wavRev 16 (D5, 23 Nov 2026): the saucers and the weak points full at Normal's (or the level's) own lines.
+      saucers: stdLine(20, wavStdSaucers(s), s.wide ? wavWideFullLines(s).saucers : WAV_X_SAUCERS),
+      weak: stdLine(10, wavStdWeakPoints(s), s.wide ? wavWideFullLines(s).weak : WAV_STD_WEAK_POINTS),
     },
     // wavRev 13: the life that ends the run is not charged, and lives never take more than half the core.
     penalty: s.keep ? stdCappedPenalty(WAV_STD_LIFE_COST * stdLivesCharged(lost, s.lives <= 0), core) : WAV_STD_LIFE_COST * lost,
@@ -2506,7 +2527,7 @@ export function wavefrontStdParts(state: WavState): BandParts {
   const score = wavStdScore(state);
   const charged = stdLivesCharged(lost, state.lives <= 0);
   return stdBandParts(
-    state.keep ? WAVEFRONT_STD_KEEP : WAVEFRONT_STD,
+    state.wide ? WAVEFRONT_STD_WIDE : state.keep ? WAVEFRONT_STD_KEEP : WAVEFRONT_STD,
     score,
     wavStdUnits(state),
     `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.armourHits} armour hits · gunship ${Math.min(state.bossDmg ?? 0, WAV_X_MID_HP)}/${WAV_X_MID_HP}`,
@@ -2604,6 +2625,166 @@ function wavefrontBigFor(level?: Level | null): ArcadeGame<WavState, ArcadeInput
   if (!game) {
     game = withRetroLevel<WavState, WavefrontLv, typeof wavefrontBigGame>(wavefrontBigGame, lv, (state, l) => ({ ...state, lives: l.lives, redSpeed: Math.trunc((state.redSpeed * l.boltPct) / 100) }));
     wavefrontBigByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/* ================= The wider formation (wavRev 16, D5, 22 Nov 2026) ================= */
+
+/**
+ * wavRev 16 (Joe, 20 Nov 2026: "the wider formation", earlier plan C1.6; docs/arcade-standard/wavefront.md "wavRev 16"):
+ * wavRev 15's world, waves, bosses, charged shot, larger hit cells, levels, parts and scoring exactly, with the formation
+ * spread wider so it fills more of the 390 px sky. Wave 1's 6 × 6 grid sits on a WAV_V16_PITCH_X (52 px) column pitch
+ * instead of 44 (288 px wide instead of 248, centred), and each shaped wave (2–5) has its outline ships spread about the
+ * shape's centre until the shape is WAV_V16_FORM_W (326 px) wide (WAV_FORMS_W; was 306, 288, 290 and 306). The plan's
+ * first recipe, the shapes spread by the pitch's 52 / 44 (336–356 px), left the march 18 px of room on waves 2 and 5, so
+ * the formation dropped every second step and reached the ship's line on 1 run in 5 of the Average player's at Normal
+ * (docs/arcade-standard/wavefront.md "wavRev 16"); 326 px keeps 48 px, six steps a pass. The armour core keeps its 44 px
+ * pitch (the warship is drawn over its cells as before) with its centre moved by the same spread; the escorts spread under
+ * the wider shape as before (WAV_FORMS_XW). Everything that places a ship reads the state's geometry (wavShapeBox,
+ * wavForm, wavPitchX): the hit boxes, the divers' starts and returns, the march's wall limits, enemy fire's columns, the
+ * wave's centring. The boss and the gunship are centred on the world, as before. Rows (PITCH_Y), the march step, the drops
+ * and every seeded draw are unchanged. States add `wide: 1`, folded into the checkpoint checksum last. Rooms deal it only
+ * on seeds whose witness, the flawless player held to the human limits, scores exactly 200 through the server replay at
+ * every level (wavefrontDealV16.server.ts, scripts/wavefront-wide-deal.ts).
+ */
+export const WAV_REV_WIDE = 16;
+export const WAV_V16_PITCH_X = 52;
+/** wavRev 16: wave 1's grid starts here, centred in the world (51 px). */
+export const WAV_V16_START_X = Math.trunc((WAV_WORLD_W - ((WAV_COLS - 1) * WAV_V16_PITCH_X + WAV_CELL)) / 2);
+/** wavRev 16: every shaped wave's width (px). */
+export const WAV_V16_FORM_W = 326;
+/**
+ * wavRev 16's shaped waves (from WAV_FORMS by the rule above, in whole px rounded half up, then moved so the leftmost box
+ * is at 0): an outline ship at x goes to cx + (x − cx) × (WAV_V16_FORM_W − 28) / (w − 28), cx the shape's centre and w its
+ * width today; the armour core (its first slots) keeps its cells' 44 px spacing and moves its centre by the same factor.
+ * Rows are unchanged. Index 0–1 are unused (wave 1 is the grid).
+ */
+export const WAV_FORMS_W: readonly (readonly (readonly [number, number])[])[] = [
+  [],
+  [],
+  // Wave 2: triangle, 326 px wide (was 306; spread 298 / 278), 2 × 2 armour core.
+  [
+    [127, 44], [171, 44], [127, 80], [171, 80], [149, 186], [131, 163], [111, 140], [93, 116], [75, 93], [56, 70],
+    [38, 47], [19, 23], [0, 0], [30, 0], [60, 0], [90, 0], [119, 0], [149, 0], [179, 0], [208, 0],
+    [238, 0], [268, 0], [298, 0], [279, 23], [260, 46], [242, 70], [223, 93], [205, 116], [187, 139], [167, 163],
+  ],
+  // Wave 3: circle, 326 px wide (was 288; spread 298 / 260), 3 × 2 armour core.
+  [
+    [105, 84], [149, 84], [193, 84], [105, 120], [149, 120], [193, 120], [149, 0], [188, 3], [224, 14], [254, 30],
+    [279, 51], [293, 76], [298, 102], [293, 128], [279, 153], [254, 174], [224, 190], [188, 201], [149, 204], [110, 201],
+    [75, 190], [44, 174], [19, 153], [5, 128], [0, 102], [5, 76], [19, 51], [44, 30], [75, 14], [110, 3],
+  ],
+  // Wave 4: pentagon, 326 px wide (was 290; spread 298 / 262), 4 × 2 armour core.
+  [
+    [83, 73], [127, 73], [171, 73], [215, 73], [83, 109], [127, 109], [171, 109], [215, 109], [149, 203], [119, 188],
+    [90, 172], [59, 157], [30, 141], [0, 126], [14, 94], [28, 63], [42, 32], [57, 0], [102, 0], [149, 0],
+    [196, 0], [241, 0], [256, 32], [270, 63], [284, 94], [298, 126], [268, 141], [239, 157], [208, 172], [179, 188],
+  ],
+  // Wave 5: octagon, 326 px wide (was 306; spread 298 / 278), 5 × 2 armour core.
+  [
+    [61, 82], [105, 82], [149, 82], [193, 82], [237, 82], [61, 118], [105, 118], [149, 118], [193, 118], [237, 118],
+    [210, 0], [239, 20], [269, 39], [298, 59], [298, 100], [298, 141], [269, 161], [239, 180], [210, 200], [149, 200],
+    [88, 200], [59, 180], [29, 161], [0, 141], [0, 100], [0, 59], [29, 39], [59, 20], [88, 0], [149, 0],
+  ],
+];
+
+function formExtent(form: readonly (readonly [number, number])[]): { w: number; h: number } {
+  let w = 0;
+  let h = 0;
+  for (const [x, y] of form) {
+    w = Math.max(w, x + WAV_CELL);
+    h = Math.max(h, y + WAV_CELL);
+  }
+  return { w, h };
+}
+
+/** wavRev 16: the wider shapes with six escorts in a row under each, spread as WAV_FORMS_X spreads them. */
+export const WAV_FORMS_XW: readonly (readonly (readonly [number, number])[])[] = WAV_FORMS_W.map((form) => {
+  if (!form.length) return form;
+  const { w, h } = formExtent(form);
+  const escorts = Array.from({ length: WAV_X_ESCORTS }, (_, k) => [Math.round((k * (w - WAV_CELL)) / (WAV_X_ESCORTS - 1)), h + WAV_X_ESCORT_GAP] as const);
+  return [...form, ...escorts];
+});
+
+/** wavRev 16: a wider shaped wave's extent with its escorts. */
+export function wavFormSizeXW(wave: number): { w: number; h: number } {
+  return formExtent(WAV_FORMS_XW[wave]!);
+}
+
+/**
+ * wavRev 16's Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp; Joe's rule of 23 Nov 2026: each feature's
+ * full line at about what the realistic elite takes on three runs in four; docs/arcade-standard/wavefront.md "Levels (D5,
+ * 23 Nov 2026)"): the saucers part is full at WAV_V16_SAUCERS_FULL of the 5 a run flies (5 a saucer) and the cannons and
+ * weak points at WAV_V16_WEAK_FULL of the 6 (2 each); the core, the boss's parts and the lives as wavRev 15. A level
+ * carries its own two lines (WAVEFRONT_LEVELS_WIDE).
+ */
+export const WAV_V16_SAUCERS_FULL = 4;
+export const WAV_V16_WEAK_FULL = 5;
+export const WAVEFRONT_STD_WIDE: StdSpec = {
+  ...WAVEFRONT_STD_KEEP,
+  rev: WAV_REV_WIDE,
+  parts: WAVEFRONT_STD_KEEP.parts.map((p) => (p.key === "saucers" ? { ...p, of: WAV_V16_SAUCERS_FULL } : p.key === "weak" ? { ...p, of: WAV_V16_WEAK_FULL } : p)),
+};
+
+/** wavRev 16 at a level: its settings with the fire table (null at Normal and on every older revision). */
+export function wavWideLv(s: { wide?: number | undefined; lv?: WavefrontLv | WavefrontLvWide | undefined }): WavefrontLvWide | null {
+  return s.wide && s.lv && "volley" in s.lv ? s.lv : null;
+}
+/** wavRev 16: the saucers and the cannons-and-weak-points parts' full lines (the level's, else Normal's). */
+export function wavWideFullLines(s: { wide?: number | undefined; lv?: WavefrontLv | WavefrontLvWide | undefined }): { saucers: number; weak: number } {
+  const lv = wavWideLv(s);
+  return { saucers: lv?.saucersFull ?? WAV_V16_SAUCERS_FULL, weak: lv?.weakFull ?? WAV_V16_WEAK_FULL };
+}
+/** wavRev 16 at a level: ticks between dives, 160 on the level's first diving wave, 20 fewer each wave after, never under 100. */
+export function wavDiveEveryFrom(wave: number, from: number): number {
+  return Math.max(100, 160 - 20 * (wave - from));
+}
+/**
+ * wavRev 16 at a level: one volley of enemy fire. The level's bolts a volley, one more from wave `upFrom` on one volley
+ * in `upOdds` (a seeded roll, as Normal's second bolt from wave 3), each from a different column of the lowest two rows,
+ * while fewer than the level's `maxRed` are in the air.
+ */
+function wavWideVolley(s: WavState, lv: WavefrontLvWide, shooters: readonly number[], colOf: (i: number) => number): void {
+  let volley = lv.volley;
+  if (lv.upFrom > 0 && s.wave >= lv.upFrom) {
+    if (lv.upOdds <= 1) volley += 1;
+    else {
+      const roll = rngBelow(s.rng, lv.upOdds);
+      s.rng = roll.state;
+      if (roll.value === 0) volley += 1;
+    }
+  }
+  const used: number[] = [];
+  for (let shot = 0; shot < volley && s.reds.length < lv.maxRed; shot++) {
+    const pool = shooters.filter((i) => !used.includes(colOf(i)));
+    if (pool.length === 0) break;
+    const pick = rngBelow(s.rng, pool.length);
+    s.rng = pick.state;
+    const index = pool[pick.value] ?? 0;
+    used.push(colOf(index));
+    const box = wavShapeBox(s, index);
+    s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+  }
+}
+
+export const wavefrontWideGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontBigGame,
+  init: (seed: number) => ({ ...wavefrontBigGame.init(seed), wide: 1, fx: WAV_V16_START_X }),
+};
+
+const wavefrontWideByLevel = new Map<string, ArcadeGame<WavState, ArcadeInputEvent | null>>();
+/**
+ * wavRev 16 at a level (D5, 23 Nov 2026): WAVEFRONT_LEVELS_WIDE, wavRev 15's lives, bolt speed, boss and kill time plus the
+ * fire table (bolts a volley, the most in the air, the divers) and the level's full lines; wavRev 15 keeps WAVEFRONT_LEVELS.
+ */
+function wavefrontWideFor(level?: Level | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  const lv = level === "easy" || level === "hard" || level === "expert" ? WAVEFRONT_LEVELS_WIDE[level] : null;
+  if (!lv) return wavefrontWideGame;
+  let game = wavefrontWideByLevel.get(level!);
+  if (!game) {
+    game = withRetroLevel<WavState, WavefrontLvWide, typeof wavefrontWideGame>(wavefrontWideGame, lv, (state, l) => ({ ...state, lives: l.lives, redSpeed: Math.trunc((state.redSpeed * l.boltPct) / 100) }));
+    wavefrontWideByLevel.set(level!, game);
   }
   return game;
 }

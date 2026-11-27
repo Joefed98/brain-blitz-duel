@@ -1,0 +1,21 @@
+/**
+ * Grappler's ladder deals (swingRev 19, D5 23 Nov 2026; built by `bun scripts/swing-ladder-deal.ts --level=<level>`, do not
+ * edit): each level's course seeds, each proved at its level: the proof player (the flawless skill-band level held to Joe's
+ * human limits, 0.25 s to react and 0.15 s to move) plays the course built from the seed at the level and the server's
+ * grade of its log (gradeAnswer on the dealt puzzle) is exactly 200, unflagged (witnesses in
+ * scripts/fixtures/swing-ladder-<level>-witness.json.gz; `--check` replays them).
+ * easy: 24 courses; 1 of the first 25 candidates dropped.
+ * normal: 40 courses; 26 of the first 66 candidates dropped.
+ * hard: 24 courses; 6 of the first 30 candidates dropped.
+ * expert: 24 courses; 11 of the first 35 candidates dropped.
+ */
+import type { SwingLadderLevel } from "@/lib/arcade/swing";
+
+export const SWING_LADDER_DEAL: Readonly<Record<SwingLadderLevel, readonly number[]>> = {"easy":[1854138862,1560728537,80672385,973907887,382021995,484615669,1174098453,527841388,564527562,975730039,671179766,1476148260,1016721782,843969757,2037254900,1116863695,1129120656,1322507854,310905574,416796831,2136570838,1694022770,64272558,454425630],"normal":[1854138862,1560728537,80672385,382021995,1174098453,564527562,975730039,1476148260,1016721782,843969757,2037254900,1116863695,1048538606,1322507854,2136570838,64272558,454425630,1899625500,978677670,818620931,239897140,617734117,709200764,2057793175,1492875028,1110877598,1089691770,1914043140,1264209231,2132006950,2002583748,720016254,477550432,1873965341,1647052256,1963973297,1794063733,1620108448,1640897013,755039747],"hard":[1854138862,1560728537,973907887,382021995,484615669,527841388,564527562,975730039,671179766,1476148260,843969757,2037254900,1116863695,1129120656,1322507854,310905574,2136570838,1694022770,64272558,454425630,225645145,510124047,1899625500,286650877],"expert":[1560728537,973907887,484615669,1174098453,527841388,564527562,975730039,671179766,1476148260,1016721782,843969757,2037254900,1116863695,1048538606,1322507854,416796831,2136570838,1694022770,64272558,225645145,1899625500,286650877,519412512,239897140]};
+
+/** The course a room seed deals at a ladder level on swingRev 19. */
+export function swingLadderDealSeed(level: SwingLadderLevel, roomSeed: number): number {
+  const list = SWING_LADDER_DEAL[level];
+  const n = list.length;
+  return list[((Math.trunc(roomSeed) % n) + n) % n]!;
+}
