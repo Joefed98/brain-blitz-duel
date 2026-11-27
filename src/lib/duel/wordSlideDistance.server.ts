@@ -9,25 +9,28 @@
  */
 import { WS_SIZE } from "./wordSlide";
 
-/** The 20 free shifts as index maps: next[k] = grid[from[k]]. */
-const SHIFTS: readonly Int8Array[] = (() => {
+/** The 4 × size free shifts of a size × size grid as index maps: next[k] = grid[from[k]] (Normal's 20 at 5). */
+function shiftsFor(size: number): readonly Int8Array[] {
   const out: Int8Array[] = [];
   for (const axis of ["r", "c"] as const) {
-    for (let index = 0; index < WS_SIZE; index++) {
+    for (let index = 0; index < size; index++) {
       for (const dir of [1, -1]) {
-        const from = new Int8Array(WS_SIZE * WS_SIZE);
+        const from = new Int8Array(size * size);
         for (let i = 0; i < from.length; i++) from[i] = i;
-        for (let k = 0; k < WS_SIZE; k++) {
-          const src = (k - dir + WS_SIZE) % WS_SIZE;
-          if (axis === "r") from[index * WS_SIZE + k] = index * WS_SIZE + src;
-          else from[k * WS_SIZE + index] = src * WS_SIZE + index;
+        for (let k = 0; k < size; k++) {
+          const src = (k - dir + size) % size;
+          if (axis === "r") from[index * size + k] = index * size + src;
+          else from[k * size + index] = src * size + index;
         }
         out.push(from);
       }
     }
   }
   return out;
-})();
+}
+const SHIFTS_BY_SIZE = new Map<number, readonly Int8Array[]>([[WS_SIZE, shiftsFor(WS_SIZE)]]);
+/** Level grids (D1, 21 Nov 2026; wordSlideRev 7): 4 × 4 to 7 × 7, the size read from the grid's length. */
+const SIZE_OF_CELLS = new Map<number, number>([[16, 4], [25, 5], [36, 6], [49, 7]]);
 
 function shifted(state: string, from: Int8Array): string {
   let s = "";
@@ -40,8 +43,11 @@ function shifted(state: string, from: Int8Array): string {
  * (none from a replay) are null.
  */
 export function wordSlideDistance(grid: readonly string[], goal: readonly string[], limit: number): number | null {
-  const n = WS_SIZE * WS_SIZE;
+  const size = SIZE_OF_CELLS.get(grid.length) ?? WS_SIZE;
+  const n = size * size;
   if (grid.length !== n || goal.length !== n || !(limit >= 0)) return null;
+  if (!SHIFTS_BY_SIZE.has(size)) SHIFTS_BY_SIZE.set(size, shiftsFor(size));
+  const SHIFTS = SHIFTS_BY_SIZE.get(size)!;
   const a = grid.join("");
   const b = goal.join("");
   if (a.length !== n || b.length !== n) return null;

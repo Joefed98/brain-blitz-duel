@@ -23,6 +23,11 @@ export const CODEWORD_REV = 3;
 /** Word depth to 200 (25 Oct 2026): rev 3's board and rules, scored to 200 (depth/codeword.server.ts). */
 export const CODEWORD_DEPTH_REV = 4;
 export const CW_SIZE = 7;
+
+/** A board's rows (D1, 21 Nov 2026): a level's wider grid stores `rows`; every other board is square (`size` × `size`). */
+export function codewordRowsOf(puzzle: { size: number; rows?: number }): number {
+  return typeof puzzle.rows === "number" && puzzle.rows > 0 ? puzzle.rows : puzzle.size;
+}
 /** Givens in every bank entry (and on rev-1 boards). */
 export const CW_GIVENS = 4;
 
@@ -144,14 +149,19 @@ export interface CwRun {
   cells: number[];
 }
 
-/** Every across and down run of two or more white cells. */
-export function codewordRuns(cells: readonly number[], size: number): CwRun[] {
+/**
+ * Every across and down run of two or more white cells. `size` is the grid's width (its columns) and `rows` its height
+ * (D1, 21 Nov 2026: a level's wider grid, Hard 8 × 7 and Expert 9 × 7); square (rows = size) unless a board says.
+ */
+export function codewordRuns(cells: readonly number[], size: number, rows: number = size): CwRun[] {
   const runs: CwRun[] = [];
   for (const across of [true, false]) {
-    for (let line = 0; line < size; line++) {
+    const lines = across ? rows : size;
+    const length = across ? size : rows;
+    for (let line = 0; line < lines; line++) {
       let run: number[] = [];
-      for (let k = 0; k <= size; k++) {
-        const cell = k < size ? (across ? line * size + k : k * size + line) : -1;
+      for (let k = 0; k <= length; k++) {
+        const cell = k < length ? (across ? line * size + k : k * size + line) : -1;
         if (cell >= 0 && cells[cell]! > 0) run.push(cell);
         else {
           if (run.length >= 2) runs.push({ across, cells: run });

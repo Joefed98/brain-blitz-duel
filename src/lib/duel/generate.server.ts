@@ -28,6 +28,7 @@ import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
 import { dealPyramidPartial } from "./pyramidPartial";
 import { dealBallparkBullseyes } from "./ballparkBullseyes";
+import { dealWordStar } from "./wordStar";
 import { dealD3Speed } from "./d3Normal";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
@@ -234,6 +235,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "d3Speed", deal: dealD3Speed },
   // D3 (22 Nov 2026, d3Attention.ts): Labyrinth mazeRev 6 (speed full by 34 s), Joe's approved Normal scoring stamp.
   { name: "d3Maze", deal: dealD3Maze },
+  // The open word finds' refit (D1, 21 Nov 2026, wordStar.ts): Nucleus, Forage and Roundabout one stamp up.
+  { name: "wordStar", deal: dealWordStar },
 ];
 
 /**

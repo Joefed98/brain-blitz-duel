@@ -302,7 +302,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Roundabout (letterwheel): 150 + speed 20 (40 s) + bonus jar 30.
   ch("letterwheel", "Jar of five", "Drop five bonus words in the jar.", "C", "target", false, all(f("bonusWords", "gte", 5))),
   ch("letterwheel", "Jar full", "Finish with the jar full; a bonus word adds 1 to 4 drops.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),
-  ch("letterwheel", "Dizzy", "Fill the crossword within 40 s.", "C", "speed", false, speed(20, 40)),
+  ch("letterwheel", "Dizzy", "Fill the crossword within 55 s.", "C", "speed", false, speed(20, 55)),
   // Strikeout (strikeout): 150 + speed 20 (40 s) + early solves 20 + strikes left 10.
   ch("strikeout", "Five for five", "Solve all five words.", "C", "finish", false, all(FIN)),
   ch("strikeout", "Strike light", "Solve all five with two strikes or fewer.", "C", "clean", false, all(FIN, f("strikePoints", "gte", 10))),

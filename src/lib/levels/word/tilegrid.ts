@@ -2,32 +2,39 @@ import type { GameLevels } from "../gameLevels";
 import type { Level } from "../levels";
 
 /**
- * Interlock's levels (the Word overhaul, stage 3, 15 Nov 2026; docs/design/game-reviews/word.md). Plain data only: the
- * phone reads it to draw the level switch, the server to deal (src/lib/duel/levels/tilegrid.server.ts). Normal is today's
- * game (an H of three common 4–7 letter words, fifteen tiles, 100 s).
+ * Interlock's levels (the Word overhaul, stage 3, 15 Nov 2026; redesigned by D1, 21 Nov 2026: difficulty-spec.md
+ * "Interlock"). Plain data only: the phone reads it to draw the level switch, the server to deal
+ * (src/lib/duel/levels/tilegrid.server.ts) and the bank script to build each level's boards
+ * (scripts/tilegrid-level-bank.ts). Normal is today's game (an H of three common 4–7 letter words, fifteen tiles on the
+ * 7 × 7 board, 100 s).
  *
- * Every level keeps the fifteen tiles and the H; what changes is how the words cross and the clock. Easy's two down words
- * cross the across word at their first letters (the across word's letters start each down word, the easiest crossing to
- * spot); Hard's across word is seven letters and each down word crosses it away from both its ends; Expert adds that the
- * two down words never start or end on the crossing and the crossings sit inside the across word, on a shorter clock.
- * Any grid of real words that uses every tile counts as a finish, so the game is open by design.
+ * Tiles in the tray are the ladder (10, 15, 19, 23), each on a board sized for it: Easy two crossing everyday words of 5
+ * and 6 letters on 6 × 6; Hard four crossing words of 5–6 letters on 8 × 8; Expert five on 8 × 8 too, its words lit and bad
+ * runs shown only on Done. Every level deals tileGridRev 5 (the size and tile count stored on the puzzle) from its bank,
+ * boards the person-like builder (scripts/tilegrid-human.ts, never sees the answer) finishes inside the clock; Expert's
+ * only where that builder's line, timed at the human limits, scores 200. Any grid of real words that uses every tile
+ * counts as a finish, so the game is open by design.
  */
 export interface TileGridLevelSettings {
-  /** The across word's length, when the level fixes it. */
-  acrossLen?: number;
-  /** Where each down word may cross: at its first letter, or away from both its ends. */
-  cross: "start" | "inside";
-  /** Keep the crossings off the across word's first and last letters. */
-  innerAcross?: boolean;
+  /** The board's side (stored on the puzzle as `size`). */
+  size: number;
+  /** Tiles in the tray (stored as `tiles`). */
+  tiles: number;
+  /** The crossing words' lengths (their sum, less one shared letter a crossing, is `tiles`). */
+  lengths: readonly number[];
+  /** Words light and bad runs show only on Done (stored as `lightsOnDone`). */
+  lightsOnDone?: boolean;
   timeLimitMs: number;
 }
 
 const OPEN = { open: "Any grid of real words that uses every tile finishes the board, so there is no single answer to prove." } as const;
 
 export const TILEGRID_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, TileGridLevelSettings>> = {
-  easy: { cross: "start", timeLimitMs: 120_000 },
-  hard: { acrossLen: 7, cross: "inside", timeLimitMs: 60_000 },
-  expert: { acrossLen: 7, cross: "inside", innerAcross: true, timeLimitMs: 50_000 },
+  easy: { size: 6, tiles: 10, lengths: [5, 6], timeLimitMs: 120_000 },
+  hard: { size: 8, tiles: 19, lengths: [5, 5, 6, 6], timeLimitMs: 90_000 },
+  // Joe (21 Nov 2026): 8 × 8, as Hard (9 × 9 drew 35 px squares on a 375 × 667 phone, under the 36 px floor); the tray
+  // is the ladder (10 / 15 / 19 / 23).
+  expert: { size: 8, tiles: 23, lengths: [5, 5, 5, 6, 6], lightsOnDone: true, timeLimitMs: 70_000 },
 };
 
 export const TILEGRID_LEVELS: GameLevels | null = {
@@ -40,7 +47,7 @@ export const TILEGRID_LEVELS: GameLevels | null = {
 
 /** One plain line per level beyond Normal: what changes (the game page, the intro and the help say it). */
 export const TILEGRID_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
-  easy: "The two down words start on the across word, with 120 seconds.",
-  hard: "A 7-letter across word, crossed in the middle of the down words, with 60 seconds.",
-  expert: "The crossings hide in the middle of every word, with 50 seconds.",
+  easy: "Ten tiles and two crossing words on a small 6 by 6 board, with 120 seconds.",
+  hard: "Nineteen tiles and four crossing words on an 8 by 8 board, with 90 seconds.",
+  expert: "Twenty-three tiles on the 8 by 8 board, words checked only on Done, and 70 seconds.",
 };
