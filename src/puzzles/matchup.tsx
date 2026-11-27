@@ -64,6 +64,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { puzzleLevel } from "@/lib/levels/levels";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** The run's end: the first goal ticks off this long after the buzzer, the rest this far apart. */
 const GOAL_TICK_FROM_MS = 400;
@@ -88,6 +89,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: MatchupPuzzleData | null = puzzle.type === "matchup" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // matchupRev 13: the stored puzzle's level picks the world (colours, goals, ice, the hint).
@@ -303,19 +305,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const tween = swapTween.current;
           const elapsed = tween ? time - tween.startedAt : 0;
           const swapDuration = MATCHUP_SWAP_MS * (tween?.rejected ? 2 : 1);
-          if (tween && elapsed < swapDuration) {
-            drawMatchupSwap(ctx, state.current, size, tween, elapsed);
-          } else if (constantPlay && time < animUntil.current) {
-            drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
-          } else if (constantPlay) {
-            drawMatchupArt(ctx, state.current, size);
-          } else if (tween && !tween.rejected && time < animUntil.current + MATCHUP_SWAP_MS) {
-            drawMatchupArtAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
-          } else if (!tween && time < animUntil.current) {
-            drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
-          } else {
-            drawMatchupArt(ctx, state.current, size);
-          }
+          hudDraw(() => {
+            if (tween && elapsed < swapDuration) {
+              drawMatchupSwap(ctx, state.current, size, tween, elapsed);
+            } else if (constantPlay && time < animUntil.current) {
+              drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
+            } else if (constantPlay) {
+              drawMatchupArt(ctx, state.current, size);
+            } else if (tween && !tween.rejected && time < animUntil.current + MATCHUP_SWAP_MS) {
+              drawMatchupArtAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
+            } else if (!tween && time < animUntil.current) {
+              drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
+            } else {
+              drawMatchupArt(ctx, state.current, size);
+            }
+          });
           const pick = selected.current;
           if (pick && !matchupGame.isOver(state.current) && (constantPlay || time >= animUntil.current) &&
             (!tween || elapsed >= swapDuration)) {

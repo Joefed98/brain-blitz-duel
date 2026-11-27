@@ -642,6 +642,57 @@
 .arena-status-row[data-tone="warn"] dd {
   color: var(--jz-red);
 }
+/* The arcade canvas HUD's values (ARENA_HUD_IN_PANEL; ArenaGamePanel's HudRows): the same rows as the board's
+   status, a Retro readout (one string) on its own, the run's main count first and larger. */
+.arena-hud,
+.arena-status-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arena-hud + .arena-status-list {
+  border-top: 1px solid var(--jz-line);
+}
+.arena-hud-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) 0;
+  min-width: 0;
+}
+.arena-hud-row + .arena-hud-row {
+  border-top: 1px solid var(--jz-line);
+}
+.arena-hud-label {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+  text-transform: capitalize;
+}
+.arena-hud-value {
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 20px;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.arena-hud-row:not(:has(.arena-hud-label)) .arena-hud-value {
+  text-align: left;
+}
+.arena-hud-row[data-main] .arena-hud-value {
+  font-size: 28px;
+  font-weight: var(--jz-weight-black);
+  line-height: 32px;
+}
+.arena-hud-row[data-gold] .arena-hud-value {
+  color: var(--jz-gold);
+}
 .arena-game-challenges {
   display: flex;
   flex-direction: column;

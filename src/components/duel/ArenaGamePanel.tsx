@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { useGuestLook } from "@/components/nav/AvatarButton";
@@ -16,7 +16,9 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, type ControlScheme } from "@/lib/gameControls";
 
 import { BoardKeys } from "@/components/puzzles/KeyCursor";
+import { readLiveHud, subscribeLiveHud, type LiveHudItem } from "@/lib/rated/liveHud";
 import { readLiveScore, wantLiveScore } from "@/lib/rated/liveScore";
+import { ARENA_HUD_IN_PANEL } from "@/lib/gameFrame/arena";
 
 import { useFrameGoal } from "./GameFrame";
 
@@ -114,7 +116,7 @@ export function ArenaGamePanel({
           {timerNode}
           {scoreNode}
         </section>
-        <BoardStatus className="cab-card arena-game-status" caption="This run" />
+        <BoardStatus className="cab-card arena-game-status" caption="This run" hud />
       </div>
     );
     return (
@@ -143,7 +145,7 @@ export function ArenaGamePanel({
   return (
     <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
       {stats}
-      <BoardStatus />
+      <BoardStatus hud />
       {goalNode}
       {practice && type ? <NextChallenges type={type} /> : null}
       {type ? <ControlsTab type={type} /> : null}
@@ -292,7 +294,46 @@ interface Pill {
  * pills (moves, par, mistakes, lives…), read from the board's own (hidden in the arena, game-fx.css), so each number is
  * on screen once. Shown only when the game has them.
  */
-export function BoardStatus({ className = "arena-game-status", pills: withPills = true, caption }: { className?: string; pills?: boolean; caption?: string } = {}) {
+const NO_HUD: readonly LiveHudItem[] = [];
+
+/**
+ * The arcade canvas HUD's values for the arena's panel (docs/desktop-support.md "The canvas HUD in the panel", item 4):
+ * what the stage's last draw noted (src/lib/rated/liveHud.ts), only while the HUD is drawn in the panel instead of the
+ * world (ARENA_HUD_IN_PANEL), so each value shows once.
+ */
+function useLiveHud(on: boolean): readonly LiveHudItem[] {
+  const items = useSyncExternalStore(subscribeLiveHud, readLiveHud, () => NO_HUD);
+  return on && ARENA_HUD_IN_PANEL ? items : NO_HUD;
+}
+
+/** The HUD's values as rows: label left, value right; a Retro readout (one string, no label) on its own; `main` first and big. */
+function HudRows({ items }: { items: readonly LiveHudItem[] }) {
+  const ordered = [...items.filter((i) => i.main), ...items.filter((i) => !i.main)];
+  return (
+    <ul data-arena-hud className="arena-hud">
+      {ordered.map((item, i) => (
+        <li
+          key={i}
+          className="arena-hud-row"
+          data-arena-hud-item={item.label || item.value}
+          data-main={item.main ? "" : undefined}
+          data-gold={item.gold ? "" : undefined}
+        >
+          {item.label ? <span className="arena-hud-label">{item.label}</span> : null}
+          <span className="arena-hud-value">{item.value}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function BoardStatus({
+  className = "arena-game-status",
+  pills: withPills = true,
+  caption,
+  hud: withHud = false,
+}: { className?: string; pills?: boolean; caption?: string; hud?: boolean } = {}) {
+  const hud = useLiveHud(withHud);
   const [state, setState] = useState<{ progress: string | null; pills: Pill[] }>({ progress: null, pills: [] });
   useEffect(() => {
     const layout = document.querySelector("[data-round-layout]");
@@ -320,7 +361,8 @@ export function BoardStatus({ className = "arena-game-status", pills: withPills 
       cancelAnimationFrame(frame);
     };
   }, [withPills]);
-  if (!state.progress && !state.pills.length) return null;
+  if (!state.progress && !state.pills.length && !hud.length) return null;
+  const hudRows = hud.length ? <HudRows items={hud} /> : null;
   const rows = (
     <>
       {state.progress ? (
@@ -341,10 +383,24 @@ export function BoardStatus({ className = "arena-game-status", pills: withPills 
     return (
       <section aria-label={caption} className={className}>
         <span className="cab-caption">{caption}</span>
-        <dl data-arena-status className="cab-status">
-          {rows}
-        </dl>
+        {hudRows}
+        {state.progress || state.pills.length ? (
+          <dl data-arena-status className="cab-status">
+            {rows}
+          </dl>
+        ) : null}
       </section>
+    );
+  if (hudRows)
+    return (
+      <div className={className}>
+        {hudRows}
+        {state.progress || state.pills.length ? (
+          <dl data-arena-status className="arena-status-list">
+            {rows}
+          </dl>
+        ) : null}
+      </div>
     );
   return (
     <dl data-arena-status className={className}>

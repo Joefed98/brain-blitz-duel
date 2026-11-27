@@ -47,6 +47,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still (rallyRev 10): the pink pads, a gold bonus target with its countdown ring, a return aimed at it. */
 /**
@@ -68,6 +69,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: RallyPuzzleData | null = puzzle.type === "rally" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // The stored revision's game (rallyRev 10 has its own step and its 420-wide court; every earlier one shares rallyGame's).
@@ -188,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) rallyArtGame.draw(context, state.current, size);
+      if (size && context) hudDraw(() => rallyArtGame.draw(context, state.current, size));
 
       frameTiming.rendered();
 

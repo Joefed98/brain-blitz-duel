@@ -37,6 +37,7 @@ import { skylineSounds } from "@/lib/fx/gameSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /**
  * The intro still (the Action overhaul, 15 Nov 2026): the dealt stamp's own art, a fixed seed's tower a few floors up
@@ -65,6 +66,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: SkylinePuzzleData | null = puzzle.type === "skyline" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // Levels (15 Nov 2026): the stored puzzle's level picks the level's slide, tolerance, wind and lives (Normal: none).
@@ -184,7 +186,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) drawSkylineArt(context, state.current, size);
+      if (size && context) hudDraw(() => drawSkylineArt(context, state.current, size));
 
       frameTiming.rendered();
 
