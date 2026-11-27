@@ -72,7 +72,8 @@ eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup re
 // Expansion E6 (25 Oct 2026): Ball Tracker's intro names btRev 7's features; e6-check covers the new rules. Its help named
 // btRev 7's speed line (56.6 s); btRev 8 (the arcade scoring standard, 29 Oct 2026) has no speed part and states its parts.
 for (const [type, text] of [["balltrack", "gold marbles, combos and boosted marbles"], ["junction", "± for ambulances"], ["rally", "pink pads"], ["skyline", "a perfect streak"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-for (const [type, text] of [["matchup", "every gem cleared counts the same"], ["bullseye", "balloons 1 to 3 more"], ["junction", "one stopped takes 4 off"], ["skyline", "Perfect streak: 1 for each perfect drop in your best streak, up to 10."], ["rally", "Gold-ball hits: hit gold balls back"], ["balltrack", "Boosted marbles: "]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+// Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's skylineRev 12 refit): High Rise's streak line reads the dealt spec.
+for (const [type, text] of [["matchup", "every gem cleared counts the same"], ["bullseye", "balloons 1 to 3 more"], ["junction", "one stopped takes 4 off"], ["skyline", "Perfect streak: 2 for each perfect drop in your best streak, all of it at 5 in a row, up to 10."], ["rally", "Gold-ball hits: hit gold balls back"], ["balltrack", "Boosted marbles: "]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
 for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
 // The legacy split figures still hold for stored rounds (they replay on their original rules).

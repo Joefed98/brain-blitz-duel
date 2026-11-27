@@ -48,6 +48,8 @@ import {
   SWING_REV_DARK,
   SWING_REV_SLIDE,
   SWING_REV_BIG,
+  SWING_REV_LADDER,
+  swingLadderLevel,
   swingAnchorAt,
   swingStreakNow,
   SWING_V17_STREAK_BLOCK,
@@ -1060,6 +1062,13 @@ const slideArtGameV17 = { ...swingGameFor(SWING_REV_SLIDE), draw: drawSwingArt }
 const bigArtGameV18 = { ...swingGameFor(SWING_REV_BIG), draw: drawSwingArt };
 const levelArtGames = new Map<string, typeof swingArtGame>();
 export function swingArtGameFor(rev?: number, level?: unknown): typeof swingArtGame {
+  // (swingRev 19, the ladder: the stored level's course and rules, Normal when absent, drawn by swingRev 18's art.)
+  if (rev === SWING_REV_LADDER) {
+    const key = `ladder:${swingLadderLevel(level)}`;
+    let g = levelArtGames.get(key);
+    if (!g) levelArtGames.set(key, (g = { ...swingGameFor(rev, level), draw: drawSwingArt }));
+    return g;
+  }
   // (swingRev 18's levels: the puzzle's stored level's course and rules, drawn by the same art.)
   const lvl = swingPuzzleLevel(rev, level);
   if (lvl) {

@@ -72,7 +72,8 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
   if (game === "pool") {
     const R = await import("../../src/lib/arcade/pool.renderer");
     const P = await import("../../src/lib/arcade/pool");
-    for (const rev of [1, P.POOL_REV]) {
+    // Changed with Joe's approval, 23 Nov 2026 (D6: rooms deal poolRev 5; the recorded frames are poolRev 4's, the same art).
+    for (const rev of [1, P.POOL_REV_V4]) {
       for (const [seed, ticks] of [[3, 0], [11, 200]] as const) {
         const s = run<Parameters<typeof R.drawPool>[1]>(P.poolGameFor(rev) as unknown as Idle, seed, ticks);
         const aim = { dx: 0.6, dy: -0.8, power: 0.4, spinX: 20, spinY: -30 };
@@ -124,7 +125,8 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
   } else if (game === "racing") {
     const R = await import("../../src/lib/arcade/racing.renderer");
     const G = await import("../../src/lib/arcade/racing");
-    for (const rev of [1, G.RACING_REV_DEALT]) {
+    // Changed with Joe's approval, 23 Nov 2026 (D6: rooms deal racingRev 5; the recorded frames are racingRev 4's, the same art).
+    for (const rev of [1, G.RACING_REV_4]) {
       for (const [seed, ticks] of [[4, 0], [6, 900]] as const) {
         const game = G.racingGameFor(rev);
         let s = game.init(seed) as Parameters<typeof R.drawRacingPlay>[1];

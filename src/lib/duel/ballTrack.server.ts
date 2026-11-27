@@ -1,7 +1,9 @@
 import { gameDisplayName } from "./gameNames";
 import { BALL_TRACK_BANK_V7 } from "./ballTrackBankV7.server";
 import type { BallTrackPuzzleData } from "./types";
-import { BT_REV_STD } from "@/lib/arcade/ballTrack";
+import { BT_REV_D6, BT_REV_STD } from "@/lib/arcade/ballTrack";
+import { dealPinned } from "./dealEra";
+import { btD6LevelDeal } from "./ballTrackLevelsD6.server";
 import { BT_V8_DEAL } from "./ballTrackDealV8.server";
 import { btLevelDeal } from "./ballTrackLevels.server";
 import { NORMAL, type Level } from "@/lib/levels/levels";
@@ -10,6 +12,14 @@ import { NORMAL, type Level } from "@/lib/levels/levels";
 export function generateBallTrack(level: Level = NORMAL): BallTrackPuzzleData {
   // Levels (Strategy overhaul stage 3, 15 Nov 2026): Easy, Hard and Expert draw one course from their own proved list
   // (ballTrackLevels.server.ts) with the same single draw; the deal stamps `level` itself. Normal is unchanged below.
+  // D6 (27 Nov 2026): btRev 9, each part full at its level's own figure; the levels deal D6's courses (3 / 5 / 5 colours,
+  // scripts/balltrack-d6-deal.ts). Checks written for btRev 8 pin balltrackPreD6; the levels before D6, d6PreLevels.
+  const before = dealPinned("balltrackPreD6");
+  if (level !== NORMAL && !before && !dealPinned("d6PreLevels") && (level === "easy" || level === "hard" || level === "expert")) {
+    const list = btD6LevelDeal(level);
+    const index = Math.floor(Math.random() * list.length);
+    return { type: "balltrack", seed: index + 1, course: structuredClone(list[index]!), btRev: BT_REV_D6 };
+  }
   if (level !== NORMAL) {
     const list = btLevelDeal(level);
     if (!list.length) throw new Error(`${gameDisplayName("balltrack")} has no ${level} courses`);
@@ -33,6 +43,6 @@ export function generateBallTrack(level: Level = NORMAL): BallTrackPuzzleData {
     // Rev 2 only adds options (turning occupied tubes, switch points), so every banked playbook still proves the course;
     // rev 3 plays rev 2 on the Oct 2026 score bands; rev 4 plays rev 3 on the taller board; rev 7 adds the expansion.
     // btRev 8 (the arcade scoring standard, 29 Oct 2026): btRev 7's play on the same bank, scored to 200 on BT_STD.
-    btRev: BT_REV_STD,
+    btRev: before ? BT_REV_STD : BT_REV_D6,
   };
 }

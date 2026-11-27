@@ -59,6 +59,7 @@ import {
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { replayTiltRun } from "../src/lib/duel/tilt";
+import { TILT_REV_THREE, TILT_V13_BAND_CURVE } from "../src/lib/arcade/tilt";
 import { TILT_BANK } from "../src/lib/duel/tiltBank.server";
 import { TILT_DEAL_V12 } from "../src/lib/duel/tiltDealV12.server";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
@@ -72,6 +73,10 @@ import { roomIdentity } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
 import { dealFileText, tiltDealVerdict, TILT_DEAL_WITNESS, type TiltWitness } from "./tilt-deal";
 import type { StdRun } from "./arcade-standard/entry";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -105,7 +110,8 @@ section("wiring: the deal, the parts, the standard module, the demo and the rend
   }
   ok(TILT_REV_BIG === TILT_REV_PAR + 1, "tiltRev 12 is one above the stamp it replaces");
   const live = LIVE_BANDS.tilt as { field: string; rev: number; curve: typeof TILT_V12_BAND_CURVE };
-  ok(live.field === "tiltRev" && live.rev === TILT_REV_BIG && live.curve === TILT_V12_BAND_CURVE && TILT_V12_BAND_CURVE === TILT_V11_BAND_CURVE, "LIVE_BANDS: tiltRev 12 on tiltRev 11's core line");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): LIVE_BANDS lists tiltRev 13 on the same core line.
+  ok(live.field === "tiltRev" && live.rev === TILT_REV_THREE && live.curve === TILT_V13_BAND_CURVE && TILT_V13_BAND_CURVE === TILT_V12_BAND_CURVE && TILT_V12_BAND_CURVE === TILT_V11_BAND_CURVE, "LIVE_BANDS: tiltRev 13 (since D6) on tiltRev 12's and 11's core line");
   ok(TILT_P_CORE_MAX === 140 && TILT_P_PAR_MAX === 24 && TILT_P_CLEAN_POINTS === 12 && TILT_P_SPEED_POINTS === 24 && TILT_P_CORE_MAX + TILT_P_PAR_MAX + TILT_P_CLEAN_POINTS + TILT_P_SPEED_POINTS === 200, "parts: core 140, par 24, clean 12, speed 24 = 200");
   ok(v12.score === tiltParScore && ROUND_MAX.tilt === 200, "tiltRev 12 scores with tiltRev 11's parts; ROUND_MAX 200");
   ok(tiltWorldHFor(TILT_REV_BIG) === TILT_X_H && tiltIsExpand(TILT_REV_BIG), "tiltRev 12 plays in the expansion's world");
@@ -113,12 +119,13 @@ section("wiring: the deal, the parts, the standard module, the demo and the rend
   // Text pass (4 Nov 2026): one line a part, then the total.
   for (const [label, max] of [["Mazes", 140], ["Par times", 24], ["Clean run", 12], ["Speed", 24]] as const) ok(hasScorePart(help, label, max), `the help says "${label}: …, up to ${max}."`);
   ok(help.endsWith("Total 200."), "the help ends with its total");
-  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names tiltRev 12");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): the standard module names tiltRev 13.
+  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_THREE, "the standard module names tiltRev 13 (since D6; its perfect runs are the tiltRev 13 deal's witnesses)");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts");
   const perfect = entry.perfect() as StdRun[];
   ok(perfect.length >= 1 && perfect.every((r) => r.score === 200 && entry.parts.every((p) => r.parts?.[p.key] === p.max)), `the standard module's perfect runs: 200 with every part full (${JSON.stringify(perfect)})`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo plays only when recorded on tiltRev 12");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 13 (D6)"); // Changed with Joe's approval, 23 Nov 2026
   const server = readFileSync("src/lib/duel/arcade.server.ts", "utf8");
   ok(/TILT_DEAL_V12\[/.test(server) && /tiltRev: TILT_REV_BIG/.test(server), "generateTilt deals TILT_DEAL_V12 on tiltRev 12");
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");

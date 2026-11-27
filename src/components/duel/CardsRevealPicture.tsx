@@ -18,7 +18,7 @@ import { fcCardsOf } from "@/lib/arcade/cards/freecell";
 import { levelOfPuzzle } from "@/lib/levels/levels";
 import { drawTripeaks, TP_PILE_H, TP_PILE_Y, TP_WORLD_W } from "@/lib/arcade/cards/tripeaks.renderer";
 import { drawPyramid, PY_PILE_H, PY_PILE_Y, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
-import { PY_CARDS, PY_PAIR_FULL } from "@/lib/arcade/cards/pyramid";
+import { pyCardsOf, pyPairsFullOf } from "@/lib/arcade/cards/pyramid";
 import { drawFiveHands, FH_DISCARD_H, FH_DISCARD_Y, FH_WORLD_W, fhPointsShown } from "@/lib/arcade/cards/fiveHands.renderer";
 import { fhLevelRulesOf, fhMultText, fhPickedHand, fhTotals } from "@/lib/arcade/cards/fiveHands";
 import { drawMahjong } from "@/lib/arcade/mahjong.renderer";
@@ -99,11 +99,11 @@ export function cardsRevealPicture(puzzle: PuzzleData, answer: string): Picture 
         bottom: PY_PILE_Y + PY_PILE_H + 10,
         draw: (ctx) => drawPyramid(ctx, s, { width: PY_WORLD_W, height: 772 }),
         facts: [
-          { label: "Removed", value: `${r.removed}/${PY_CARDS}`, best: r.finished },
+          { label: "Removed", value: `${r.removed}/${pyCardsOf(s)}`, best: r.finished },
           { label: "Kings", value: `${r.kings}` },
           r.finished ? { label: "Time", value: secs(r.finishSeconds) } : { label: "Undos", value: `${r.undos}` },
         ],
-        marks: { label: "Pyramid pairs", filled: Math.min(PY_PAIR_FULL, r.ppPairs), of: PY_PAIR_FULL },
+        marks: { label: "Pyramid pairs", filled: Math.min(pyPairsFullOf(s), r.ppPairs), of: pyPairsFullOf(s) },
       };
     }
     case "fivehands": {

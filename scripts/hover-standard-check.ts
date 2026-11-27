@@ -40,6 +40,7 @@ import {
   HOVER_STD_TIGHT,
   HOVER_TIGHT_GATES,
   HOVER_V10_BAND_CURVE,
+  HOVER_V12_BAND_CURVE, // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   hoverCentreCredit,
   hoverCentreY,
   hoverCheckpoint,
@@ -133,21 +134,21 @@ section("older stamps unchanged");
 section("wiring");
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): since stage 3 rooms and practice deal hoverRev 11 (hoverRev 10 starting shielded), on hoverRev 10's core line.
-  ok(HOVER_REV_STANDARD === 10 && generateHover().hoverRev === HOVER_REV_STANDARD + 1, "rooms deal hoverRev 11");
+  ok(HOVER_REV_STANDARD === 10 && generateHover().hoverRev === HOVER_REV_STANDARD + 2, "rooms deal hoverRev 12 (D5: hoverRev 11's play on fitted lines)"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   const stage = readFileSync("src/puzzles/hover.tsx", "utf8");
-  ok(/hoverRev: HOVER_REV_SHIELD \}\) satisfies HoverPuzzleData/.test(stage), "practice deals hoverRev 11");
-  ok(LIVE_BANDS.hover.rev === HOVER_REV_STANDARD + 1 && LIVE_BANDS.hover.curve === HOVER_V10_BAND_CURVE, "LIVE_BANDS lists hoverRev 11 on hoverRev 10's core line");
+  ok(/hoverRev: HOVER_REV_FIT \}\) satisfies HoverPuzzleData/.test(stage), "practice deals hoverRev 12"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
+  ok(LIVE_BANDS.hover.rev === HOVER_REV_STANDARD + 2 && LIVE_BANDS.hover.curve === HOVER_V12_BAND_CURVE, "LIVE_BANDS lists hoverRev 12 on its core line"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   ok(playRevOf("hover", HOVER_REV_STANDARD) === HOVER_REV_EXPAND && playRevOf("hover", HOVER_REV_EXPAND) === HOVER_REV_EXPAND, "older checks read hoverRev 10 as hoverRev 9's play");
   ok(roundMaxFor("hover") === 200 && SCORE_CEILING === 200 && HOVER_STD_MAX === 200, "Hover's round maximum and the parts' total are 200");
   ok(hoverWorldHFor(HOVER_REV_STANDARD) === HOVER_EXPAND_H, "hoverRev 10 plays in hoverRev 9's 390 × 727 world");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): hoverRev 11 since stage 3.
-  ok(/demo\.puzzle\.hoverRev !== HOVER_REV_SHIELD\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "the intro demo is stopped until one is recorded on hoverRev 11");
+  ok(/demo\.puzzle\.hoverRev !== HOVER_REV_SHIELD && demo\.puzzle\.hoverRev !== HOVER_REV_FIT\) return null/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "the intro demo plays only when recorded on hoverRev 11 or 12 (the same play)"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   const help = PUZZLE_INSTRUCTIONS.hover.score;
   // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
   // bonuses in one plain sentence (no internal figures).
   ok(hasScorePart(help, "Barriers", 120) && hasScorePart(help, "Star chains", 30) && hasScorePart(help, "Gold stars", 20) && hasScorePart(help, "Tight gates", 20) && hasScorePart(help, "Centre lines", 10) && help.endsWith("Total 200."), `the help states each part's maximum and the 200 total: ${help}`);
   ok(/barriers/.test(INTRO_SCORE.hover) && /star chains/.test(INTRO_SCORE.hover) && /gold stars/.test(INTRO_SCORE.hover) && /tight gates/.test(INTRO_SCORE.hover) && INTRO_SCORE.hover.endsWith("Up to 200."), `the intro names the parts (${INTRO_SCORE.hover})`);
-  ok(STANDARD.stamp === HOVER_REV_STANDARD + 1 && STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the standard module lists parts summing to 200");
+  ok(STANDARD.stamp === HOVER_REV_STANDARD + 2 && STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the standard module lists parts summing to 200"); // Changed with Joe's approval, 27 Nov 2026 (D5's hoverRev 12)
 }
 
 /* 3. Play unchanged. */

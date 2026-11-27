@@ -79,9 +79,10 @@ export function oracleRunV4(seed: number): ArcadeInputEvent[] {
  * on its arrival tick, aimed straight away (450 ft, a home run over the 400 ft centre wall); every ball left alone.
  * Played live through the sim (each release follows the last pitch). 200 on any seed and level whose plan allows it.
  */
-export function oracleRunV5(seed: number, level?: string | null): ArcadeInputEvent[] {
-  const game = homerunGameFor(HOMERUN_REV_5, level);
-  const plan = homerunInningsPlan(seed, hrLevelOf(level));
+export function oracleRunV5(seed: number, level?: string | null, rev: number = HOMERUN_REV_5): ArcadeInputEvent[] {
+  const game = homerunGameFor(rev, level);
+  // The plan the game itself plays (D6's homerunRev 6 levels: their own settings key; hrLevelOf(level) before).
+  const plan = homerunInningsPlan(seed, game.init(seed).inn?.level ?? hrLevelOf(level));
   const events: ArcadeInputEvent[] = [];
   let s = game.init(seed);
   while (!game.isOver(s)) {

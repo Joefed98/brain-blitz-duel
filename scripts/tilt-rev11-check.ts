@@ -47,7 +47,7 @@ import {
   TILT_P_SPEED_FULL,
   TILT_P_SPEED_POINTS,
   TILT_REV_PAR,
-  TILT_REV_BIG,
+  TILT_REV_BIG, TILT_REV_THREE,
   TILT_REV_STD,
   TILT_RUN_TICKS,
   TILT_S_MAZES,
@@ -68,6 +68,10 @@ import { jsonDigest, randomLog, botLog, type Row } from "./tilt-rev11-record";
 import { roomIdentity } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
 import type { StdRun } from "./arcade-standard/entry";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -103,7 +107,8 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   }
   ok(TILT_REV_PAR === TILT_REV_STD + 1, "tiltRev 11 is one above the stamp it replaces");
   const live = LIVE_BANDS.tilt as { field: string; rev: number; curve: typeof TILT_V11_BAND_CURVE };
-  ok(live.field === "tiltRev" && live.rev === TILT_REV_BIG && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 12 on tiltRev 11's core line");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): LIVE_BANDS and the standard entry name the dealt tiltRev 13 (tiltRev 12's first three mazes, on tiltRev 11's core line).
+  ok(live.field === "tiltRev" && live.rev === TILT_REV_THREE && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 13 on tiltRev 11's core line");
   ok(TILT_V11_BAND_CURVE.units.join() === `0,${TILT_P_CORE_MAX}` && TILT_V11_BAND_CURVE.points.join() === `0,${TILT_P_CORE_MAX}`, "the core's line is straight, 0 → 0 and 140 → 140");
   ok(TILT_P_CORE_MAX === 140 && TILT_P_PAR_MAX === 24 && TILT_P_CLEAN_POINTS === 12 && TILT_P_SPEED_POINTS === 24, "parts: core 140, par 24, clean 12, speed 24");
   ok(TILT_P_CORE_MAX + TILT_P_PAR_MAX + TILT_P_CLEAN_POINTS + TILT_P_SPEED_POINTS === 200, "the parts' maxima add up to 200");
@@ -119,12 +124,12 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   ok(/Par:/.test(how) && /Clean run:/.test(how) && !/gold star/i.test(how) && /maze 4/.test(how), `the HOW lines name par, the clean run and maze 4, and no gold stars: ${how}`);
   const intro = INTRO_SCORE.tilt;
   ok(intro.length <= 90 && intro.includes("mazes") && intro.includes("beating each maze’s time") && intro.includes("a clean run") && !/star/i.test(intro), `the intro (${intro.length} chars): ${intro}`);
-  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_BIG, "the standard module names the dealt tiltRev 12 (tiltRev 11's parts)");
+  ok(entry.type === "tilt" && entry.field === "tiltRev" && entry.rev === TILT_REV_THREE, "the standard module names the dealt tiltRev 13 (tiltRev 11's parts on three mazes)");
   ok(entry.parts.reduce((t, p) => t + p.max, 0) === 200 && JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 140], ["par", 24], ["clean", 12], ["speed", 24]]), "the standard module's parts: core 140, par 24, clean 12, speed 24");
   const perfect = entry.perfect() as StdRun[];
   ok(perfect.length >= 1 && perfect.every((r) => r.score === 200 && entry.parts.every((p) => r.parts?.[p.key] === p.max)), `the standard module's perfect runs: 200 with every part full (${JSON.stringify(perfect)})`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 12");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 13 (D6)"); // Changed with Joe's approval, 23 Nov 2026
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");
   ok(/if \(state\.parClean\)[\s\S]{0,400}`Par \$\{Math\.ceil\(left \/ 60\)\} s`[\s\S]{0,300}"Clean"/.test(art), "the HUD shows the par countdown and \"Clean\" on tiltRev 11 (no star count)");
   ok(/label: \(\) => "UNDER PAR!"/.test(art) && /if \(rev === TILT_REV_PAR\) return tiltParArtGame;/.test(art), "the success layer pops UNDER PAR! and tiltRev 11 has its own art game");

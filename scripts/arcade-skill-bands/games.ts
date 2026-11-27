@@ -405,7 +405,8 @@ export const GAMES: GameSpec[] = [
     seedForRev: (n, rev) => (rev === MINIGOLF_REV_CLASSIC ? minigolfBankEntryFor(n).seed : minigolfBankV2EntryFor(n).seed),
     gameFor: (rev, seed) => minigolfGameFor(minigolfParsOf(seed), minigolfRevOf(rev, seed)),
     // golfRev 3 (the Crazy Golf overhaul): the dealt holes, pars and level (the level tool, scripts/level-tune.ts).
-    gameForPuzzle: (p) => (p.golfRev === 3 ? minigolfGameFor(p.pars, 3, { holes: p.holes, level: p.level ?? "normal" }) : minigolfGameFor(p.pars ?? minigolfParsOf(p.seed), minigolfRevOf(p.golfRev ?? null, p.seed))),
+    // D6 (27 Nov 2026): golfRev 4 plays golfRev 3's holes on its own figures.
+    gameForPuzzle: (p) => (p.golfRev === 3 || p.golfRev === 4 ? minigolfGameFor(p.pars, p.golfRev, { holes: p.holes, level: p.level ?? "normal" }) : minigolfGameFor(p.pars ?? minigolfParsOf(p.seed), minigolfRevOf(p.golfRev ?? null, p.seed))),
     checkpoint: minigolfCheckpoint,
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw, rev) => replayMinigolfRun(seed, raw, minigolfParsOf(seed), minigolfRevOf(rev ?? null, seed)),

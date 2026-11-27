@@ -34,7 +34,7 @@ import { MINIGOLF_BANK } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2 } from "../../src/lib/duel/minigolfBankV2.server";
 import { MINIGOLF_HOLES_BANK } from "../../src/lib/duel/minigolfHolesBank.server";
 import { pickMinigolfHoles } from "../../src/lib/duel/sports.server";
-import { MG_LEVEL_NAMES, MINIGOLF_REV_COURSE, MINIGOLF_STD_SPEC_V3 } from "../../src/lib/arcade/minigolf";
+import { MG_LEVEL_NAMES, MINIGOLF_REV_D6, MINIGOLF_STD_SPEC_V4 } from "../../src/lib/arcade/minigolf"; // Changed with Joe's approval, 27 Nov 2026 (D6): golfRev 4
 import { encodeSportsRun } from "../../src/lib/arcade/sportsKit";
 import { playCourseV3, WITNESS_FILE, type WitnessFile } from "../minigolf-holes-bank";
 import type { StdEntry } from "./entry";
@@ -74,10 +74,10 @@ function perfectV3() {
       const holes = pickMinigolfHoles(level, () => draw() >>> 0).map((e) => e.id);
       const pars = holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[MG_LEVEL_NAMES.indexOf(level)]!);
       const { events, state, checkpoints } = playCourseV3(holes, pars, level, w);
-      const g = minigolfGameFor(pars, MINIGOLF_REV_COURSE, { holes, level });
+      const g = minigolfGameFor(pars, MINIGOLF_REV_D6, { holes, level });
       const raw = encodeSportsRun({ seed: 11, claimedScore: g.score(state), events, endTick: state.tick, checkpoints });
-      const run = replayMinigolfRun(11, raw, pars, MINIGOLF_REV_COURSE, { holes, level });
-      out.push({ label: `golfRev 3 ${level} course ${holes.join("-")}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: record(run.state) });
+      const run = replayMinigolfRun(11, raw, pars, MINIGOLF_REV_D6, { holes, level });
+      out.push({ label: `golfRev 4 ${level} course ${holes.join("-")}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: record(run.state) });
     }
   return out;
 }
@@ -87,9 +87,9 @@ const v3Pars = MINIGOLF_HOLES_BANK.map((slot) => slot[0]!.pars[1]!);
 export const entry: StdEntry = {
   type: "minigolf",
   field: "golfRev",
-  rev: MINIGOLF_REV_COURSE,
-  parts: MINIGOLF_STD_SPEC_V3.parts,
-  spec: MINIGOLF_STD_SPEC_V3,
+  rev: MINIGOLF_REV_D6,
+  parts: MINIGOLF_STD_SPEC_V4.parts,
+  spec: MINIGOLF_STD_SPEC_V4,
   liveSpec: true,
   perfect: () => [
     ...perfectV3(),
@@ -103,8 +103,8 @@ export const entry: StdEntry = {
     }),
   ],
   played: () => [
-    { label: "golfRev 3: one chip into the fence and then nothing", score: (() => {
-      const g = minigolfGameFor(v3Pars, MINIGOLF_REV_COURSE, { holes: v3Holes });
+    { label: "golfRev 4: one chip into the fence and then nothing", score: (() => {
+      const g = minigolfGameFor(v3Pars, MINIGOLF_REV_D6, { holes: v3Holes });
       let s = g.init(1);
       s = g.step(s, { t: 1, k: 2, a: 4000, b: 0, c: 1 });
       while (!g.isOver(s)) s = g.step(s, null);
@@ -119,8 +119,8 @@ export const entry: StdEntry = {
     })() },
     { label: "a built state that played and earned nothing", score: game.score(final(0, 6)), want: 1 },
   ],
-  idle: () => [{ label: "golfRev 3: an untouched run to the buzzer", score: (() => {
-    const g = minigolfGameFor(v3Pars, MINIGOLF_REV_COURSE, { holes: v3Holes });
+  idle: () => [{ label: "golfRev 4: an untouched run to the buzzer", score: (() => {
+    const g = minigolfGameFor(v3Pars, MINIGOLF_REV_D6, { holes: v3Holes });
     let s = g.init(1);
     while (!g.isOver(s)) s = g.step(s, null);
     return g.score(s);

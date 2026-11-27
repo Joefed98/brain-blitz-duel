@@ -348,3 +348,19 @@ Mazes, Under par, Falls, Time), grading's stored `parsMet` and `cleanMazes`, the
 tiltRev 10" (and the help naming gold stars) now expect tiltRev 11. Shot: `bun scripts/shots/tilt-rev11-shots.ts`
 (`screenshots/arcade-batch-nov-2026/tilt-rev11-midrun.png`). After merging: one replay-runs fixture run
 (`bun scripts/replay-fixtures.ts --add=tilt`) and the practice stamps (`bun scripts/practice-stamps.ts`).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** tiltRev 13 (Normal: three mazes, par 180 %, speed full by 55 s).
+- **The lever:** marbles steered at once: one (3 mazes) / one, the amber joining on maze 3 (Normal) / two on mazes 1–3 / two on all four.
+- **Average player, Easy / Normal / Hard / Expert:** 138.6 / 121.4 / 70.7 / 59.0 (Expert on its 15 / 15 / 15 / 17-cell mazes, eased on 27 Nov 2026).
+- **The elite at 200:** 78 / 50 / 39 / 40 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

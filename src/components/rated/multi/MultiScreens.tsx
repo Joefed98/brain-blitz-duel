@@ -337,6 +337,7 @@ export function MultiFinal({
   entrance,
   ending = null,
   onNext,
+  onHome,
   onShare,
 }: {
   size: MultiSize;
@@ -355,6 +356,8 @@ export function MultiFinal({
   /** W3b's forfeit: who left and whether it was you (null for a match everyone played out). */
   ending?: { leaverNames: readonly string[]; youLeft: boolean } | null;
   onNext: () => void;
+  /** Home (P3, 22 Nov 2026): the result's way home. */
+  onHome?: (() => void) | undefined;
   onShare?: () => void;
 }) {
   const reduced = useReducedMotion();
@@ -470,6 +473,11 @@ export function MultiFinal({
         {onShare ? (
           <Button variant="secondary" size={52} onClick={onShare} data-share>
             Share
+          </Button>
+        ) : null}
+        {onHome ? (
+          <Button variant="secondary" size={52} onClick={onHome} data-rated-home-button>
+            Home
           </Button>
         ) : null}
       </div>

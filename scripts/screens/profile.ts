@@ -38,7 +38,8 @@ const scrollTo = (selector: string) => async (page: Page) => {
 
 export const PROFILE_SCREENS = (): ThemeScreen[] => {
   const account = { __harnessNavAccount: ACCOUNT_FIXTURE };
-  const full = { ...account, ...friendsGlobals(), __harnessProfile: { badges: PROFILE_BADGES, progress: PROFILE_PROGRESS, rated: PROFILE_RATED } };
+  // You's "Rated wins" gauge (P3, 22 Nov 2026): the server's count, stood in.
+  const full = { ...account, ...friendsGlobals(), __DUELZ_RATED_WINS__: { played: 71, wins: 41 }, __harnessProfile: { badges: PROFILE_BADGES, progress: PROFILE_PROGRESS, rated: PROFILE_RATED } };
   const unrated = { ...account, ...friendsGlobals(), __harnessProfile: { badges: PROFILE_BADGES, progress: PROFILE_PROGRESS } };
   const light = { __harnessTheme: "light" };
   return [

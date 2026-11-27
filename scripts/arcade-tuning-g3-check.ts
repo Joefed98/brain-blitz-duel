@@ -70,6 +70,7 @@ import {
   SWING_REV_EXPAND,
   SWING_REV_SLIDE,
   SWING_REV_BIG,
+  SWING_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 is the live revision)
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -114,6 +115,7 @@ import {
   BT_LAYOUT_TALL,
   BT_REV_BAND,
   BT_REV_TALL,
+  BT_REV_D6,
   BT_REV_RUSH,
   BT_ROWS,
   BT_STEP_TICKS,
@@ -208,7 +210,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18.
-    ok(generateSwing().swingRev === SWING_REV_BIG, "rooms deal swingRev 18 (the bigger hero) unpinned");
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+    ok(generateSwing().swingRev === SWING_REV_LADDER, "rooms deal swingRev 19 (the ladder) unpinned");
     // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
     const wasFuel = pinOrbitPreFuel(true);
     const orbit = generateOrbit();
@@ -219,7 +222,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     const bt = generateBallTrack();
     // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it. The arcade
     // scoring standard (29 Oct 2026) deals btRev 8, btRev 7's play re-scored (arcade-standard-check).
-    ok(bt.btRev === BT_REV_TALL + 4 && bt.course.rows === 13, "rooms deal btRev 8 (btRev 7's play, expansion E6, after btRev 4)");
+    ok(bt.btRev === BT_REV_D6 && BT_REV_D6 === BT_REV_TALL + 5 && bt.course.rows === 13, "rooms deal btRev 9 (btRev 7's play, expansion E6, after btRev 4; D6's figures)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
@@ -540,13 +543,15 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // Grappler's 200 expansion: its demo played only on swingRev 13 (swing-x200-check); the assault course's only on swingRev
   // 14; the swinging course's only on swingRev 15; its dark ledge runs' only on swingRev 16; its sliding hooks' only on swingRev 17.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18.
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(src), "Grappler's demo plays only on swingRev 18");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's swingRev 19: the stop rule moved under approved item 14).
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_LADDER\) return null/.test(src), "Grappler's demo plays only on swingRev 19");
   // The expansion to 200: Orbit's demo waited for one recorded on orbitRev 12 (orbit-expand-check); the arcade scoring
   // standard (orbitRev 13, as flipRev 9) waits for one recorded on orbitRev 13.
   // The fuel meter (orbitRev 14) waits for one recorded on orbitRev 14 (orbit-fuel-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16, so the demo rule names 16.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_BIG\) return null/.test(src), "Orbit's demo plays only on orbitRev 16");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: the stop rule moved with its approved lines of 23 Nov 2026).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_LOST\) return null/.test(src), "Orbit's demo plays only on orbitRev 17");
   // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
   // btRev 8 (the arcade scoring standard) keeps btRev 7's play: a demo recorded on 7 or 8 plays.
   ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7 or 8");

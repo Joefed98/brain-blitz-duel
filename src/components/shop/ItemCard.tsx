@@ -6,8 +6,8 @@ import type { ShopCard } from "@/lib/shop/types";
 import { Heart, RARITY_NAMES, ShopArt } from "./ShopArt";
 
 /**
- * One of today's items (the style guide's Shop mockup, "Today"): the item's approved still with the wishlist heart,
- * its name, its rarity and kind, and its price button in coins (the £ value is shown once, on the confirmation). The
+ * One of today's items (the style guide's Shop mockup, "Today"; P3, 22 Nov 2026: the still filling the card's top half,
+ * the name in its rarity's colour): the item's approved still with the wishlist heart, its name, its rarity and kind, and its price button in coins (the £ value is shown once, on the confirmation). The
  * price button opens the confirm sheet. Too few coins: the price with a plain "Get coins" button beside it, no pop-up.
  * Owned: a quiet "Owned" in place of the price.
  */
@@ -40,12 +40,15 @@ export function ItemCard({
           <Heart on={item.wished} />
         </button>
       </div>
-      <h3 className="shop-tile-name">{item.name}</h3>
+      {/* The rarity is the name's colour (P3, 22 Nov 2026; mockup shop-e-phone), and its word leads the kind line. */}
+      <h3 className="shop-tile-name" data-rarity={item.rarity}>
+        {item.name}
+      </h3>
       <p className="shop-tile-meta">
         <span className="shop-rarity-word" data-rarity={item.rarity}>
           {RARITY_NAMES[item.rarity]}
         </span>
-        <span className="shop-tile-kind"> · {item.label}</span>
+        <span className="shop-tile-kind"> {item.label.toLocaleLowerCase("en-GB")}</span>
       </p>
       {item.owned ? (
         <span className="shop-owned" data-shop-owned>

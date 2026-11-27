@@ -1037,7 +1037,7 @@ const skylineSummary: SummaryBuilder = (result) => {
   return {
     summary: survived
       ? `${blocks} blocks, ${perfects} perfect, survived`
-      : Number(result.extra?.["skylineRev"] ?? 0) === 11
+      : [11, 12].includes(Number(result.extra?.["skylineRev"] ?? 0))
         ? `${blocks} blocks, out of lives at ${ended.toFixed(1)}s`
         : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
     detail: [
@@ -1046,13 +1046,13 @@ const skylineSummary: SummaryBuilder = (result) => {
       // skylineRev 7: the expansion's gold blocks and height milestones.
       // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
       // skylineRev 10 (the scoring audit): rev 9's play and gold blocks.
-      // skylineRev 11 (15 Nov 2026, lives): rev 10's gold blocks, and the lives lost.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10 || Number(result.extra?.["skylineRev"] ?? 0) === 11
+      // skylineRev 11 (15 Nov 2026, lives): rev 10's gold blocks, and the lives lost. skylineRev 12 (D5 item I5): the same.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10 || Number(result.extra?.["skylineRev"] ?? 0) === 11 || Number(result.extra?.["skylineRev"] ?? 0) === 12
         ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
         : Number(result.extra?.["skylineRev"] ?? 0) >= 7
           ? [`${Number(result.extra?.["golds"] ?? 0)} gold, ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
           : []),
-      ...(Number(result.extra?.["skylineRev"] ?? 0) === 11 ? [`${Number(result.extra?.["livesLost"] ?? 0)} of 3 lives lost`] : []),
+      ...([11, 12].includes(Number(result.extra?.["skylineRev"] ?? 0)) ? [`${Number(result.extra?.["livesLost"] ?? 0)} of 3 lives lost`] : []),
     ],
   };
 };

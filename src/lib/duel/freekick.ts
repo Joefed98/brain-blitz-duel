@@ -14,6 +14,7 @@ import {
   FREEKICK_REV_4,
   FREEKICK_REV_5,
   FREEKICK_REV_6,
+  FREEKICK_REV_7,
   FREEKICK_REV_STD,
   fkLevelOf,
   FK_M,
@@ -80,7 +81,7 @@ export const decodeFreekickRun = run.decode;
  */
 export function replayFreekickRun(seed: number, raw: string, rev?: number | null, level?: string | null): FreekickResult {
   const r = rev ?? FREEKICK_REV_STD;
-  const result = (r >= FREEKICK_REV_5 ? runV5(level, r >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5) : r >= FREEKICK_REV_4 ? runV4 : r >= FREEKICK_REV_3 ? runV3 : r >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
+  const result = (r >= FREEKICK_REV_5 ? runV5(level, r >= FREEKICK_REV_7 ? FREEKICK_REV_7 : r >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5) : r >= FREEKICK_REV_4 ? runV4 : r >= FREEKICK_REV_3 ? runV3 : r >= FREEKICK_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   const taken = s.outs.filter((o) => o >= 0 && o !== FK_OUT_UNTAKEN).length;
   return {

@@ -24,12 +24,30 @@
 import { clampInt, rngBelow } from "./engine";
 
 export const HOMERUN_REV_5 = 5;
+/**
+ * homerunRev 6 (D6, 23 Nov 2026; level deals only, Normal stays homerunRev 5): D6's levels, their settings under their
+ * own keys ("easy6", "hard6", "expert6") in HR_LEVEL_SETTINGS, so every reader of a level's settings reads them as it
+ * reads the levels before (a rev-5 level round keeps "easy" / "hard" / "expert" exactly). The lever is pitch speed.
+ */
+export const HOMERUN_REV_6 = 6;
 
 /* ------------------------------------------------------------------ levels */
 
 /** The four levels (the difficulty framework's ids; Normal is the rated level). */
 export type HrLevel = "easy" | "normal" | "hard" | "expert";
 export const HR_LEVELS: readonly HrLevel[] = ["easy", "normal", "hard", "expert"];
+/** A settings key: a level, or a D6 level on homerunRev 6 (its own settings). */
+export type HrPlayLevel = HrLevel | "easy6" | "hard6" | "expert6";
+
+/** The settings key a round plays: homerunRev 6's levels their D6 keys, anything else its level (Normal by default). */
+export function hrPlayLevel(level: unknown, rev: number | null | undefined): HrPlayLevel {
+  const l = hrLevelOf(level);
+  return (rev ?? 0) >= HOMERUN_REV_6 && l !== "normal" ? `${l}6` : l;
+}
+/** The level a settings key belongs to. */
+export function hrBaseLevel(level: HrPlayLevel): HrLevel {
+  return level === "easy6" ? "easy" : level === "hard6" ? "hard" : level === "expert6" ? "expert" : level;
+}
 
 export interface HrLevelSettings {
   /** Flight ticks (release to plate) per pitch kind: [lo, hi]. */
@@ -47,9 +65,16 @@ export interface HrLevelSettings {
   reach: number;
   /** How far outside the zone a ball finishes (px, [lo, hi]): nearer the edge is a closer call to take or swing at. */
   ballOff: readonly [number, number];
+  /** D6's levels (homerunRev 6): the outs an innings lasts (unset 3) and the parts' figures (unset: rev 5's). */
+  outs?: number;
+  /** Runs, home runs, the longest perfect streak and good eye's count that fill each part (straight lines). */
+  runsFull?: number;
+  homersFull?: number;
+  streakFull?: number;
+  eyeFull?: number;
 }
 
-export const HR_LEVEL_SETTINGS: Readonly<Record<HrLevel, HrLevelSettings>> = {
+export const HR_LEVEL_SETTINGS: Readonly<Record<HrPlayLevel, HrLevelSettings>> = {
   easy: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800, ballOff: [14, 34] },
   normal: { flight: { 0: [36, 41], 1: [48, 54], 3: [62, 70] }, balls: 7, winContact: 5, winPower: 3, perfect: 1, bend: 1000, reach: 1000, ballOff: [14, 34] },
   // Hard and Expert retuned (16 Nov 2026, Joe: a clear step up, measured on the elite bot under human limits): the
@@ -57,6 +82,14 @@ export const HR_LEVEL_SETTINGS: Readonly<Record<HrLevel, HrLevelSettings>> = {
   // finishing nearer the zone's edge.
   hard: { flight: { 0: [28, 31], 1: [40, 44], 3: [54, 59] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100, ballOff: [8, 24] },
   expert: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200, ballOff: [5, 17] },
+  // D6's levels (homerunRev 6, 23 Nov 2026; the polish plan's difficulty spec: the lever is pitch speed): Easy's
+  // slow pitches, 3 balls, wide windows, 5 outs and small catch areas; Hard's and Expert's fast ones, PERFECT within a
+  // tick (was the exact tick) and wide catch areas. The parts' figures per level from 96 room deals (scripts/d6-ladder.ts,
+  // the skill-band bots under HUMAN_LIMITS): the average player 122 / 65 (Normal) / 30 / 21, the elite at 200
+  // 91 % / 71 % / 36 % / 27 %.
+  easy6: { flight: { 0: [52, 58], 1: [64, 70], 3: [76, 84] }, balls: 3, winContact: 9, winPower: 6, perfect: 2, bend: 300, reach: 600, ballOff: [14, 34], outs: 5, runsFull: 12, homersFull: 10, streakFull: 10, eyeFull: 2 },
+  hard6: { flight: { 0: [31, 34], 1: [42, 46], 3: [56, 61] }, balls: 8, winContact: 4, winPower: 3, perfect: 1, bend: 1300, reach: 1350, ballOff: [8, 24], runsFull: 18, homersFull: 10, streakFull: 16, eyeFull: 5 },
+  expert6: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 1, bend: 1600, reach: 1650, ballOff: [5, 17], runsFull: 10, homersFull: 10, streakFull: 6, eyeFull: 5 },
 };
 
 export function hrLevelOf(value: unknown): HrLevel {
@@ -172,7 +205,7 @@ const LANES = [232, 258, 284] as const;
 const planCache = new Map<string, Hr5Plan>();
 
 /** homerunRev 5's plan from the seed and level: the pitches (a fixed count outside the zone) and the fielders a pitch. */
-export function homerunInningsPlan(seed: number, level: HrLevel = "normal"): Hr5Plan {
+export function homerunInningsPlan(seed: number, level: HrPlayLevel = "normal"): Hr5Plan {
   const key = `${seed | 0}:${level}`;
   const hit = planCache.get(key);
   if (hit) return hit;
@@ -279,7 +312,7 @@ export interface Hr5Hit {
 }
 
 /** A swing's result against pitch `i`, before the count and the runners. */
-export function hr5Contact(plan: Hr5Plan, level: HrLevel, i: number, release: number, swingTick: number, aim: number, mode: number): Omit<Hr5Hit, "runs" | "bases" | "at" | "rel"> & { at: number } {
+export function hr5Contact(plan: Hr5Plan, level: HrPlayLevel, i: number, release: number, swingTick: number, aim: number, mode: number): Omit<Hr5Hit, "runs" | "bases" | "at" | "rel"> & { at: number } {
   const L = HR_LEVEL_SETTINGS[level];
   const p = plan.pitches[i]!;
   const arrive = release + p.flight;
@@ -315,7 +348,7 @@ export function hr5Contact(plan: Hr5Plan, level: HrLevel, i: number, release: nu
 /* -------------------------------------------------------------------- state */
 
 export interface Hr5Inn {
-  level: HrLevel;
+  level: HrPlayLevel;
   /** The current pitch's index in the plan and its release tick (or the next one's). */
   i: number;
   release: number;
@@ -343,7 +376,7 @@ export interface Hr5Inn {
   endAt: number;
 }
 
-export function hr5InitInn(level: HrLevel): Hr5Inn {
+export function hr5InitInn(level: HrPlayLevel): Hr5Inn {
   return { level, i: 0, release: FIRST_RELEASE, mode: HR5_MODE_CONTACT, pmode: HR5_MODE_CONTACT, st: -1, aim: 0, balls: 0, strikes: 0, outs: 0, bases: 0, runs: 0, big: 0, eye: 0, chased: 0, streak: 0, best: 0, perfects: 0, hits: [], endAt: 0 };
 }
 
@@ -381,10 +414,11 @@ function settle(inn: Hr5Inn, hit: Omit<Hr5Hit, "runs" | "bases" | "rel">, tick: 
     n.balls = 0;
     n.strikes = 0;
   };
+  const outsMax = HR_LEVEL_SETTINGS[n.level].outs ?? 3;
   const addOut = () => {
     n.outs += 1;
     nextBatter();
-    if (n.outs >= 3) endAt = true;
+    if (n.outs >= outsMax) endAt = true;
   };
   if (out === HR5_BALL) {
     n.balls += 1;
@@ -414,10 +448,10 @@ function settle(inn: Hr5Inn, hit: Omit<Hr5Hit, "runs" | "bases" | "rel">, tick: 
         // on third home; a runner on third alone stays; the batter is safe at first.
         n.outs += 1;
         // A run never scores on a force for the third out.
-        runs = n.outs < 3 && n.bases & 2 && n.bases & 4 ? 1 : 0;
+        runs = n.outs < outsMax && n.bases & 2 && n.bases & 4 ? 1 : 0;
         n.bases = 1 | (n.bases & 2 ? 4 : n.bases & 4);
         nextBatter();
-        if (n.outs >= 3) endAt = true;
+        if (n.outs >= outsMax) endAt = true;
       }
     }
     if (out !== HR5_CHOICE) {

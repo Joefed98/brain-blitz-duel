@@ -107,6 +107,14 @@ export function clashTapPayload(
   };
 }
 
+/**
+ * Tempo at any lane count (beatRev 9's four then five; beatRev 13's levels: three, five or six for the whole song): the
+ * lanes split the world's width evenly, as the stage draws them, so the lane is the share of the box's width.
+ */
+export function beatLaneAtOf(box: TapBox, clientX: number, lanes: number): number {
+  return Math.max(0, Math.min(lanes - 1, Math.floor(((clientX - box.left) / box.width) * lanes)));
+}
+
 /** Tempo: which lane the finger is in, from the sim's own mapping. */
 export function beatLaneAt(box: TapBox, clientX: number): number {
   const x = ((clientX - box.left) / box.width) * BEAT_WORLD_W;

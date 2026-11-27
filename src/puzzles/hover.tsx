@@ -29,7 +29,7 @@ import {
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
-  HOVER_REV_SHIELD,
+  HOVER_REV_FIT,
   hoverWorldHFor,
   HOVER_RUN_TICKS,
   type HoverState,
@@ -44,6 +44,7 @@ import { playSound } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still: the disc and two pillars with a gap. */
 /**
@@ -51,12 +52,12 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
  * stamp's own renderer a few seconds into a fixed seed's run, flown by a small autopilot that taps whenever the saucer drops below the next gap's centre.
  */
 function IntroExample() {
-  const game = { ...hoverGameFor(HOVER_REV_SHIELD), draw: hoverArtGame.draw };
+  const game = { ...hoverGameFor(HOVER_REV_FIT), draw: hoverArtGame.draw };
   return (
     <ArtStill
       game={game}
       worldW={HOVER_WORLD_W}
-      worldH={hoverWorldHFor(HOVER_REV_SHIELD)}
+      worldH={hoverWorldHFor(HOVER_REV_FIT)}
       ticks={250}
       input={hoverStillPilot}
       caption="Tap to rise. Thread each gap; gold stars, tight gates and chains score more."
@@ -70,6 +71,7 @@ function hoverStillPilot(s: HoverState): boolean {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: HoverPuzzleData | null = puzzle.type === "hover" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init).
@@ -190,7 +192,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvasContext();
-      if (size && context) hoverArtGame.draw(context, state.current, size);
+      if (size && context) hudDraw(() => hoverArtGame.draw(context, state.current, size));
 
       frameTiming.rendered();
 
@@ -317,7 +319,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_SHIELD }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_FIT }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

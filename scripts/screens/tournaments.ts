@@ -11,6 +11,7 @@ import type { Page } from "playwright";
 import { FIXED_NOW } from "../fixed-clock";
 import { dailyFixture } from "../daily-fixture";
 import { boardsFixture } from "../leaderboards-fixture";
+import { PROFILE_RATED } from "./profile-fixture";
 import { ALL_SIZES, type ThemeScreen, type ThemeViewport } from "../theme-screens";
 import { entryOptionsFor, prizeLines, scheduledEvent } from "../../src/lib/tournaments/rules";
 import type { ArenaBoard, ScoreAttackBoard, TournamentEventView, TournamentHub } from "../../src/lib/tournaments/types";
@@ -147,7 +148,19 @@ async function openPicker(page: Page) {
   await page.waitForTimeout(500);
 }
 
+/** Compete's leaderboards, scrolled into view. */
+async function scrollToBoards(page: Page) {
+  const boards = page.locator("[data-compete-boards]");
+  await boards.waitFor({ state: "attached", timeout: 10_000 });
+  await boards.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+}
+
 const DARK: ThemeScreen[] = [
+  // Compete (P3, 22 Nov 2026; mockup compete-mixed-phone): ranked play, tournaments, then the leaderboards' tabs.
+  { name: "compete: rated, tournaments and boards", mode: "tournaments", globals: { ...OPEN, __harnessTournamentHub: hubFixture(), __harnessRatedStatus: PROFILE_RATED, __harnessBoards: boardsFixture() }, waitMs: 1200 },
+  { name: "compete: rated, the boards", mode: "tournaments", globals: { ...OPEN, __harnessTournamentHub: hubFixture(), __harnessRatedStatus: PROFILE_RATED, __harnessBoards: boardsFixture() }, waitMs: 1200, go: scrollToBoards },
+  { name: "compete: neither rated play nor tournaments", mode: "tournaments", globals: { __harnessBoards: boardsFixture() }, waitMs: 1000 },
   { name: "tournaments pages: hub, upcoming", mode: "tournaments", globals: { ...OPEN, __harnessTournamentHub: hubFixture() }, waitMs: 900 },
   { name: "tournaments pages: hub, nothing live", mode: "tournaments", globals: { ...OPEN, __harnessTournamentHub: hubFixture({ live: false }) }, waitMs: 900 },
   { name: "tournaments pages: hub, your results", mode: "tournaments", globals: { ...OPEN, __harnessTournamentHub: hubFixture() }, waitMs: 900, go: toResults },

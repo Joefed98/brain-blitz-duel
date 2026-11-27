@@ -74,7 +74,7 @@ export function MultiBetween({ matchId, game, msUntilNext }: BetweenScreenProps)
 }
 
 /** In place of MatchResult: the final placings, your change and Joules from W3c's result, everyone's from the settlement. */
-export function MultiResult({ result, onNext }: ResultScreenProps) {
+export function MultiResult({ result, onNext, onHome }: ResultScreenProps) {
   const data = usePort<MultiFinalData>(result.match.id, (id) => multiViewPort().then((p) => (p ? p.final(id) : null)));
   if (!data) return <SkeletonPage label="Your result" />;
   return (
@@ -96,6 +96,7 @@ export function MultiResult({ result, onNext }: ResultScreenProps) {
           : null
       }
       onNext={onNext}
+      onHome={onHome}
     />
   );
 }

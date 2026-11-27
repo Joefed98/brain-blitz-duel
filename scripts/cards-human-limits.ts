@@ -131,7 +131,7 @@ function pyramidDecider(): Decide {
   };
   const free = (s: PY.PyState) => {
     let n = 0;
-    for (let i = 0; i < PY.PY_CARDS; i++) if (PY.pyFree(s, i)) n++;
+    for (let i = 0; i < PY.pyCardsOf(s); i++) if (PY.pyFree(s, i)) n++; // the state's own pyramid (D6's taller levels): Changed with Joe's approval, 23 Nov 2026
     return n;
   };
   const look = (s: PY.PyState, depth: number): number => {
@@ -151,14 +151,14 @@ function pyramidDecider(): Decide {
       let bestV = -1;
       for (const m of moves) {
         const t = after(s, m);
-        const v = t ? m.length + look(t, 4) + (m.includes(PY.PY_WASTE_PILE) ? 0.5 : 0) : -1;
+        const v = t ? m.length + look(t, 4) + (m.includes(PY.pyWastePileOf(s)) ? 0.5 : 0) : -1; // Changed with Joe's approval, 23 Nov 2026
         if (v > bestV) {
           bestV = v;
           pick = m;
         }
       }
     }
-    if (!pick) return PY.pyCanDraw(s) ? [ev(PY.PY_INPUT_TAP, PY.PY_STOCK_PILE)] : [];
+    if (!pick) return PY.pyCanDraw(s) ? [ev(PY.PY_INPUT_TAP, PY.pyStockPileOf(s))] : []; // Changed with Joe's approval, 23 Nov 2026
     return pick.map((a) => ev(PY.PY_INPUT_TAP, a));
   };
 }

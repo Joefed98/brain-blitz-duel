@@ -6,9 +6,10 @@ import type { ShopBundleView } from "@/lib/shop/types";
 import { ShopArt } from "./ShopArt";
 
 /**
- * This week's bundle as the Shop's hero card (the style guide's Shop mockup; angled cuts, Joulz's key-element shape):
- * the kicker, the name, how many items and what they'd cost one by one, the price button, and up to three of its items'
- * approved stills. Coins only: the £ value is on the confirmation. The price button opens the bundle's sheet (its items
+ * This week's bundle as the Shop's hero card (the style guide's Shop mockup; angled cuts, Joulz's key-element shape;
+ * P3, 22 Nov 2026, mockup shop-e-phone: an obsidian hero with a gold edge light and its item stills large): the kicker,
+ * the name, how many items and what they'd cost one by one (a factual price, never a pressure label), the gold price button, and up to three of its items' approved stills. No "best value" or any
+ * other pressure label. Coins only: the £ value is on the confirmation. The price button opens the bundle's sheet (its items
  * and the purchase). Drawn only while a bundle is on sale.
  */
 export function BundleCard({
@@ -44,8 +45,8 @@ export function BundleCard({
           </Button>
         ) : (
           <Button
-            variant="secondary"
-            size={48}
+            variant="gold"
+            size={52}
             className="shop-price"
             onClick={onView}
             aria-label={`${bundle.name}, ${count} items, ${formatCoins(bundle.price!)} coins`}

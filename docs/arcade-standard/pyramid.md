@@ -150,3 +150,19 @@ All 90 s.
 Expert keeps three Kings (16 Nov 2026): with two, the waste rarely matters and Expert measured easier than Hard.
 
 The glow (partners and Kings) is display only; the bots model its absence as 1.4 × the search time.
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** pyramidRev 4 (Normal: speed full by 22 s).
+- **The lever:** the pyramid's rows: 6 / 7 (Normal) / 8 / 9 (a separate layout file, pyramidLayout.ts).
+- **Average player, Easy / Normal / Hard / Expert:** 177.6 / 133.5 / 97.7 / 78.5.
+- **The elite at 200:** 99 / 50 / 44 / 29 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

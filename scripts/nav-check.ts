@@ -285,7 +285,7 @@ try {
     check((await page.locator("[data-nav-play]").count()) === 0, "Games has no Play bar"); // Changed with Joe's approval, 21 Nov 2026
     // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: the tab's page is titled
     // "Games", was "Practice").
-    for (const [tab, to, heading] of [["practice", "/practice", "Games"], ["tournaments", "/tournaments", "Tournaments"], ["shop", "/shop", null], ["you", "/profile", "Profile"]] as const) { // Changed with Joe's approval, 21 Nov 2026
+    for (const [tab, to, heading] of [["practice", "/practice", "Games"], ["tournaments", "/tournaments", "Compete"], ["shop", "/shop", null], ["you", "/profile", "You"]] as const) { // Changed with Joe's approval, 21 Nov 2026; changed with Joe's approval, 22 Nov 2026
       await tapTab(page, tab);
       await waitPath(page, to);
       if (heading) await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 30_000 });
@@ -446,8 +446,8 @@ try {
     {
       const screen: ThemeScreen = { name: "nav: tournaments, coming soon", mode: "tournaments", records: false };
       const { context, page } = await openThemeScreen(browser, harness.origin, screen, PHONE);
-      check((await page.locator("[data-tournaments-soon]").count()) === 1, "a player without tournaments sees the coming-soon page");
-      check((await page.locator("[data-public-none]").count()) === 0 && (await page.locator("[data-public-game]").count()) === 0, "with nothing scheduled the coming-soon page shows no list");
+      check((await page.locator("[data-tournaments-soon]").count()) === 0 && (await page.locator("[data-compete-boards]").count()) === 1, "a player without tournaments: no coming-soon page; Compete shows the leaderboards"); // Changed with Joe's approval, 22 Nov 2026
+      check((await page.locator("[data-public-none]").count()) === 0 && (await page.locator("[data-public-game]").count()) === 0, "with nothing scheduled Compete shows no public-games list"); // Changed with Joe's approval, 22 Nov 2026
       await context.close();
     }
     {

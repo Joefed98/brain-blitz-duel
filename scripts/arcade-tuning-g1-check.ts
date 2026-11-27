@@ -358,7 +358,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the rule names brkRev 12.
-  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== (BRK_REV_TALL|BRK_REV_DEEP|BRK_REV_PHONE|BRK_REV_STD|BRK_REV_CLEAR)\) return null/.test(src), "Breaker's demo plays only on brkRev 6 (brkRev 9 since expansion E3, brkRev 10 since the phone notes, brkRev 11 since the arcade scoring standard, brkRev 12 since the Retro overhaul)");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13): brkRev 13 plays brkRev 12 exactly at Normal, so the rule names both.
+  ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== BRK_REV_CLEAR && demo\.puzzle\.brkRev !== BRK_REV_LADDER\) return null/.test(src), "Breaker's demo plays only on brkRev 12 and 13 (13 plays 12 exactly at Normal since D5's ladder; brkRev 6, 9, 10 and 11 before them)");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13 plays rallyRev 12 until the first miss, so the guard reads the
   // accepted pair (demoRevAccepted, its stamps pinned exactly by arcade-review-fixes-check).
   ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && !demoRevAccepted\("rally", demo\.puzzle\.rallyRev\)\) return null/.test(src), "Rally's demo plays only on rallyRev 6 (rallyRev 10 since expansion E9, rallyRev 11 since the phone notes, rallyRev 12 since the arcade scoring standard, 12 or 13 since the Retro overhaul)");

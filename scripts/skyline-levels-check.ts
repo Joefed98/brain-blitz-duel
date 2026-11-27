@@ -27,8 +27,10 @@ import {
   skylineWindFrom,
   SKYLINE_LEVEL_CODE,
   SKYLINE_LEVEL_RULES,
+  SKYLINE_V12_LEVEL_RULES, // Changed with Joe's approval, 27 Nov 2026 (D5's skylineRev 12: the dealt level rules)
   SKYLINE_PERFECT_TOL,
   SKYLINE_REV_LIVES,
+  SKYLINE_REV_FLOORS, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
   SKYLINE_RUN_TICKS,
   SKYLINE_V11_LIVES,
   SKYLINE_V9_FULL_AT,
@@ -38,6 +40,7 @@ import {
   type SkylineState,
 } from "../src/lib/arcade/skyline";
 import { encodeSkylineRun, replaySkylineRun } from "../src/lib/duel/skyline";
+import { pinSkylinePreCount } from "../src/lib/duel/arcade.server"; // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
 import { gradeAnswer, generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
@@ -69,8 +72,12 @@ const deal = (n: number, level?: SkylineLevel) => {
 /* 1. Normal is today's game. */
 {
   const deals = fixture.deals["skyline"]!;
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12): the fixture's deals are
+  // skylineRev 11, so both Normal-deal comparisons deal under the skylinePreCount pin, restored after.
+  const wasCount = pinSkylinePreCount(true);
   ok(deals.every((d, n) => JSON.stringify(deal(n)) === d), `Normal deals match the ${deals.length} recorded before the levels, byte for byte`);
   ok(deals.every((d, n) => JSON.stringify(withSeededRandom(roomSeed(n), () => generatePuzzle("skyline", { bankSeed: roomSeed(n), level: "normal" }))) === d), "a deal asked for at Normal is the same");
+  pinSkylinePreCount(wasCount); // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
   const runs = fixture.runs.filter((r) => r.game === "skyline");
   let same = 0;
   for (const r of runs) {
@@ -91,10 +98,12 @@ const deal = (n: number, level?: SkylineLevel) => {
   for (const level of LEVELS) {
     const r = SKYLINE_LEVEL_RULES[level];
     const settings = gameLevelSettings<Record<string, number>>("skyline", level)!;
-    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(r).sort()), `${level}: gameLevels.ts mirrors the sim's SKYLINE_LEVEL_RULES`);
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's skylineRev 12): the registry mirrors the dealt
+    // SKYLINE_V12_LEVEL_RULES; skylineRev 11's SKYLINE_LEVEL_RULES is frozen with the sim.
+    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(SKYLINE_V12_LEVEL_RULES[level]).sort()), `${level}: gameLevels.ts mirrors the sim's dealt SKYLINE_V12_LEVEL_RULES`);
     const p = deal(3, level);
     const normalDeal = deal(3);
-    ok(puzzleLevel(p) === level && p.type === "skyline" && p.skylineRev === SKYLINE_REV_LIVES, `${level}: the deal stamps level "${level}" on skylineRev 11`);
+    ok(puzzleLevel(p) === level && p.type === "skyline" && p.skylineRev === SKYLINE_REV_FLOORS, `${level}: the deal stamps level "${level}" on skylineRev 12`); // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
     ok(p.type === "skyline" && normalDeal.type === "skyline" && p.seed === normalDeal.seed, `${level}: the same seed as Normal's deal for the room seed`);
     const s = skylineGameFor(SKYLINE_REV_LIVES, level).init(p.type === "skyline" ? p.seed : 1);
     ok(s.lvl === SKYLINE_LEVEL_CODE[level] && s.lives === r.lives, `${level}: the state carries its code and ${r.lives} lives`);

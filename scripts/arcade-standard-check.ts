@@ -43,40 +43,45 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and play; core and combo on straight lines from 0.
   { type: "slice", field: "sliceRev", rev: 13, batch: "A" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): brkRev 12, the clearable wall.
-  { type: "breaker", field: "brkRev", rev: 12, batch: "A" },
+  { type: "breaker", field: "brkRev", rev: 13, batch: "A" }, // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13)
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
-  { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): tiltRev 13, Normal on three mazes.
+  { type: "tilt", field: "tiltRev", rev: 13, batch: "A" },
   // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12, kinder wave clears;
   // then burstRev 13, bigger atoms.
-  { type: "burst", field: "burstRev", rev: 13, batch: "A" },
+  // burstRev 14 (22 Nov 2026, D5): burstRev 13 with the middle atoms. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  { type: "burst", field: "burstRev", rev: 14, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   // matchupRev 13 (15 Nov 2026, the Strategy overhaul stage 3): two-hit ice and levels, the same five parts.
-  { type: "matchup", field: "matchupRev", rev: 13, batch: "A" },
+  // Changed with Joe's approval, 27 Nov 2026 (D6): matchupRev 14, the same five parts on Normal's own full-at figures.
+  { type: "matchup", field: "matchupRev", rev: 14, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges;
   // then snakeRev 14, rocks in three sizes.
   // then snakeRev 15 (stage 3, 16 Nov 2026), the first crash forgiven. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "snake", field: "snakeRev", rev: 15, batch: "A" },
+  { type: "snake", field: "snakeRev", rev: 16, batch: "A" }, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   // hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3): hoverRev 10 starting shielded. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "hover", field: "hoverRev", rev: 11, batch: "A" },
+  { type: "hover", field: "hoverRev", rev: 12, batch: "A" }, // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul).
-  { type: "skyline", field: "skylineRev", rev: 11, batch: "B" },
+  // skylineRev 12 (22 Nov 2026, D5): skylineRev 11's play, floors full at 45, perfect drops at 30. Changed with Joe's approval, 23 Nov 2026 (routine
+  // consequence of D5's skylineRev 12).
+  { type: "skyline", field: "skylineRev", rev: 12, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
   // pinRev 8 (16 Nov 2026, the Retro overhaul stage 3): pinRev 7's play with the outlane saves counted. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "pinball", field: "pinRev", rev: 8, batch: "B" },
+  { type: "pinball", field: "pinRev", rev: 9, batch: "B" }, // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
-  { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
+  { type: "rally", field: "rallyRev", rev: 14, batch: "B" }, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   { type: "bubble", field: "bubbleRev", rev: 12, batch: "B" }, // bubbleRev 12 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
   // missed note scoring 0.
-  { type: "beat", field: "beatRev", rev: 12, batch: "B" },
+  { type: "beat", field: "beatRev", rev: 13, batch: "B" }, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
   // crossRev 13 (16 Nov 2026, the Retro overhaul stage 3): crossRev 12's rules on lighter traffic. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
@@ -84,7 +89,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 14, the charged shot.
   // wavRev 15 (16 Nov 2026, the Retro overhaul stage 3): larger hit cells. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "wavefront", field: "wavRev", rev: 15, batch: "C" },
+  // wavRev 16 (22 Nov 2026, D5): wavRev 15 with the wider formation. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16).
+  { type: "wavefront", field: "wavRev", rev: 16, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, the retuned parts, its own proved deal (flip-overhaul-check).
@@ -92,15 +98,18 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "flip", field: "flipRev", rev: 13, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
-  { type: "inkbridge", field: "inkRev", rev: 15, batch: "C" }, // inkRev 15 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
+  { type: "inkbridge", field: "inkRev", rev: 16, batch: "C" }, // Changed with Joe's approval, 27 Nov 2026 (D6): inkRev 16, inkRev 15's world on each level's own figures; inkRev 15 before it, since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 15 (grace:
   // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 16 (bigger
   // planets on orbitRev 15's play, courses and parts; orbit-overhaul-check section 9).
-  { type: "orbit", field: "orbitRev", rev: 16, batch: "C" },
-  { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
+  // orbitRev 17 (22 Nov 2026, D5): the lost flight on orbitRev 16's courses and parts. Changed with Joe's approval, 23 Nov 2026 (routine consequence of
+  // D5's orbitRev 17).
+  { type: "orbit", field: "orbitRev", rev: 17, batch: "C" },
+  { type: "balltrack", field: "btRev", rev: 9, batch: "C" }, // Changed with Joe's approval, 27 Nov 2026 (D6): btRev 9, btRev 8's play and deal on Normal's own figures
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
-  { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): the live stamp is 19 (the ladder).
+  { type: "swing", field: "swingRev", rev: 19, batch: "D" }, // swingRev 19 (23 Nov 2026): the ladder; swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   // Changed with Joe's approval, 13 Nov 2026: Minefield deals minesRev 2 (a Logic game with 20 mines).
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the live stamp is minesRev 3.
@@ -115,32 +124,37 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "freekick", field: "freekickRev", rev: 6, batch: "Sports" },
   // Apex (racing) deals racingRev 4 since 15 Nov 2026 (three named circuits; racingRev 3 from 3 Nov, 2 from 31 Oct 2026).
   // Changed 15 Nov 2026 (routine consequence of the Sports overhaul): the roster follows the dealt stamp.
-  { type: "racing", field: "racingRev", rev: 4, batch: "Sports" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): racingRev 5, freecellRev 6, tripeaksRev 4.
+  { type: "racing", field: "racingRev", rev: 5, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
   // Free Cell freecellRev 5, Summit tripeaksRev 3 and Thirteen pyramidRev 2 (7 Nov 2026): partial clears earn in proportion.
-  { type: "freecell", field: "freecellRev", rev: 5, batch: "Cards" },
-  { type: "tripeaks", field: "tripeaksRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): racingRev 5, freecellRev 6, tripeaksRev 4.
+  { type: "freecell", field: "freecellRev", rev: 6, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 4, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
-  { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): fiveHandsRev 4, 200 at 128 hand points.
+  { type: "fivehands", field: "fiveHandsRev", rev: 4, batch: "Cards" },
   // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   // bastionRev 4 (15 Nov 2026, the levels): a gentler game at Easy, Normal and Hard; bastionRev 3 is Expert.
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): the roster line follows the stamp.
-  { type: "bastion", field: "bastionRev", rev: 4, batch: "Action" },
+  { type: "bastion", field: "bastionRev", rev: 5, batch: "Action" }, // Changed with Joe's approval, 26 Nov 2026 (D5's bastionRev 5)
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
   // 15 Nov 2026 (routine consequence of pyramidRev 3).
-  { type: "pyramid", field: "pyramidRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: Thirteen pyramidRev 4, speed full by 22 s).
+  { type: "pyramid", field: "pyramidRev", rev: 4, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; golfRev 1 and 2 were on the standard too). Changed with Joe's
   // approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
-  { type: "minigolf", field: "golfRev", rev: 3, batch: "Sports" },
-  { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
+  { type: "minigolf", field: "golfRev", rev: 4, batch: "Sports" }, // Changed with Joe's approval, 27 Nov 2026 (D6): golfRev 4, golfRev 3's holes and play on each level's own figures
+  // Changed with Joe's approval, 23 Nov 2026 (D6): poolRev 5, Speed from the fifth pot.
+  { type: "pool", field: "poolRev", rev: 5, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
   // curlRev 4 since 3 Nov 2026 (the power bar, three reds a sheet, only stones nearer than every red in the house count).
@@ -154,7 +168,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
   // ricoRev 4 (15 Nov 2026, the bigger ninja; rev 3's parts). Changed with Joe's approval, 15 Nov 2026 (routine
   // consequence of the Action overhaul).
-  { type: "ricochet", field: "ricoRev", rev: 4, batch: "Action" },
+  // ricoRev 5 (22 Nov 2026, D5): the 30 × 60 ninja. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5).
+  { type: "ricochet", field: "ricoRev", rev: 5, batch: "Action" },
 ];
 
 /**

@@ -273,3 +273,19 @@ arcade-standard-check's entry (both banks' witnesses at 200).
 
 - **Castles** should read more clearly as castles from above.
 - **Captain Joulz** in a slightly more upright three-quarter view (`golf_sprites.py`: the camera's tip, now 38°).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** golfRev 4 (golfRev 3's holes and play at every level; Normal's under-par part full at four holes, speed by 55 s).
+- **The lever:** today's holes: Hard and Expert keep their two extra hazards a hole (Joe, 27 Nov 2026: no hazard lever, no sand-free Easy).
+- **Average player, Easy / Normal / Hard / Expert:** 156.0 / 146.6 / 135.0 / 117.0 (on 48 deals a level; the second 48 were not measured).
+- **The elite at 200:** 65 / 50 / 44 / 25 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

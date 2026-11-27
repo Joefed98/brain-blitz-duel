@@ -50,6 +50,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still: a shot bouncing off the wall into a matching group. */
 function IntroExample() {
@@ -58,6 +59,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: BubblePuzzleData | null = puzzle.type === "bubble" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // Levels (stage 3): the stored puzzle's level picks bubbleRev 12's reef, colours and descent cadence.
@@ -207,7 +209,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const size = sizeCanvas();
       const ctx = canvas.current?.getContext("2d");
       if (size && ctx) {
-        drawBubbleArt(ctx, state.current, size);
+        hudDraw(() => drawBubbleArt(ctx, state.current, size));
         drawBubbleAimTrail(ctx, size, aim.current, state.current);
       }
 

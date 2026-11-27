@@ -218,3 +218,19 @@ gold and combos at 8 (37 %).
   under the human limits); arcade-self-replay-check's appended `balltrack/easy`, `/hard`, `/expert`.
 - Decisions for Joe: Expert's elite never reaching 200 (the guide asks only to score well);
   the shared elite profile reacts in 145 ms, a little past the 0.25 s limit (the limits are applied in this bot only).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** btRev 9 (Normal: btRev 8's bank and play, its parts full at 28 marbles home, 5 gold, 18 combos, 28 boosted).
+- **The lever:** marble colours and cups: 3 / 4 (Normal) / 5 (a purple star) / 5 with a faster release and 6 cup moves (the board holds five cups at most).
+- **Average player, Easy / Normal / Hard / Expert:** 178.8 / 110.5 / 78.8 / 58.2.
+- **The elite at 200:** 58 / 40 / 33 / 28 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

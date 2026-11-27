@@ -12,7 +12,7 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltLevelGame, type TiltLevel, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltThreeGame, tiltLevelGameV13, TILT_REV_THREE, tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltLevelGame, type TiltLevel, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
@@ -84,6 +84,13 @@ function distance(m: Maze, s: TiltState, g: Goal, field: number[]): number {
   return d * m.cs + Math.abs(b.x - ((c % m.n) * m.cs + m.cs / 2)) / 2 + Math.abs(b.y - (Math.trunc(c / m.n) * m.cs + m.cs / 2)) / 2;
 }
 
+/**
+ * Human limits (D6, 22 Nov 2026; HUMAN_LIMITS: about 0.15 s to move once decided): with `limitTicks` set, every held
+ * tilt lasts at least that many ticks from its first drag to the next decision (a new decision no more often than
+ * every 0.15 s; Tilt's world is known and deterministic, so there is nothing to react to late). 0: as before.
+ */
+let limitTicks = 0;
+
 /** Steps a node by one held tilt (turn there, then hold), stopping early once the goal is reached. */
 function macro(n: Node, target: number, hold: number, g: Goal): { node: Node; done: boolean; fell: boolean } {
   let s = n.s;
@@ -92,7 +99,7 @@ function macro(n: Node, target: number, hold: number, g: Goal): { node: Node; do
   let held = 0;
   for (let k = 0; k < 400 && !game.isOver(s); k++) {
     const drag = dragToward(s, target);
-    if (!drag && held++ >= hold) break;
+    if (!drag && held++ >= hold && k >= limitTicks) break;
     const t = s.tick + 1;
     let ev: Ev | null = null;
     if (drag) {
@@ -184,9 +191,11 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 }
 
 /** Plays a seed; returns the log and the server's score for it. */
-export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND, level?: TiltLevel): { raw: string; score: number; state: TiltState } {
-  // Levels (stage 3, tiltRev 12 only): the level's game (its own mazes, pars and speed line).
-  game = rev === TILT_REV_BIG && level ? tiltLevelGame(level) : rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
+export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND, level?: TiltLevel, opts: { limitTicks?: number } = {}): { raw: string; score: number; state: TiltState } {
+  limitTicks = opts.limitTicks ?? 0;
+  // Levels (stage 3, tiltRev 12 only): the level's game (its own mazes, pars and speed line). tiltRev 13's Normal: its three mazes.
+  // D6: a level on tiltRev 13 plays TILT_LEVELS_V13. Changed with Joe's approval, 27 Nov 2026.
+  game = rev === TILT_REV_THREE && level ? tiltLevelGameV13(level) : rev === TILT_REV_THREE && !level ? tiltThreeGame : rev === TILT_REV_BIG && level ? tiltLevelGame(level) : rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
   for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;
@@ -214,6 +223,7 @@ export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND, level?: T
   const raw = encodeTiltRun({ seed, claimedScore: game.score(s), events: node.log, endTick: s.tick, checkpoints: checkpoints as never });
   const r = replayTiltRun(seed, raw, rev, level);
   game = tiltExpandGame;
+  limitTicks = 0;
   return { raw, score: r.flagged ? -1 : r.score, state: r.state };
 }
 

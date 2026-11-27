@@ -2445,7 +2445,7 @@ function drawInnings(ctx: CanvasRenderingContext2D, state: HomerunState, viewH: 
     const tellK = state.tick < t0 ? 0 : state.tick < t0 + 4 ? (state.tick - t0) / 4 : state.tick <= rel ? 1 : Math.max(0, 1 - (state.tick - rel) / 8);
     hvAt(ctx, PITCHER_FEET.x, PITCHER_FEET.y, () => paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, phase, tellK > 0 ? { kind: cur.kind, k: tellK } : undefined));
     // Easy shows the grip bubble too (a reading aid); every level shows the arm slot and glove.
-    if (inn.level === "easy" && tellK > 0) paintTellBubble(ctx, cur.kind, tellK);
+    if ((inn.level === "easy" || inn.level === "easy6") && tellK > 0) paintTellBubble(ctx, cur.kind, tellK);
   } else hvAt(ctx, PITCHER_FEET.x, PITCHER_FEET.y, () => paintPitcher(ctx, PITCHER_FEET.x, PITCHER_FEET.y, PITCHER_H, 2));
 
   // The strike zone: a clear frame (the call is about it), brighter while a pitch comes in.

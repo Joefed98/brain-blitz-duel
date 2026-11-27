@@ -18,6 +18,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
+  FLIP_V14_LEVEL_RULES, // Changed with Joe's approval, 27 Nov 2026 (D5's flipRev 14)
   flipCheckpoint,
   flipClearCourseCache,
   flipCourseCached,
@@ -47,6 +48,7 @@ import { replayFlipRun } from "../src/lib/duel/flip";
 import { FLIP_DEAL_V13 } from "../src/lib/duel/flipDealV13.server";
 import { FLIP_LEVEL_DEALS } from "../src/lib/duel/flipLevelDeals.server";
 import { gradeAnswer, generatePuzzle } from "../src/lib/duel/generate.server";
+import { pinFlipPreLadder } from "../src/lib/duel/arcade.server"; // Changed with Joe's approval, 27 Nov 2026 (D5's flipRev 14)
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
@@ -58,6 +60,9 @@ import { LEVELS_ACTION_LEGACY, type LegacyFixture } from "./levels-action-legacy
 
 let failures = 0;
 let passes = 0;
+// Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's flipRev 14): this check was written for flipRev 13's
+// levels, so it deals them (the era pin); flipRev 14's ladder is flip-ladder-check's.
+pinFlipPreLadder(true);
 const ok = (cond: unknown, label: string) => {
   if (cond) passes++;
   else {
@@ -96,8 +101,11 @@ const deal = (n: number, level?: FlipLevel) => {
   for (const level of LEVELS) {
     const r = FLIP_LEVEL_RULES[level];
     const settings = gameLevelSettings<Record<string, unknown>>("flip", level)!;
-    const mirror = { speedStart: r.speedStart, speedStep: r.speedStep, stepTicks: r.stepTicks, speedCap: r.speedCap, moversFrom: r.moversFrom, sweetTicks: r.sweetTicks, sweetSpots: r.sweetSeconds.length, crashCost: r.crashCost, sweetsFull: r.sweetsFull };
-    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(mirror).sort()), `${level}: gameLevels.ts mirrors the sim's FLIP_LEVEL_RULES`);
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's flipRev 14): the registry mirrors the dealt ladder
+    // (FLIP_V14_LEVEL_RULES, flip-ladder-check); flipRev 13's FLIP_LEVEL_RULES is frozen with the sim.
+    const v14 = FLIP_V14_LEVEL_RULES[level];
+    const mirror = { speedStart: v14.speedStart, speedStep: v14.speedStep, stepTicks: v14.stepTicks, speedCap: v14.speedCap, moversFrom: v14.moversFrom, sweetTicks: v14.sweetTicks, sweetSpots: v14.sweetSeconds.length, crashCost: v14.crashCost, sweetsFull: v14.sweetsFull, coreFull: v14.coreFull, doublesFull: v14.doublesFull, streakFull: v14.streakFull };
+    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(mirror).sort()), `${level}: gameLevels.ts mirrors the sim's dealt FLIP_V14_LEVEL_RULES`);
     const p = deal(3, level);
     ok(puzzleLevel(p) === level && p.type === "flip" && p.flipRev === FLIP_REV_GRACE, `${level}: the deal stamps level "${level}" on flipRev 13`);
     ok(p.type === "flip" && FLIP_LEVEL_DEALS[level].includes(p.seed), `${level}: the course comes from the level's own proved deal`);

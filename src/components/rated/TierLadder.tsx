@@ -108,7 +108,7 @@ export function TierLadder({ rank, rungs }: { rank: RankView | null; rungs: read
         ) : null}
         <li>
           <Icon name="rewards" size={22} tone="text-3" />
-          <span>End-of-season rewards come from your peak tier: the season emblem, a card frame and a title like “S1 Storm”.</span>
+          <span>Season rewards follow your peak tier: an emblem, a frame and a title.</span>
         </li>
       </ul>
     </div>

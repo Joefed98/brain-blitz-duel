@@ -57,6 +57,8 @@ import {
   BEAT_REV_FLOOR,
   BEAT_REV_STD,
   BEAT_STD_SPEC_V12,
+  BEAT_REV_LANES, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
+  BEAT_STD_SPEC_V13, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   type BeatState,
 } from "../src/lib/arcade/beat";
 import { bot as rallyBot } from "./arcade-skill-bands/bots/rally";
@@ -66,9 +68,11 @@ import {
   rallyTargetLeft,
   RALLY_HUD_H,
   RALLY_REV_LIVES,
+  RALLY_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   RALLY_REV_STD,
   RALLY_RUN_TICKS,
   RALLY_STD_SPEC_V13,
+  RALLY_STD_SPEC_V14, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   RALLY_V13_EXP,
   RALLY_V13_LIVES,
   RALLY_V13_RELAUNCH,
@@ -77,14 +81,14 @@ import {
 import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
 import { replayBurstRun } from "../src/lib/duel/burst";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { burstGameFor, burstRadius, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_RADIUS, BURST_RADIUS_BIG, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
+import { burstGameFor, burstRadius, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_RADIUS, BURST_RADIUS_BIG, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst"; // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14): BURST_REV_SMALL
 import { bot as pinballBot } from "./arcade-skill-bands/bots/pinball";
 import { replayPinballRun } from "../src/lib/duel/pinball";
 import { pinballGameForAny } from "../src/lib/arcade/pinball4";
 import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
 import { replaySnakeRun } from "../src/lib/duel/snake";
-import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake";
+import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_LADDER, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake"; // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { breakerGameFor, breakerWorldHFor, breakerWorldWFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
@@ -109,12 +113,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Tempo beatRev 12 ============================ */
 {
   // 1. Wiring.
-  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR && BEAT_REV_FLOOR === BEAT_REV_STD + 1, "beat: rooms deal beatRev 12");
+  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_LANES && BEAT_REV_LANES === BEAT_REV_FLOOR + 1 && BEAT_REV_FLOOR === BEAT_REV_STD + 1, "beat: rooms deal beatRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   pinPreRetro(true);
   ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_STD, "beat: preRetro deals beatRev 11");
   pinPreRetro(false);
-  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR, "beat: unpinned again, rooms deal beatRev 12");
-  ok(LIVE_BANDS.beat.rev === BEAT_REV_FLOOR && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V12 && ARCADE_STANDARD.beat.spec === BEAT_STD_SPEC_V12, "beat: the help and the reveal read beatRev 12's spec");
+  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_LANES, "beat: unpinned again, rooms deal beatRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
+  ok(LIVE_BANDS.beat.rev === BEAT_REV_LANES && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V13 && ARCADE_STANDARD.beat.spec === BEAT_STD_SPEC_V13, "beat: the help and the reveal read beatRev 13's spec"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   ok(/missed note scores nothing/.test(BEAT_STD_SPEC_V12.parts[0]!.how), "beat: the help says a missed note scores nothing");
   ok(playRevOf("beat", BEAT_REV_FLOOR) === playRevOf("beat", BEAT_REV_STD), "beat: playRevOf maps beatRev 12 to beatRev 11's play");
   const g11 = beatGameFor(BEAT_REV_STD);
@@ -191,11 +195,11 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 {
   const g12 = rallyGameFor(RALLY_REV_STD);
   const g13 = rallyGameFor(RALLY_REV_LIVES);
-  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_LIVES && RALLY_REV_LIVES === RALLY_REV_STD + 1, "rally: rooms deal rallyRev 13");
+  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_LADDER && RALLY_REV_LADDER === RALLY_REV_LIVES + 1 && RALLY_REV_LIVES === RALLY_REV_STD + 1, "rally: rooms deal rallyRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   pinPreRetro(true);
   ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_STD, "rally: preRetro deals rallyRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.rally.rev === RALLY_REV_LIVES && LIVE_BANDS.rally.std === RALLY_STD_SPEC_V13 && ARCADE_STANDARD.rally.spec === RALLY_STD_SPEC_V13, "rally: the help and the reveal read rallyRev 13's spec");
+  ok(LIVE_BANDS.rally.rev === RALLY_REV_LADDER && LIVE_BANDS.rally.std === RALLY_STD_SPEC_V14 && ARCADE_STANDARD.rally.spec === RALLY_STD_SPEC_V14, "rally: the help and the reveal read rallyRev 13's spec"); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   ok(ARCADE_STANDARD.rally.specFor?.(RALLY_REV_STD)?.parts.length === 3 && ARCADE_STANDARD.rally.specFor?.(RALLY_REV_LIVES)?.parts.length === 4, "rally: a rallyRev 12 round keeps its three part names");
   ok(g13.runTicks <= 120 * TICKS_PER_SECOND, "rally: the run is at most 120 s");
   ok(RALLY_V13_LIVES >= 2, "rally: Normal has a life to spare");
@@ -278,11 +282,13 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Fission burstRev 12 ============================ */
 {
   // Rooms deal burstRev 13 (bigger atoms, its own section below); burstRev 12's rules stay proved here on its own stamp.
-  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_BIG && BURST_REV_BIG === BURST_REV_WIDE + 1 && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 13 (burstRev 12 one below it)");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_SMALL && BURST_REV_SMALL === BURST_REV_BIG + 1 && BURST_REV_BIG === BURST_REV_WIDE + 1 && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 14 (burstRev 13 one below it, then 12)");
   pinPreRetro(true);
   ok((generatePuzzle("burst") as any).burstRev === BURST_REV_AIM, "burst: preRetro deals burstRev 11");
   pinPreRetro(false);
-  ok(LIVE_BANDS.burst.rev === BURST_REV_BIG && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 13; burstRev 12 keeps burstRev 11's play");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  ok(LIVE_BANDS.burst.rev === BURST_REV_SMALL && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 14; burstRev 12 keeps burstRev 11's play");
   ok(/down to 0 at three times that/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.burst)), "burst: the help says the bonus runs out at three times the quick time");
   ok(burstGameFor(BURST_REV_WIDE).runTicks <= 120 * TICKS_PER_SECOND, "burst: the run is at most 120 s");
   const q = 200;
@@ -324,11 +330,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Pinball pinRev 7 ============================ */
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal pinRev 8 (pinRev 7's play, the outlane saves counted) since stage 3.
-  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ + 1 && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 8 (pinRev 7 below it)");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's pinRev 9): this line and the help's below.
+  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ + 2 && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 9 (pinRev 7 two below it)");
   pinPreRetro(true);
   ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_STD, "pinball: preRetro deals pinRev 6");
   pinPreRetro(false);
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ + 1 && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ + 1 && playRevOf("pinball", PIN_REV_JOULZ + 1) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 8, pinRev 6's play");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ + 2 && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ + 2 && playRevOf("pinball", PIN_REV_JOULZ + 2) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 9, pinRev 6's play"); // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
   ok(pinballGameForAny(PIN_REV_JOULZ).runTicks <= 120 * TICKS_PER_SECOND, "pinball: the run is at most 120 s");
   const spec = GAME_BY_TYPE.get("pinball" as never)!;
   const play = (rev: number, seed: number, events: any[]) => {
@@ -373,11 +380,11 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 {
   // Rooms deal snakeRev 15 (stage 3: 14's rocks in three sizes with the first crash forgiven; Changed with Joe's approval, 15 Nov
   // 2026, routine consequence of the Retro overhaul); snakeRev 13's wrap and 14's rocks stay proved here on their own stamps.
-  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_SIZES + 1 && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 15 (snakeRev 14 and 13 below it)");
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_LADDER && SNAKE_REV_LADDER === SNAKE_REV_GRACE + 1 && SNAKE_REV_GRACE === SNAKE_REV_SIZES + 1 && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 15 (snakeRev 14 and 13 below it)"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   pinPreRetro(true);
   ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "snake: preRetro deals snakeRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 15, on snakeRev 13's core line");
+  ok(LIVE_BANDS.snake.rev === SNAKE_REV_LADDER && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 15, on snakeRev 13's core line"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   ok(/edges wrap/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && !/Hit a wall/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)), "snake: the help says the edges wrap, not that a wall ends the run");
   const g12 = snakeGameFor(SNAKE_REV_12);
   const g13 = snakeGameFor(SNAKE_REV_WRAP);
@@ -568,11 +575,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Breaker brkRev 12 ============================ */
 {
-  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 12");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13): this line and the help's below.
+  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR + 1 && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 13 (brkRev 12 one below it)");
   pinPreRetro(true);
   ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_STD, "breaker: preRetro deals brkRev 11");
   pinPreRetro(false);
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR, "breaker: the help reads brkRev 12");
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR + 1, "breaker: the help reads brkRev 13"); // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13)
   // The stage's arena and its tap mapping read the stamp's world (brkRev 12 plays brkRev 11's 420 × 784 court).
   ok(breakerWorldWFor(BRK_REV_CLEAR) === breakerWorldWFor(BRK_REV_STD) && breakerWorldHFor(BRK_REV_CLEAR) === breakerWorldHFor(BRK_REV_STD) && breakerWorldWFor(BRK_REV_CLEAR) === 420, "breaker: brkRev 12's arena is brkRev 11's 420 × 784 world");
   ok(/multi-ball/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)) && /9 rows/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)), "breaker: the help describes the 9-row wall and the multi-ball");
@@ -623,11 +631,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Wavefront wavRev 14 ============================ */
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal wavRev 15 (wavRev 14 with larger hit cells) since stage 3; 14 stays proved here on its own stamp.
-  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE + 1 && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 15 (wavRev 14 one below it)");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16, the wider formation): rooms deal wavRev 16.
+  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE + 2 && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 16 (wavRev 14 two below it)");
   pinPreRetro(true);
   ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_KEEP, "wavefront: preRetro deals wavRev 13");
   pinPreRetro(false);
-  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE + 1, "wavefront: the help reads wavRev 15");
+  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE + 2, "wavefront: the help reads wavRev 16"); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
   ok(/heavy blast/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront)), "wavefront: the intro and help teach the charged shot");
   const g13 = wavefrontGameFor(WAV_REV_KEEP);
   const g14 = wavefrontGameFor(WAV_REV_CHARGE);

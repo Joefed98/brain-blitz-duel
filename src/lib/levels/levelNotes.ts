@@ -18,6 +18,16 @@ export const LEVEL_NOTES: Partial<Record<string, Partial<Record<Exclude<Level, "
   },
 };
 
+/**
+ * Apex's levels on racingRev 5 (D6, 27 Nov 2026; docs/arcade-standard/racing.md "D6 levels"): the road narrows a level
+ * up and the gravel keeps less of your speed (80 / 50 / 35 %); a racingRev 4 round keeps LEVEL_NOTES.racing above.
+ */
+export const RACING_D6_NOTES: Readonly<Record<Exclude<Level, "normal">, string>> = {
+  easy: "Easy: a wider road, a lower par pace, the gravel keeps 80 % of your speed, and braking points are painted before each sharp corner.",
+  hard: "Hard: a narrower road with the tyre walls closer, every km/h under the par pace costs more, and the gravel keeps half your speed.",
+  expert: "Expert: the narrowest road, tighter hairpins (Ridge Loop keeps its own), every km/h under par costs even more, the gravel keeps about a third of your speed, and only the corner speed signs help (no braking boards or racing line).",
+};
+
 /** The line for a game at a level, or null (Normal, or a game with no note). */
 export function levelNote(type: string, level: Level): string | null {
   if (level === NORMAL) return null;

@@ -51,7 +51,9 @@ import {
   MATCHUP_REV_ICE,
   MATCHUP_REV_SIX,
   MATCHUP_REV_ICE2,
+  MATCHUP_REV_D6,
   MATCHUP_V13_BAND_CURVE,
+  MATCHUP_V14_BAND_CURVE,
   MATCHUP_REV_STD,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
@@ -136,14 +138,14 @@ section("Older stamps replay and score exactly as before");
 section("Rooms deal matchupRev 11's successor (12); help, intro, demo and reveal follow it");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): matchupRev 13 (two-hit ice
 // and levels) is the dealt stamp's successor; the help, demo gate and standard entry follow it.
-for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_ICE2 && MATCHUP_REV_STD === 11 && MATCHUP_REV_SIX === MATCHUP_REV_STD + 1 && MATCHUP_REV_ICE2 === MATCHUP_REV_SIX + 1, "rooms deal matchupRev 12 (matchupRev 11's successor)");
-ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_ICE2 && LIVE_BANDS.matchup.curve === MATCHUP_V13_BAND_CURVE && JSON.stringify(MATCHUP_V13_BAND_CURVE) === JSON.stringify(MATCHUP_V12_BAND_CURVE), "the help reads matchupRev 12's core line (matchupRev 11's successor)");
+for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_D6 && MATCHUP_REV_STD === 11 && MATCHUP_REV_SIX === MATCHUP_REV_STD + 1 && MATCHUP_REV_ICE2 === MATCHUP_REV_SIX + 1 && MATCHUP_REV_D6 === MATCHUP_REV_ICE2 + 1, "rooms deal matchupRev 14 (matchupRev 11's successor)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
+ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_D6 && LIVE_BANDS.matchup.curve === MATCHUP_V14_BAND_CURVE && JSON.stringify(MATCHUP_V13_BAND_CURVE) === JSON.stringify(MATCHUP_V12_BAND_CURVE), "the help reads matchupRev 14's core line (matchupRev 11's successor)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
 ok(MATCHUP_V11_BAND_CURVE.units.length === 2 && MATCHUP_V11_BAND_CURVE.units[1] === MATCHUP_V11_CORE_GEMS && MATCHUP_V11_BAND_CURVE.points[1] === MATCHUP_V11_CORE_MAX, "the core is one straight line (two knots), 0 → 110");
 ok(game.runTicks === 5400 && matchupWorldHFor(MATCHUP_REV_STD) === MATCHUP_V9_WORLD_H && matchupRowsFor(MATCHUP_REV_STD) === MATCHUP_V9_ROWS, "90 s on the 7 × 10 board in the 390 × 720 world");
 ok(roundMaxFor("matchup") === 200, "the round maximum stays 200");
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/matchupRev !== MATCHUP_REV_ICE2\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12 (matchupRev 11's successor)");
+  ok(/matchupRev !== MATCHUP_REV_D6\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 14 (matchupRev 11's successor)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   const help = PUZZLE_INSTRUCTIONS.matchup.score;
   for (const text of [`Treasure: ${MATCHUP_V12_TREASURE_PTS} for each treasure brought down, up to ${MATCHUP_V12_TREASURE_MAX}.`, `Goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met, up to ${MATCHUP_V12_GOALS_MAX}.`, `Ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken, up to ${MATCHUP_V12_ICE_MAX}.`, `Big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5, up to ${MATCHUP_V12_BIG_MAX}.`, "Total 200."])
     ok(help.includes(text), `the help says "${text}": ${help}`);
@@ -348,7 +350,7 @@ section("Recorded matchupRev 11 runs replay unchanged; the flawless run is 200")
   const perfect = STANDARD.perfect();
   ok(perfect.score === 200, `the arcade-standard entry's flawless run replays to 200 (${perfect.score})`);
   for (const part of STANDARD.parts) ok(perfect.parts[part.key] === part.max, `the entry's flawless run's ${part.key} is at its max ${part.max} (${perfect.parts[part.key]})`);
-  ok(STANDARD.id === "matchup" && STANDARD.stampKey === "matchupRev" && STANDARD.stamp === MATCHUP_REV_ICE2, "the standard module names matchupRev 12 (matchupRev 11's successor)");
+  ok(STANDARD.id === "matchup" && STANDARD.stampKey === "matchupRev" && STANDARD.stamp === MATCHUP_REV_D6, "the standard module names matchupRev 14 (matchupRev 11's successor)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
 }
 
 if (failures.length) {

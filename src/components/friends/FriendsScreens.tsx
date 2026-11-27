@@ -282,7 +282,7 @@ export function FriendsList({
             <EmptyState
               layout="card"
               title="No friends yet"
-              body="Add friends by username or send them your invite link. Then you can see when they’re about and play together."
+              body="Add friends by username or invite link, then play together."
               action={{ label: "Add a friend", onClick: onAdd }}
               gold
               data-friends-empty=""
@@ -891,7 +891,7 @@ export function InviteLanding({
           heading={1}
           pose="win"
           title={`${owner.username} wants to be friends`}
-          body="Make a free account and we’ll send them your request. You can see when they’re about and play together."
+          body="Make a free account and we’ll send your request."
           action={{ label: "Make an account", onClick: onSignUp, data: { "data-invite-sign-up": "" } }}
           secondary={{ label: "I have an account", onClick: onSignIn, data: { "data-invite-sign-in": "" } }}
           data-invite-owner={owner.username}

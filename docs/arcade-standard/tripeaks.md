@@ -169,3 +169,19 @@ is in `scripts/fixtures/tripeaks-expert-lines.json` (`{ expert, hard }`), replay
 
 On Easy a dead end waits while an undo is left. The glow is display only; the skill-band bots model its absence as
 1.6 × the search time (human limits; `NO_GLOW_SCAN` in the bot).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** tripeaksRev 4 (Normal: run full at 6, stock par within par + 8, speed by 25 s).
+- **The lever:** time and the stock: 90 s and 23 turns / Normal / 45 s and 18 / 32 s and 14.
+- **Average player, Easy / Normal / Hard / Expert:** 153 / 119 / 61 / 46.
+- **The elite at 200:** 65 / 44 / 32 / 21 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

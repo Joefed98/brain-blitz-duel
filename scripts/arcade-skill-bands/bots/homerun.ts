@@ -256,7 +256,9 @@ const V5_POWER = { weak: 0.1, average: 0.25, good: 0.5, great: 0.8, near: 0.95, 
 export const botV5: SkillBot = ({ game, seed, human }) => {
   const level = homerunGameLevel(game);
   if (human.level === "perfect") return { events: oracleRunV5(seed, level) };
-  const plan = homerunInningsPlan(seed, hrLevelOf(level));
+  // The plan the game itself plays (its innings' settings key: D6's homerunRev 6 levels have their own; the same as
+  // hrLevelOf(level) for every earlier round).
+  const plan = homerunInningsPlan(seed, game.init(seed).inn?.level ?? hrLevelOf(level));
   const events: ArcadeInputEvent[] = [];
   const ranges = game.inputRanges ?? [];
   const lv = human.level as keyof typeof V5_MISREAD;

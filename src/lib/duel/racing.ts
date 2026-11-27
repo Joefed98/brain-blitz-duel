@@ -10,6 +10,7 @@ import {
   RACING_REV_2,
   RACING_REV_3,
   RACING_REV_4,
+  RACING_REV_5,
   RACING_CHECKPOINT_KEYS,
   RACING_SECTORS,
   RACING_TOTAL,
@@ -36,6 +37,8 @@ const runV2 = runFor(RACING_REV_2);
 const runV3 = runFor(RACING_REV_3);
 /** racingRev 4: racingRev 3's car on the three named circuits. */
 const runV4 = runFor(RACING_REV_4);
+/** racingRev 5 (D6): racingRev 4's play on Normal's new pace and clean-sector figures. */
+const runV5 = runFor(RACING_REV_5);
 
 export interface RacingResult extends FlatReplay<RacingState, RacingCheckpoint> {
   /** Both laps completed, and on which tick (0 when not). */
@@ -60,10 +63,11 @@ export const decodeRacingRun = run.decode;
 
 /** racingRev 4 at a difficulty level: one run per stored settings (cached). */
 const levelRuns = new Map<string, ReturnType<typeof runFor>>();
-function levelRun(lv: RacingLevelSettings): ReturnType<typeof runFor> {
-  const key = JSON.stringify(lv);
+function levelRun(lv: RacingLevelSettings, rev: number): ReturnType<typeof runFor> {
+  const v = rev >= RACING_REV_5 ? RACING_REV_5 : RACING_REV_4;
+  const key = `${v}:${JSON.stringify(lv)}`;
   let r = levelRuns.get(key);
-  if (!r) levelRuns.set(key, (r = runFor(RACING_REV_4, lv)));
+  if (!r) levelRuns.set(key, (r = runFor(v, lv)));
   return r;
 }
 
@@ -74,7 +78,7 @@ function levelRun(lv: RacingLevelSettings): ReturnType<typeof runFor> {
 export function replayRacingRun(seed: number, raw: string, rev?: number | null, level?: unknown): RacingResult {
   const r = rev ?? 1;
   const lv = r >= RACING_REV_4 ? racingLevelOf(level) : null;
-  const result = (lv ? levelRun(lv) : r >= RACING_REV_4 ? runV4 : r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
+  const result = (lv ? levelRun(lv, r) : r >= RACING_REV_5 ? runV5 : r >= RACING_REV_4 ? runV4 : r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

@@ -13,7 +13,7 @@ import { CARD_FONT, drawChip, drawSlot } from "./cards.renderer";
 import { CardLayer, CardMotion, drawRealCard, drawRealFelt } from "./realArt.renderer";
 import { arcPoint, drawOutline, drawSparks, FxTimeline } from "./cardsFx.renderer";
 import { roundRect } from "./cards.renderer";
-import { TP_CARDS, TP_INPUT_HINT, TP_INPUT_UNDO, TP_LV_EASY, TP_STOCK, TP_STOCK_PILE, tpFree, tpGlows, tpHintsLeft, tpPack, tpPlayable, tpUndosLeft, tripeaksGameAt, type TpState } from "./tripeaks";
+import { TP_CARDS, TP_INPUT_HINT, TP_INPUT_UNDO, TP_LV_EASY, TP_STOCK, TP_STOCK_PILE, tpFree, tpGlows, tpHintButtonOn, tpHintsLeft, tpPack, tpPlayable, tpUndosLeft, tripeaksGameAt, type TpState } from "./tripeaks";
 import { tpHintMove } from "./tripeaksSolver";
 import { drawCardButton, inButton, type CardButtonBox } from "./cardButtons.renderer";
 
@@ -316,8 +316,9 @@ export function tripeaksArtGame(view?: TpView, rev?: number | null, level?: stri
 
 const BTN_Y = TP_PILE_Y + TP_PILE_H + 52;
 /** The level buttons: Undo (Easy only) and Hint. */
-export function tpLevelButtons(state: Pick<TpState, "lv">): readonly { kind: number; box: CardButtonBox }[] {
-  if (!state.lv) return [];
+export function tpLevelButtons(state: Pick<TpState, "lv"> & { rev?: number }): readonly { kind: number; box: CardButtonBox }[] {
+  // D6 (23 Nov 2026): tripeaksRev 4's Hard and Expert have no hints, so no level buttons.
+  if (!state.lv || !tpHintButtonOn(state)) return [];
   return state.lv === TP_LV_EASY
     ? [
         { kind: TP_INPUT_UNDO, box: { x: 24, y: BTN_Y, w: 150, h: 46 } },
@@ -326,7 +327,7 @@ export function tpLevelButtons(state: Pick<TpState, "lv">): readonly { kind: num
     : [{ kind: TP_INPUT_HINT, box: { x: TP_WORLD_W / 2 - 75, y: BTN_Y, w: 150, h: 46 } }];
 }
 /** The level button under a point (its input kind), 0 for none. */
-export function tpButtonHit(state: Pick<TpState, "lv">, x: number, y: number): number {
+export function tpButtonHit(state: Pick<TpState, "lv"> & { rev?: number }, x: number, y: number): number {
   for (const b of tpLevelButtons(state)) if (inButton(b.box, x, y)) return b.kind;
   return 0;
 }
