@@ -4231,7 +4231,10 @@ export function inkBridgeLevelGame(diff: InkDiff): ArcadeGame<InkState, ArcadeIn
  * levels at every level exactly (the run's state keeps rev 15; `d6` marks it, outside the checksum), each part a straight
  * line full at the level's own figure. The lever is the pot's width, seen at once: 110 / 64 (Normal) / 48 / 42 px
  * (INK_LEVEL_SETS, unchanged). Easy keeps its stage-3 figures; Normal's ink par and speed move to where the realistic
- * elite fills them (Decision 1 A); Hard and Expert are set from the skill-band bots under HUMAN_LIMITS.
+ * elite fills them (Decision 1 A); Hard and Expert are set from the skill-band bots under HUMAN_LIMITS. Measured on 96 room
+ * deals a level (scripts/d6-ladder.ts): the average player 169.1 / 88.5 (Normal) / 76.8 / 68.6, the elite at 200
+ * 88 / 35 / 29 / 23 %. A narrower Expert pot was tried and moved the average player by 2 points only (32 px: 62.4
+ * against 64.4 at 42 px on the stage-3 figures), so the worlds stay as they are.
  */
 export const INK_REV_D6 = 16;
 /** A level's D6 figures: ink par full at this per-mille total, trick shots and clovers at these counts, speed full with this many seconds left. */
