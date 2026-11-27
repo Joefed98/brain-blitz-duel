@@ -92,15 +92,14 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
    width wherever the height allows (the ring row comes out of the spare height, not the board). */
 .game-column [data-polish="gravity"][data-topsy][data-stage-column] > [data-game-arena="board"] { max-height: none; }
 
-/* ---- The Pattern overhaul (15 Nov 2026, look A): rendered art (public/pattern-art/gravity/, gravity.py) ----------
-   Grey stone blocks, a dark slate floor, glossy glass marbles and cups rimmed in each ball's colour, inside a gunmetal
-   tray frame. Every image fills the box the board already gives its piece, so no square, roll or tilt changes.
-   Minimal glow: no coloured halos round balls or holes. */
-/* Stage 2 (15 Nov 2026): the tray is three layers in one fixed box. The box itself (`[data-topsy-board]`, the size the
-   stage gives it) draws nothing and never moves; `.topsy-measure` is the empty grid useGridMetrics measures, in
-   exactly the art grid's place; `.topsy-flip` > `.topsy-tilt` carry the frame, the well, the squares and the balls and
-   are the only layers the effects move (the lean, the flip between boards), so no measured square or ball place ever
-   changes with an effect. */
+/* ---- The old look (Joe's pick of 20 Nov 2026, earlier E1.2), on the lit stage: gravity.css's gradient balls with the
+   white gloss, the sockets ringed in each ball's colour, the blue-grey floor and steel-blue blocks (with batch P's live
+   round light, batch-p.css). The Pattern overhaul's rendered sprites (public/pattern-art/gravity/) stay on disk.
+   Stage 2 (15 Nov 2026), kept: the tray is three layers in one fixed box. The box itself (`[data-topsy-board]`, the
+   size the stage gives it) draws nothing and never moves; `.topsy-measure` is the empty grid useGridMetrics measures,
+   in exactly the art grid's place; `.topsy-flip` > `.topsy-tilt` carry the tray, the well, the squares and the balls
+   and are the only layers the effects move (the lean, the flip between boards), so no measured square or ball place
+   ever changes with an effect. */
 .grav-tray.topsy-tray[data-topsy-board] {
   padding: 0;
   background: none;
@@ -120,115 +119,44 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   inset: 0;
   border-radius: 14px;
 }
+/* The tray's lit steel (the old `.grav-tray` look) on the layer the lean moves. */
 .grav-tray.topsy-tray[data-topsy-board] .topsy-tilt {
-  background: #0b0e16 url("/pattern-art/gravity/frame.webp") center / 100% 100% no-repeat;
-  box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.7);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 18%),
+    linear-gradient(160deg, #3a4052, #20242f 55%, #161922);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+    0 10px 20px -6px rgba(0, 0, 0, 0.7);
 }
 .grav-tray.topsy-tray[data-topsy-board] .grav-well {
   position: absolute;
   inset: 1.6%;
   width: auto;
   height: auto;
-  background: #0b0e16;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
 }
-.grav-tray.topsy-tray[data-topsy-board] .grav-floor {
-  background: url("/pattern-art/gravity/floor.webp") center / 100% 100% no-repeat;
-  box-shadow: none;
+/* A ball home sits in its ringed socket: the hole keeps its socket (lit ring), the ball drops into it. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home {
+  background: radial-gradient(circle at 50% 42%, #05070c 0 40%, color-mix(in srgb, var(--ball) 30%, #0b0e16) 72%, color-mix(in srgb, var(--ball) 50%, #0b0e16) 100%);
 }
-.grav-tray.topsy-tray[data-topsy-board] .grav-block {
-  background: url("/pattern-art/gravity/block.webp") center / 100% 100% no-repeat;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
-}
-/* The hole: the rendered cup in the ball's colour fills the socket's box; the mark sits in the dark pit, in the colour. */
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole {
-  background: none;
-  box-shadow: none;
-  width: 92%;
-  height: 92%;
-}
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole::before { content: none; }
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-cup {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  user-select: none;
-}
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole .topsy-mark {
-  position: relative;
-  width: 40%;
-  height: 40%;
-  fill: color-mix(in srgb, var(--ball) 85%, #fff);
-  opacity: 1;
-}
-/* A ball home sits sunk in its cup (a little smaller, the rim round it); its mark white over the marble. */
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home { background: none; box-shadow: none; }
 .grav-tray.topsy-tray[data-topsy-board] .topsy-hole > .topsy-sunk-wrap {
   position: absolute;
-  inset: 14%;
+  inset: 6%;
   pointer-events: none;
 }
 .grav-tray.topsy-tray[data-topsy-board] .topsy-sunk-wrap > .topsy-sunk {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 100%;
-  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #fff 0 7%, color-mix(in srgb, var(--ball) 55%, #fff) 16%, var(--ball) 46%, color-mix(in srgb, var(--ball) 55%, #000) 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
 .grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home .topsy-mark {
-  fill: #ffffff;
-  stroke: rgba(12, 13, 26, 0.8);
-  stroke-width: 1.6px;
-  paint-order: stroke fill;
-  width: 34%;
-  height: 34%;
-}
-.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home[data-topsy-hole="7"] .topsy-mark { fill: var(--jz-bg); stroke: var(--jz-white); stroke-width: 1px; }
-/* The marble: the sphere is 88 of the image's 108 points across, so the image runs 11.4 % past the ball's box. */
-.grav-tray.topsy-tray[data-topsy-board] .topsy-ball {
-  background: none;
-  box-shadow: none;
-}
-.grav-tray.topsy-tray[data-topsy-board] .topsy-ball > .topsy-marble {
-  position: absolute;
-  inset: -11.4%;
-  width: 122.8%;
-  height: 122.8%;
-  max-width: none;
-  max-height: none;
-  pointer-events: none;
-  user-select: none;
-}
-.grav-tray.topsy-tray[data-topsy-board] .topsy-ball .topsy-mark {
   position: relative;
-  width: 46%;
-  height: 46%;
-  fill: #ffffff;
-  stroke: rgba(12, 13, 26, 0.8);
-  stroke-width: 1.6px;
-  paint-order: stroke fill;
-}
-/* Expert's pearl white ball (the eighth, the difficulty levels of 16 Nov 2026): its crescent dark on the pale glass. */
-.grav-tray.topsy-tray[data-topsy-board] .topsy-ball[data-ball="7"] .topsy-mark { fill: var(--jz-bg); stroke: var(--jz-white); stroke-width: 1px; }
-/* No glow round a ball or a cup (a contact shadow only). */
-[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball,
-[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball.is-locked {
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
-}
-[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-block {
-  background: url("/pattern-art/gravity/block.webp") center / 100% 100% no-repeat;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
-}
-[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-floor {
-  background: url("/pattern-art/gravity/floor.webp") center / 100% 100% no-repeat;
-  box-shadow: none;
-}
-[data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-well {
-  position: absolute;
-  inset: 1.6%;
-  background: #0b0e16;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
+  fill: rgba(10, 12, 18, 0.7);
+  opacity: 1;
 }
 .grav-tray.topsy-tray[data-topsy-board].is-solving .grav-ball-glow { display: none; }
 .topsy-ring.is-home { box-shadow: inset 0 0 0 2px var(--ball); }
@@ -236,15 +164,8 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
 /* The lean on a tilt (a real one and the small one of a tilt that moves nothing) is leanTopsyTray's (topsyBoard.tsx),
    on the tray's art layer `.topsy-tilt` only: transform through the Web Animations API, never on the measured box. */
 
-/* Undo and Reset in champagne gold on navy (the Pattern overhaul's controls). */
-[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action] {
-  background-color: var(--jz-surface-2) !important;
-  color: var(--jz-gold) !important;
-  box-shadow: inset 0 0 0 1px var(--jz-gold-ledge);
-}
-[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-icon]::before { -webkit-text-fill-color: var(--jz-gold); }
-[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled { box-shadow: inset 0 0 0 1px var(--jz-line); }
-[data-puzzle-surface] [data-polish="gravity"][data-topsy] > [data-game-controls] [data-puzzle-action]:disabled::before { -webkit-text-fill-color: var(--jz-text-3); }
+/* Undo and Reset: the shared puzzle surface draws them in the category's colour (the dyed navy and champagne controls
+   went with the polish plan's E0.4, 21 Nov 2026). */
 
 /* ---- The reveal (the Pattern overhaul, 15 Nov 2026): one board large with a switcher, what was missed marked, the
    par route as arrow chips and the key numbers as pills. ---------------------------------------------------------- */

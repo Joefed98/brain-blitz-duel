@@ -42,8 +42,6 @@ import {
 } from "./tenDrop";
 import {
   TOY_BRASS,
-  TOY_BRASS_DARK,
-  TOY_INK,
   TOY_OAK,
   TOY_OAK_GRAIN,
   TOY_WOOD_DARK,
@@ -73,11 +71,14 @@ const TILE_X = (TD_COL_W - TILE_W) / 2;
 /** Lettering waits for the web font so a fallback face is never cached for good. */
 const FONT_PROBE = `700 24px 'Space Grotesk'`;
 
-/** Tile looks: face top, face bottom, edge, ink. */
+/**
+ * Tile looks: face top, face bottom, edge, ink. Spotlight (21 Nov 2026; display only): ivory digits in navy ink, blue
+ * operators (the minus a deeper blue) in white; the gold digit stays the special piece.
+ */
 const LOOKS = {
-  digit: ["#FBEFD5", "#E9D2A4", "#9C7444", TOY_INK],
-  op: ["#F6D47A", "#D9A946", TOY_BRASS_DARK, "#2E1C06"],
-  minus: ["#6E93B8", "#4C7097", "#2D4A68", "#FFFFFF"],
+  digit: ["#FBF5E8", "#ECE2CC", "#A98E62", "#1B2644"],
+  op: ["#6FA2E8", "#3E7FD6", "#24569E", "#FFFFFF"],
+  minus: ["#4F7FCB", "#2A5FB0", "#1A3D78", "#FFFFFF"],
   refused: ["#F2B3A6", "#DB8576", "#A8402F", "#4A120A"],
   /** tenRev 4's gold digit: a bright gilded face, a deep gold rim and a star (tileSprite). */
   gold: ["#FFF3C2", TD_GOLD, "#8A5A08", "#3A2200"],
