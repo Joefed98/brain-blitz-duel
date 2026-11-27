@@ -26,7 +26,8 @@ import { dealtTopupRev } from "@/lib/duel/depthTopup";
 import { scanStandard } from "@/lib/duel/standard/attention";
 import { playEagleTakeoff } from "./eagleEyeArt";
 import { eagleSprite } from "@/components/puzzles/attention/attentionArt";
-import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -351,22 +352,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  const [shown, setShown] = useState<number | null>(null);
   const revealRef = useRef<HTMLDivElement>(null);
-  return puzzle.type === "symscan" ? <EagleReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} revealRef={revealRef} /> : null;
+  return puzzle.type === "symscan" ? <EagleReveal puzzle={puzzle} myAnswer={myAnswer} revealRef={revealRef} /> : null;
 }
 
 function EagleReveal({
   puzzle,
   myAnswer,
-  shown,
-  setShown,
   revealRef,
 }: {
   puzzle: SymbolScanPuzzleData;
   myAnswer: string | null | undefined;
-  shown: number | null;
-  setShown: (s: number) => void;
   revealRef: { current: HTMLDivElement | null };
 }) {
   const parts = splitStages(myAnswer);
@@ -377,7 +373,20 @@ function EagleReveal({
   });
   // The Attention overhaul's reveal (15 Nov 2026): one grid at a time, large, a tab for each; the eagles you found ringed
   // gold, wrong taps red, the ones you missed dashed; the grid's numbers as tiles. The first grid with a slip opens first.
-  const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
+  // The tabs are the reveal template's views control (G6, A2, 27 Nov 2026), each marked right or wrong.
+  const open = Number(
+    useRevealViews(
+      grids.map((g, s) => ({ id: String(s), label: `Grid ${s + 1}`, tone: g.result.perfect ? ("good" as const) : ("bad" as const) })),
+      { initial: String(Math.max(0, grids.findIndex((g) => !g.result.perfect))), label: "Grids" },
+    ),
+  );
+  // A grid chosen on the control plays its cue (not the one it opens on).
+  const openedRef = useRef(open);
+  useEffect(() => {
+    if (openedRef.current === open) return;
+    openedRef.current = open;
+    soundCue("symscan.revealGrid");
+  }, [open]);
   const grid = grids[open]!;
   const missed = Math.max(0, grid.result.targets - grid.result.found);
   // The Attention overhaul: the eagles you missed pulse once when their grid opens (never in the round itself).
@@ -389,15 +398,6 @@ function EagleReveal({
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div ref={revealRef} className="eye-reveal attn-rv" data-attn-reveal="symscan">
-      <RevealTabs
-        label="Grids"
-        value={open}
-        onChange={(s) => {
-          soundCue("symscan.revealGrid");
-          setShown(s);
-        }}
-        options={grids.map((g, s) => ({ value: s, label: `Grid ${s + 1}`, tone: g.result.perfect ? "good" : "bad" }))}
-      />
       <div className="flex items-center gap-2" data-eye-reveal-target="">
         <span className="text-sm font-semibold text-muted-foreground">{grid.stage.alsoTarget ? "Targets" : "Target"}</span>
         <EagleIcon dir={grid.stage.target} gold size={36} />

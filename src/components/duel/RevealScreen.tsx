@@ -22,8 +22,8 @@ import { LeverPicture, leverWords } from "@/lib/levels/leverPicture";
 // A game's own views and the stage's size for a game's Reveal live in revealContext.ts (React only), so a game's Reveal
 // reads them without importing the template (A2, 27 Nov 2026: the puzzles' import graph stays clear of the design and
 // identity modules the template draws with).
-export { RevealGameViewsProvider, useGameViewsHost, useRevealStageSize, useRevealViews, type RevealViewLabel } from "./revealContext";
-import { StageSizeContext, type RevealViewLabel } from "./revealContext";
+export { RevealGameViewsProvider, useGameViewsHost, useRevealStageSize, useRevealViews, type RevealViewGroup, type RevealViewLabel } from "./revealContext";
+import { MAIN_VIEW_GROUP, StageSizeContext, type RevealViewGroup } from "./revealContext";
 
 /** One view of the stage: a board, a picture, the room's chart. */
 export interface RevealView {
@@ -59,11 +59,30 @@ export function useStageSize(): { ref: (el: HTMLElement | null) => void; w: numb
 
 
 /** The views control above the stage: the shared Segmented, driven by the `views` list (no text scraping). */
-export function RevealViews({ views, value, onChange, label = "What to show" }: { views: RevealView[]; value: string; onChange: (id: string) => void; label?: string }) {
+export function RevealViews({
+  views,
+  value,
+  onChange,
+  label = "What to show",
+  group,
+}: {
+  views: (Pick<RevealView, "id" | "label"> & { tone?: "good" | "bad" | undefined })[];
+  value: string;
+  onChange: (id: string) => void;
+  label?: string;
+  /** A game's control's group (A2, 27 Nov 2026: Double Take's two rows), on the row as `data-reveal-views`. */
+  group?: string | undefined;
+}) {
   if (views.length < 2) return null;
   return (
-    <div data-reveal-views="" className="reveal-views">
-      <Segmented options={views.map((v) => ({ value: v.id, label: v.label }))} value={value} onChange={onChange} label={label} radio />
+    <div data-reveal-views={group ?? ""} className="reveal-views">
+      <Segmented
+        options={views.map((v) => ({ value: v.id, label: v.label, ...(v.tone ? { data: { "data-view-tone": v.tone } } : {}) }))}
+        value={value}
+        onChange={onChange}
+        label={label}
+        radio
+      />
     </div>
   );
 }
@@ -118,8 +137,8 @@ export function RevealScreen({
   breakdown?: ReactNode;
   root?: React.Ref<HTMLDivElement> | undefined;
   className?: string | undefined;
-  /** A game's own views (useRevealViews): the control above the one stage, which the game draws itself. */
-  viewControl?: { views: RevealViewLabel[]; value: string; onChange: (id: string) => void } | null | undefined;
+  /** A game's own views (useRevealViews): one control a group above the one stage, which the game draws itself. */
+  viewControl?: { groups: RevealViewGroup[]; onChange: (group: string, id: string) => void } | null | undefined;
 } & Record<`data-${string}`, string | boolean | undefined>) {
   const [own, setOwn] = useState(views?.[0]?.id ?? "");
   const current = view ?? own;
@@ -139,9 +158,18 @@ export function RevealScreen({
           {score}
         </div>
         {views && views.length > 1 ? <RevealViews views={views} value={current} onChange={change} /> : null}
-        {!views && viewControl && viewControl.views.length > 1 ? (
-          <RevealViews views={viewControl.views.map((v) => ({ ...v, node: null }))} value={viewControl.value} onChange={viewControl.onChange} />
-        ) : null}
+        {!views && viewControl
+          ? viewControl.groups.map((g) => (
+              <RevealViews
+                key={g.group}
+                group={g.group === MAIN_VIEW_GROUP ? undefined : g.group}
+                views={g.views}
+                value={g.current}
+                label={g.label}
+                onChange={(id) => viewControl.onChange(g.group, id)}
+              />
+            ))
+          : null}
         <StageSizeContext.Provider value={size}>
         <div ref={stageSize.ref} data-reveal-slot="stage" data-reveal-stage="" className="reveal-slot-stage">
           {views && views.length > 1
