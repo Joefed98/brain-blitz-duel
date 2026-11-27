@@ -31,7 +31,7 @@
  * Integer fixed point (1/256 px), no randomness after init, no floats in the state.
  */
 
-import { retroLevelSettings, withRetroLevel, type PinballLv } from "./retroLevels";
+import { PINBALL_LEVELS_V8, retroLevelSettings, withRetroLevel, type PinballLv } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import { clampInt, TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { bandCurve, bandInit, bandPoints, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
@@ -72,6 +72,7 @@ import {
   PIN_REV_STD,
   PIN_REV_JOULZ,
   PIN_REV_SAVE,
+  PIN_REV_LADDER,
   PIN_RIGHT,
   PIN_RUN_TICKS,
   PIN_V5_RUN_TICKS,
@@ -95,7 +96,7 @@ import {
   type Seg,
 } from "./pinball";
 
-export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ, PIN_REV_SAVE };
+export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_LADDER };
 
 /* ============================== Constants ============================== */
 
@@ -338,6 +339,10 @@ const SEGS: readonly Seg[] = P4_SEGS.map((d) => {
 const BUMPER_RR = R + PIN_BUMPER_R * FP;
 const FLIP_RR = R + PIN_FLIP_R * FP;
 const FLIP_LEN = PIN_FLIP_LEN * FP;
+/** A state's flipper length, 1/256 px: its level's (pinRev 9, D5's ladder), else every revision's PIN_FLIP_LEN. */
+export function pinFlipLenFp(s: { lv?: PinballLv }): number {
+  return s.lv?.flipLen !== undefined ? s.lv.flipLen * FP : FLIP_LEN;
+}
 const FLIP_E = 70;
 const WALL_E = 128;
 const BUMPER_E = 160;
@@ -366,6 +371,8 @@ export interface Pin4State extends PinState, BandFields {
   ballSaves?: number;
   /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
   lv?: PinballLv;
+  /** pinRev 9 only (D5's ladder, 23 Nov 2026): the marker (Normal's refitted lines; a level's flipper length rides in `lv`). */
+  lad?: number;
   rev4: number;
   /** pinRev 5 (1): the 90-second run (absent on pinRev 4; pinRev 6 carries it too). */
   rev5?: number;
@@ -537,16 +544,16 @@ function segActive(s: Seg, targets: number): boolean {
 
 type Angles = { a0: number; a1: number; omega: number }[];
 
-function sweepFlipper(side: number, x0: number, y0: number, x1: number, y1: number, ang: { a0: number; a1: number }) {
+function sweepFlipper(side: number, x0: number, y0: number, x1: number, y1: number, ang: { a0: number; a1: number }, flipLen: number) {
   const [pxp, pyp] = P4_FLIP_PIVOTS[side]!;
   const px0 = pxp * FP, py0 = pyp * FP;
-  const reach = FLIP_LEN + FLIP_RR + 4 * FP;
+  const reach = flipLen + FLIP_RR + 4 * FP;
   if (Math.max(x0, x1) < px0 - reach || Math.min(x0, x1) > px0 + reach) return null;
   if (Math.max(y0, y1) < py0 - reach || Math.min(y0, y1) > py0 + reach) return null;
   const c0 = icos(ang.a0), s0 = isin(ang.a0), c1 = icos(ang.a1), s1 = isin(ang.a1);
   const [lx0, ly0] = toLocal(x0 - px0, y0 - py0, c0, s0);
   const [lx1, ly1] = toLocal(x1 - px0, y1 - py0, c1, s1);
-  const hit = sweepCapsule(lx0, ly0, lx1, ly1, 0, 0, FLIP_LEN, 0, FLIP_LEN, FLIP_LEN * FLIP_LEN, FLIP_RR);
+  const hit = sweepCapsule(lx0, ly0, lx1, ly1, 0, 0, flipLen, 0, flipLen, flipLen * flipLen, FLIP_RR);
   if (!hit) return null;
   const a = ang.a0 + Math.trunc(((ang.a1 - ang.a0) * hit.t) / T_ONE);
   const c = icos(a), sn = isin(a);
@@ -576,7 +583,7 @@ function earliestContact(s: Pin4State, x0: number, y0: number, x1: number, y1: n
     best = { t, x: px0, y: py0, nx, ny, what: 1, index };
   });
   for (let side = 0; side < 2; side++) {
-    const hit = sweepFlipper(side, x0, y0, x1, y1, angles[side]!);
+    const hit = sweepFlipper(side, x0, y0, x1, y1, angles[side]!, pinFlipLenFp(s));
     if (hit && (!best || hit.t < best.t)) best = { ...hit, what: 2, index: side };
   }
   return best;
@@ -594,7 +601,7 @@ function hitSeg(b: P4Ball, seg: Seg, nx: number, ny: number, hits: Hits): void {
   if (seg.kind === P4_JACKPOT_KIND && vn > 128 && ny > 0) hits.jackpot = 1;
 }
 
-function applyContact(b: P4Ball, c: Contact, angles: Angles, hits: Hits): void {
+function applyContact(b: P4Ball, c: Contact, angles: Angles, hits: Hits, len: number): void {
   if (c.what === 1) {
     if (respond(b, c.nx, c.ny, BUMPER_E, PIN_BUMPER_KICK) > 0) hits.bumper = c.index;
     return;
@@ -604,7 +611,7 @@ function applyContact(b: P4Ball, c: Contact, angles: Angles, hits: Hits): void {
     const [pxp, pyp] = P4_FLIP_PIVOTS[c.index]!;
     const cos = icos(ang.a1), sin = isin(ang.a1);
     const [lx] = toLocal(c.x - pxp * FP, c.y - pyp * FP, cos, sin);
-    const [svx, svy] = flipSurface(clampInt(lx, 0, FLIP_LEN), ang.omega, cos, sin);
+    const [svx, svy] = flipSurface(clampInt(lx, 0, len), ang.omega, cos, sin);
     respond(b, c.nx, c.ny, FLIP_E, 0, svx, svy);
     return;
   }
@@ -639,12 +646,13 @@ function resolve(s: Pin4State, b: P4Ball, angles: Angles, hits: Hits): void {
     const [pxp, pyp] = P4_FLIP_PIVOTS[side]!;
     const px0 = pxp * FP, py0 = pyp * FP;
     const dx = b.x - px0, dy = b.y - py0;
-    const reach = FLIP_LEN + FLIP_RR;
+    const len = pinFlipLenFp(s);
+    const reach = len + FLIP_RR;
     if (Math.abs(dx) > reach || Math.abs(dy) > reach) continue;
     const ang = angles[side]!;
     const cos = icos(ang.a1), sin = isin(ang.a1);
     const [lx, ly] = toLocal(dx, dy, cos, sin);
-    const qx = clampInt(lx, 0, FLIP_LEN);
+    const qx = clampInt(lx, 0, len);
     const ddx = lx - qx;
     const d2 = ddx * ddx + ly * ly;
     if (d2 >= FLIP_RR * FLIP_RR) continue;
@@ -754,7 +762,7 @@ function simulateBall(s: Pin4State, b: P4Ball, flipsFrom: number[], ev: BallEven
     if (contact) {
       b.x = contact.x;
       b.y = contact.y;
-      applyContact(b, contact, angles, hits);
+      applyContact(b, contact, angles, hits, pinFlipLenFp(s));
     } else {
       b.x = x1;
       b.y = y1;
@@ -1192,6 +1200,8 @@ export function pin4Checkpoint(state: Pin4State) {
     ...(state.rev6 ? [state.rev6, state.combos ?? 0] : []),
     // pinRev 8 (the Retro overhaul, stage 3) folds its counters in last, so pinRev 7's checksum is unchanged.
     ...(state.rev8 ? [state.rev8, state.outIn ?? 0, state.outSaves ?? 0, state.ballSaves ?? 0] : []),
+    // pinRev 9 (D5's ladder) folds its marker and a level's flipper length in last, so pinRev 8's checksum is unchanged.
+    ...(state.lad ? [state.lad, state.lv?.flipLen ?? 0] : []),
   ];
   for (const value of values) {
     checksum ^= value | 0;
@@ -1311,14 +1321,18 @@ export function pinballStdParts(state: Pin4State): StdPart[] | null {
   if (!state || !state.rev6) return null;
   const points = Math.max(0, state.points);
   const combos = state.combos ?? 0;
-  const spec = state.rev8 ? PIN_STD_SPEC_V8 : state.rev7 ? PIN_STD_SPEC_V7 : PIN_STD_SPEC;
+  const spec = state.lad ? PIN_STD_SPEC_V9 : state.rev8 ? PIN_STD_SPEC_V8 : state.rev7 ? PIN_STD_SPEC_V7 : PIN_STD_SPEC;
   const joulzEach = state.rev7 ? PIN_V7_JOULZ_EACH : PIN_V6_JOULZ_EACH;
+  // pinRev 9 (D5's ladder): Normal's refitted lines (PIN_V9_*), a level's own where it states them.
+  const fullAt = state.lv?.fullAt ?? (state.lad ? PIN_V9_FULL_AT : PIN_V6_FULL_AT);
+  const jackpotEach = state.lad ? (state.lv?.jackpotEach ?? PIN_V9_JACKPOT_EACH) : PIN_V6_JACKPOT_EACH;
+  const comboEach = state.lad ? (state.lv?.comboEach ?? PIN_V9_COMBO_EACH) : PIN_V6_COMBO_EACH;
   return [
-    stdPart(spec, "core", stdLine(PIN_V6_CORE_MAX, points, state.lv?.fullAt ?? PIN_V6_FULL_AT), `${fmt(points)} table points`),
+    stdPart(spec, "core", stdLine(PIN_V6_CORE_MAX, points, fullAt), `${fmt(points)} table points`),
     stdPart(spec, "joulz", stdEach(state.laneSets, joulzEach, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
     stdPart(spec, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
-    stdPart(spec, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
-    stdPart(spec, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
+    stdPart(spec, "jackpots", stdEach(state.jackpots, jackpotEach, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
+    stdPart(spec, "combos", stdEach(combos, comboEach, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
   ];
 }
 
@@ -1395,9 +1409,9 @@ export const pinball8Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
   init: (seed) => ({ ...pinball7Game.init(seed), rev8: 1, outIn: 0, outSaves: 0, outSaveTick: -1, ballSaves: 0 }),
 };
 const pinball8ByLevel = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
-/** pinRev 8 at a level (retroLevels.ts). */
+/** pinRev 8 at a level (its own table, PINBALL_LEVELS_V8: the rounds dealt before pinRev 9). */
 export function pinball8For(level?: Level | null): ArcadeGame<Pin4State, ArcadeInputEvent | null> {
-  const lv = retroLevelSettings("pinball", level);
+  const lv = level && level !== "normal" ? PINBALL_LEVELS_V8[level] : null;
   if (!lv) return pinball8Game;
   let game = pinball8ByLevel.get(level!);
   if (!game) {
@@ -1407,6 +1421,62 @@ export function pinball8For(level?: Level | null): ArcadeGame<Pin4State, ArcadeI
   return game;
 }
 
+/* ============ D5's ladder: Normal's refit and the flipper lever (pinRev 9, 23 Nov 2026) ============ */
+
+/**
+ * pinRev 9 (D5's difficulty ladder, docs/arcade-standard/pinball.md "pinRev 9" and "Levels (D5, 23 Nov 2026)"; Joe's
+ * approval of 23 Nov 2026), the same for every player:
+ *
+ *  - Normal: pinRev 8's table, play, timings and parts exactly, on refitted lines: table points full at PIN_V9_FULL_AT,
+ *    jackpots PIN_V9_JACKPOT_EACH each (2 of 3 fill the part) and ramp combos PIN_V9_COMBO_EACH each (2 of 3 fill it; one
+ *    combo filling it put the realistic elite at 200 on 63 % of Normal runs, over Joe's 40–60 %).
+ *  - A level (PINBALL_LEVELS, retroLevels.ts): its flippers' length (`flipLen`, swept and resolved at that length, the art
+ *    drawn from the same figure; Normal 56 px), balls, ball save, gravity, multiball's length and its own lines.
+ *
+ * States add `lad: 1` (and a level's `lv`), folded into the checkpoint checksum last, so pinRev 8's checksum is unchanged.
+ */
+export const PIN_V9_FULL_AT = 56_000;
+export const PIN_V9_JACKPOT_EACH = 8;
+export const PIN_V9_COMBO_EACH = 8;
+/** The core's straight line on pinRev 9's Normal (the help reads it): 0 to 130 at PIN_V9_FULL_AT table points. */
+export const PIN_V9_BAND_CURVE = bandCurve([0, PIN_V9_FULL_AT], [0, PIN_V6_CORE_MAX]);
+
+export const PIN_STD_SPEC_V9: StdSpec = {
+  ...PIN_STD_SPEC_V8,
+  rev: PIN_REV_LADDER,
+  parts: PIN_STD_SPEC_V8.parts.map((p) =>
+    p.key === "core"
+      ? { ...p, how: `every switch, ramp, lock, jackpot and skill shot scores table points, all of it at ${fmt(PIN_V9_FULL_AT)}` }
+      : p.key === "jackpots"
+        ? { ...p, how: `${PIN_V9_JACKPOT_EACH} for each jackpot` }
+        : p.key === "combos"
+          ? { ...p, how: `${PIN_V9_COMBO_EACH} for a ramp shot straight after another` }
+          : p,
+  ),
+};
+
+export const pinball9Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball8Game,
+  init: (seed) => ({ ...pinball8Game.init(seed), lad: 1 }),
+};
+const pinball9ByLevel = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
+/** pinRev 9 at a level (PINBALL_LEVELS); Normal (or no level) is pinball9Game. */
+export function pinball9For(level?: Level | null): ArcadeGame<Pin4State, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("pinball", level);
+  if (!lv) return pinball9Game;
+  let game = pinball9ByLevel.get(level!);
+  if (!game) {
+    game = withRetroLevel(pinball9Game, lv);
+    pinball9ByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/** A state's flipper length in whole px (the art reads it; Normal and every earlier revision PIN_FLIP_LEN). */
+export function pinFlipLenOf(state: { lv?: PinballLv }): number {
+  return state.lv?.flipLen ?? PIN_FLIP_LEN;
+}
+
 /** Max speed note for the reveal and checks: the cap is pinRev 1's. */
 export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
@@ -1414,6 +1484,7 @@ export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
 /** The game for any stored pinRev: pinRev 6 the standard, pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
 export function pinballGameForAny(rev?: number | null, level?: Level | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_LADDER) return pinball9For(level) as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_SAVE) return pinball8For(level) as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_JOULZ) return pinball7Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_STD) return pinball6Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;

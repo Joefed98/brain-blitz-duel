@@ -41,7 +41,7 @@ import { readFileSync } from "node:fs";
 import { createCanvas } from "@napi-rs/canvas";
 
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_TOTAL, innerLobe } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST, ORBIT_TOTAL, innerLobe } from "../src/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): ORBIT_REV_LOST
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -54,12 +54,14 @@ import {
   ORBIT_GRACE_HOLD_TICKS,
   ORBIT_REV3_WORLD_W,
   ORBIT_STD,
+  ORBIT_STD_V17, // Changed with Joe's approval, 27 Nov 2026 (D5's orbitRev 17)
   type OrbitRev3State,
 } from "../src/lib/arcade/orbitRev3";
 import { orbitCheckpointHoldDone, ORBIT_CHECKPOINT_HOLD_MS } from "../src/lib/arcade/orbitCheckpointHold";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
+import { ORBIT_LADDER_BANKS } from "../src/lib/duel/orbitRev3Course.server"; // Changed with Joe's approval, 27 Nov 2026 (D5's orbitRev 17: its ladder banks)
 import { generateOrbit, pinOrbitPreBig, pinOrbitPreGrace } from "../src/lib/duel/arcade.server";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { PRACTICE_CHALLENGES, goalMet } from "../src/lib/duel/practiceChallenges";
@@ -256,8 +258,10 @@ const course = ORBIT_FUEL_BANK[0]!;
   pinOrbitPreGrace(was);
   pinOrbitPreBig(wasBig);
   ok(old.orbitRev === ORBIT_REV_FUEL, "pinOrbitPreGrace deals orbitRev 14");
-  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_BIG && ORBIT_STD.rev === ORBIT_REV_BIG, "LIVE_BANDS and ORBIT_STD carry orbitRev 16 (orbitRev 15's parts)");
-  ok(String((PRACTICE_STAMPS as Record<string, string>).orbit).split(" ").includes(`orbitRev=${ORBIT_REV_BIG}`), "PRACTICE_STAMPS carry orbitRev 16");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17, the lost flight): the next two lines read orbitRev 17.
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: ORBIT_STD keeps orbitRev 13–16's lines; orbitRev 17's are ORBIT_STD_V17).
+  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_LOST && ORBIT_STD_V17.rev === ORBIT_REV_LOST, "LIVE_BANDS and ORBIT_STD_V17 carry orbitRev 17 (orbitRev 15's parts)");
+  ok(String((PRACTICE_STAMPS as Record<string, string>).orbit).split(" ").includes(`orbitRev=${ORBIT_REV_LOST}`), "PRACTICE_STAMPS carry orbitRev 17");
 }
 
 /* 5. The checkpoint guard. */
@@ -730,14 +734,17 @@ const popcount = (n: number) => { let c = 0; for (let v = n >>> 0; v; v &= v - 1
     let dealt = 0;
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
-      if (p.orbitRev === ORBIT_REV_BIG && ORBIT_FUEL_BANK.some((e) => JSON.stringify(e.planets) === JSON.stringify(p.planets))) dealt++;
+      // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): this line and the label below.
+      // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17: rooms deal its Normal ladder bank): the same two.
+      if (p.orbitRev === ORBIT_REV_LOST && ORBIT_LADDER_BANKS.normal.some((e) => JSON.stringify(e.planets) === JSON.stringify(p.planets))) dealt++;
     }
-    ok(dealt === 40, `rooms deal orbitRev 16 on a fuel-bank course (${dealt} / 40)`);
+    ok(dealt === 40, `rooms deal orbitRev 17 on a Normal ladder-bank course (${dealt} / 40)`); // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17); 27 Nov 2026 (its ladder bank)
     const was = pinOrbitPreBig(true);
     const old = generateOrbit();
     pinOrbitPreBig(was);
     ok(old.orbitRev === ORBIT_REV_GRACE && "orbitPreBig" in DEAL_PINS, "pinOrbitPreBig (DEAL_PINS orbitPreBig) deals orbitRev 15");
-    ok(big.orbitXpRev(ORBIT_REV_BIG) && !big.orbitXpRev(ORBIT_REV_BIG + 1), "orbitRev 16 keeps the expansion's view, features and corner");
+    // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17).
+    ok(big.orbitXpRev(ORBIT_REV_BIG) && big.orbitXpRev(ORBIT_REV_LOST) && !big.orbitXpRev(ORBIT_REV_LOST + 1), "orbitRev 16 and 17 keep the expansion's view, features and corner");
     const lib = readFileSync("scripts/deal-identity-lib.ts", "utf8");
     ok(/POST_RECORDING_PINS[^\n]*"orbitPreBig"/.test(lib) && /roomDigestsNow\(seeds\), \[[^\]]*"orbitPreBig"/.test(lib), "the deal-identity recording pins orbitPreBig (whole puzzles and rooms)");
   }

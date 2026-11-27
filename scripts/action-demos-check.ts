@@ -72,7 +72,7 @@ const file = JSON.parse(readFileSync(L.ACTION_DEMO_FIXTURE, "utf8")) as import("
 const STOPPED: Record<import("./action-demos-lib").ActionDemoType, (number | undefined)[]> = {
   flip: [12, 11, 10, 8, undefined],
   swing: [17, 16, 15, undefined],
-  ricochet: [3, 2, undefined],
+  ricochet: [4, 3, 2, undefined], // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5: a ricoRev 4 demo stays stopped)
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): bastionRev 4's Normal is dealt, so
   // a demo recorded on rev 3 (today's game, now Expert) stays stopped too.
   bastion: [3, 2, undefined],

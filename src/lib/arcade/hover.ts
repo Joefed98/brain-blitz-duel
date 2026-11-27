@@ -23,7 +23,7 @@
  * Score: up to 130 for barriers plus up to 20 for stars, cap 150.
  */
 
-import { retroLevelSettings, withRetroLevel, type HoverLv } from "./retroLevels";
+import { HOVER_LEVELS_V12, retroLevelSettings, withRetroLevel, type HoverLv, type HoverLvV12 } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -138,6 +138,11 @@ export interface HoverState extends BandFields {
   /** hoverRev 11 (the Retro overhaul, stage 3): 1 = the run starts shielded. Stage 3's level settings on a level's run. */
   grace?: number;
   lv?: HoverLv;
+  /**
+   * hoverRev 12 only (D5, 23 Nov 2026): 1 = the parts are scored on their fitted full lines (HOVER_V12_FIT on Normal, the
+   * level's own in its `lv`, HoverLvV12). Outside the checkpoint checksum (Normal's play is hoverRev 11's).
+   */
+  fit?: number;
   tick: number;
   /** Disc centre, fixed-point. */
   y: number;
@@ -612,6 +617,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null, level?: Level | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_FIT) return hoverFitFor(level);
   if (rev === HOVER_REV_SHIELD) return hoverShieldFor(level);
   if (rev === HOVER_REV_STANDARD) return hoverStandardGame;
   if (rev === HOVER_REV_EXPAND) return hoverExpandGame;
@@ -715,7 +721,7 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  if (rev === HOVER_REV_EXPAND || rev === HOVER_REV_STANDARD || rev === HOVER_REV_SHIELD) return HOVER_EXPAND_H;
+  if (rev === HOVER_REV_EXPAND || rev === HOVER_REV_STANDARD || rev === HOVER_REV_SHIELD || rev === HOVER_REV_FIT) return HOVER_EXPAND_H;
   return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED ? HOVER_TALL_H : HOVER_WORLD_H;
 }
 
@@ -1309,7 +1315,8 @@ function stepExpand(state: HoverState, tapped: boolean): HoverState {
   if (crashed && (invuln > 0 || shield)) {
     // The shield takes the crash: it breaks and the saucer flies on, untouchable for a moment.
     if (invuln === 0) {
-      shield = 0;
+      // One shield spent (a hoverRev 12 Easy run starts with three; every earlier one holds at most one, so this is 0).
+      shield = Math.max(0, shield - 1);
       shieldBreaks += 1;
       invuln = HOVER_SHIELD_INVULN;
     }
@@ -1554,7 +1561,9 @@ export interface HoverStandardParts {
 /** hoverRev 10's parts (integer maths only; each floors its own straight line). */
 export function hoverStandardParts(state: HoverState): HoverStandardParts {
   const totalGates = Math.max(1, state.totalGates);
-  const core = stdLine(HOVER_STD_CORE, state.gates, totalGates);
+  // hoverRev 12: each part on its fitted full line (never past what the course holds).
+  const fit = hoverFitLinesOf(state);
+  const core = stdLine(HOVER_STD_CORE, state.gates, fit ? Math.min(totalGates, fit.coreAt) : totalGates);
   const chainList = state.chains ?? [];
   let chains = 0;
   if (chainList.length) {
@@ -1571,12 +1580,18 @@ export function hoverStandardParts(state: HoverState): HoverStandardParts {
     });
     const share = Math.floor((HOVER_STD_CHAIN_SHARE * HOVER_CHAINS * num) / (den * chainList.length));
     chains = Math.min(HOVER_STD_CHAINS, share + Math.floor((HOVER_STD_CHAIN_WHOLE * HOVER_CHAINS * whole) / chainList.length));
+    // hoverRev 12: those chain points (0–30, as hoverRev 10 sums them) on the fitted line, full at fit.chainsAt.
+    if (fit) chains = stdLine(HOVER_STD_CHAINS, chains, fit.chainsAt);
   }
   const totalStars = state.totalStars ?? 0;
-  const gold = stdLine(HOVER_STD_GOLD, state.stars ?? 0, totalStars);
+  const gold = stdLine(HOVER_STD_GOLD, state.stars ?? 0, fit ? Math.min(totalStars, fit.goldAt) : totalStars);
   const gates = hoverFeatureTotals(state).tight;
-  const tight = stdLine(HOVER_STD_TIGHT, state.tight ?? 0, gates);
-  const centre = gates ? Math.min(HOVER_STD_CENTRE, Math.floor((HOVER_STD_CENTRE * (state.ctrFine ?? 0)) / (HOVER_STD_CENTRE_SPAN * gates))) : 0;
+  const tight = stdLine(HOVER_STD_TIGHT, state.tight ?? 0, fit ? Math.min(gates, fit.tightAt) : gates);
+  const centre = !gates
+    ? 0
+    : fit
+      ? stdLine(HOVER_STD_CENTRE, state.ctrFine ?? 0, Math.max(1, Math.floor((HOVER_STD_CENTRE_SPAN * gates * fit.centreAt) / 1000)))
+      : Math.min(HOVER_STD_CENTRE, Math.floor((HOVER_STD_CENTRE * (state.ctrFine ?? 0)) / (HOVER_STD_CENTRE_SPAN * gates)));
   return { core, chains, gold, tight, centre, sum: Math.min(HOVER_STD_MAX, core + chains + gold + tight + centre) };
 }
 
@@ -1649,6 +1664,156 @@ function hoverShieldFor(level?: Level | null): ArcadeGame<HoverState> {
   if (!game) {
     game = withRetroLevel<HoverState, HoverLv, ArcadeGame<HoverState>>(hoverShieldGame, lv, (state, l) => widenGaps({ ...state, shield: l.shield }, l.gapPct));
     hoverShieldByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/* ================= D5: the gap ladder and Normal's fitted lines (hoverRev 12, 23 Nov 2026) ================= */
+
+/**
+ * hoverRev 12 (the polish plan's D5, 23 Nov 2026; docs/arcade-standard/hover.md "hoverRev 12" and "Levels (D5, 23 Nov
+ * 2026)"; Joe's rule of 23 Nov 2026: each part's full line at about what the realistic elite takes on three runs in four):
+ *
+ *  - Normal: hoverRev 11's play exactly (the same course, the starting shield, every feature; a hoverRev 11 log replays
+ *    tick for tick with the same checkpoints), scored on the same five parts and maximums (120 + 30 + 20 + 20 + 10) with
+ *    each part's full line moved to HOVER_V12_FIT: barriers full at coreAt of the 42, the star chains at chainsAt of their
+ *    30 points, the gold stars at goldAt of the 10, the tight gates at tightAt of the 5 and the centre line at centreAt
+ *    per mille of its credit. A run with any input scores at least 1; no input 0; a crash still only ends the run.
+ *  - Levels (HOVER_LEVELS_V12, retroLevels.ts): the height of the barrier gaps. The course is hoverRev 11's for the seed
+ *    (its barriers, kinds, drift, gold stars and the warm-up gap) with every gap scaled about its centre by the level's
+ *    gapPct (inside the world's margins; a gold star keeps its place in its gap, scaled with it; the tight gates keep
+ *    their 80 px), the sliding gaps still where the level has none (Easy), and then the features (tight gates, star
+ *    chains, shield bubbles) laid on that course by hoverRev 9's own rules (buildFeatures), so each is flyable at the
+ *    level's gaps. The run starts with the level's shields (Easy three: each crash spends one), at Normal's scroll, and
+ *    scores on the level's own full lines. Rooms deal a level only on seeds whose proof run (the flawless player held to
+ *    the human limits, scripts/hover-proof-player.ts) scores exactly 200 (hoverLevelDeals.server.ts).
+ *
+ * States add `fit: 1` (outside the checkpoint checksum: Normal's play is hoverRev 11's; a level's course and shields are
+ * in the checksum already) and, at a level, `lv` (the HoverLvV12 row).
+ */
+export const HOVER_REV_FIT = 12;
+
+/** Each part's full line (hoverRev 12): what fills it. */
+export interface HoverFitLines {
+  /** Barriers passed that fill the core's 120. */
+  coreAt: number;
+  /** The star chains' points (hoverRev 10's sum, 0–30) that fill their 30. */
+  chainsAt: number;
+  /** Gold stars that fill their 20. */
+  goldAt: number;
+  /** Tight gates threaded that fill their 20. */
+  tightAt: number;
+  /** The centre line's credit, per mille of every gate flown dead centre, that fills its 10. */
+  centreAt: number;
+}
+/** Normal's fitted lines on hoverRev 12. */
+export const HOVER_V12_FIT: HoverFitLines = { coreAt: 42, chainsAt: 18, goldAt: 2, tightAt: 4, centreAt: 300 };
+/** hoverRev 12's core on Normal: barriers on one straight line, 120 at HOVER_V12_FIT.coreAt (LIVE_BANDS, the help). */
+export const HOVER_V12_BAND_CURVE = bandCurve([0, HOVER_V12_FIT.coreAt], [0, HOVER_STD_CORE]);
+
+/** A state's fitted lines: its level's (hoverRev 12 at a level), Normal's (hoverRev 12), or null (every earlier stamp). */
+export function hoverFitLinesOf(state: { fit?: number; lv?: HoverLv | undefined }): HoverFitLines | null {
+  if (!state.fit) return null;
+  const lv = state.lv as Partial<HoverLvV12> | undefined;
+  return lv && lv.coreAt !== undefined ? (lv as HoverLvV12) : HOVER_V12_FIT;
+}
+
+/** A gap (top, height) scaled to `pct` % about its centre, kept inside the world's margins (a sliding gap's whole sweep too). */
+function scaleGap(top: number, h: number, pct: number, bottom: number, swing: number): [number, number] {
+  const nh = Math.max(HOVER_DISC_R * 2 + 512, Math.min(bottom - 2 * (HOVER_GAP_MARGIN + swing), Math.trunc((h * pct) / 100)));
+  const nt = clampInt(top + (h >> 1) - (nh >> 1), HOVER_GAP_MARGIN + swing, bottom - HOVER_GAP_MARGIN - swing - nh);
+  return [nt, nh];
+}
+
+/**
+ * hoverRev 12's course at a level, from hoverRev 11's (drifted, with the warm-up gap): the sliding gaps stilled where the
+ * level has none, then every gap scaled by gapPct about its centre. A gold star keeps its place in its gap (its offset
+ * from the gap's middle scaled with the gap). A two-gap barrier whose solid wall would close below half its 60 px keeps
+ * its gaps as they were.
+ */
+export function hoverFitCourse(pillars: readonly HoverPillar[], lv: HoverLvV12, bottom: number): HoverPillar[] {
+  return pillars.map((p) => {
+    let base: HoverPillar = { ...p };
+    if (!lv.slide && base.movePhase !== undefined) {
+      const { movePhase: _still, ...rest } = base;
+      base = rest;
+    }
+    if (lv.gapPct === 100) return base;
+    const swing = base.movePhase !== undefined ? HOVER_MOVE_AMP : 0;
+    const [gapTop, gapH] = scaleGap(base.gapTop, base.gapH, lv.gapPct, bottom, swing);
+    const out: HoverPillar = { ...base, gapTop, gapH };
+    if (base.starDy !== undefined) out.starDy = (gapH >> 1) + Math.trunc(((base.starDy - (base.gapH >> 1)) * gapH) / Math.max(1, base.gapH));
+    if (base.gap2Top !== undefined) {
+      const [gap2Top, gap2H] = scaleGap(base.gap2Top, base.gap2H ?? 0, lv.gapPct, bottom, 0);
+      if (gap2Top - (gapTop + gapH) < HOVER_TWO_GAP_WALL >> 1) return base;
+      out.gap2Top = gap2Top;
+      out.gap2H = gap2H;
+    }
+    return out;
+  });
+}
+
+/** hoverRev 12 at a level: hoverRev 11's course reshaped (hoverFitCourse), its features laid on it, the level's shields. */
+function initFit(seed: number, lv: HoverLvV12): HoverState {
+  const base = hoverTunecGame.init(seed);
+  const bottom = HOVER_EXPAND_H * 256;
+  const drifted = base.pillars.map((pillar, index) => {
+    const drift = hoverDrift(seed, index, bottom);
+    const out: HoverPillar = { ...pillar, gapTop: pillar.gapTop + drift };
+    if (pillar.gap2Top !== undefined) out.gap2Top = pillar.gap2Top + drift;
+    return out;
+  });
+  const y = base.y + hoverDrift(seed, 0, bottom);
+  drifted[0] = { ...drifted[0]!, gapTop: y - (HOVER_OPEN_H >> 1), gapH: HOVER_OPEN_H };
+  const pillars = hoverFitCourse(drifted, lv, bottom);
+  const { chains, pickups } = buildFeatures(seed, pillars, bottom);
+  return {
+    ...base,
+    band: BAND_STRICT_MARK,
+    y,
+    pillars,
+    worldH: HOVER_EXPAND_H,
+    xp: 1,
+    tight: 0,
+    tightTaken: [],
+    tightOn: -1,
+    chains,
+    chainHits: [],
+    chainsDone: 0,
+    pickups,
+    pickupsTaken: [],
+    shield: lv.shield,
+    invuln: 0,
+    shieldBreaks: 0,
+    ctrOn: -1,
+    ctrDev: 0,
+    ctrLog: [],
+    ctrPts: 0,
+    std: 1,
+    ctrFine: 0,
+    ...(lv.shield ? { grace: 1 } : {}),
+    fit: 1,
+    lv,
+  };
+}
+
+/** hoverRev 12 on Normal: hoverRev 11's game exactly, scored on HOVER_V12_FIT. */
+export const hoverFitGame: ArcadeGame<HoverState> = {
+  ...hoverShieldGame,
+  init: (seed) => ({ ...hoverShieldGame.init(seed), fit: 1 }),
+};
+/** hoverRev 12 at a level row (a tuning tool may pass its own row). */
+export function hoverFitGameOf(lv: HoverLvV12): ArcadeGame<HoverState> {
+  return { ...hoverShieldGame, init: (seed) => initFit(seed, lv) };
+}
+const hoverFitByLevel = new Map<string, ArcadeGame<HoverState>>();
+/** hoverRev 12 at a level (HOVER_LEVELS_V12), Normal's game at Normal. */
+function hoverFitFor(level?: Level | null): ArcadeGame<HoverState> {
+  if (!level || level === "normal") return hoverFitGame;
+  let game = hoverFitByLevel.get(level);
+  if (!game) {
+    game = hoverFitGameOf(HOVER_LEVELS_V12[level]);
+    hoverFitByLevel.set(level, game);
   }
   return game;
 }

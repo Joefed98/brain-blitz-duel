@@ -89,13 +89,20 @@ export const ORBIT_REV_GRACE = 15;
  * region, a crash a belt, rock, moon or the figure-eight's crossing), so the course plays as before.
  */
 export const ORBIT_REV_BIG = 16;
+/**
+ * orbitRev 17 (D5 item H4, 22 Nov 2026, docs/arcade-standard/orbit.md "orbitRev 17"): orbitRev 16's play exactly at
+ * every level (the same courses and banks, catches, black holes, features, grace and parts), except the lost flight: a
+ * free flight that can no longer reach anything ends at once (orbitFlightLost, orbitRev3.ts) and takes the slip's usual
+ * path (SET CHECKPOINT's respawn, else grace's hold), instead of burning the rest of the tank in empty space.
+ */
+export const ORBIT_REV_LOST = 17;
 /** orbitRev 16's body size, % of orbitRev 15's (the sun's too). */
 export const ORBIT_BIG_PCT = 140;
 /** orbitRev 16: the space kept between a body and its own orbit path: the rocket's radius (10 px) and 3 px. */
 export const ORBIT_BIG_AIR = 13 * FP;
-/** The expansion's features and view: orbitRev 12, its score-only successor 13, the fuel revision 14, grace 15 and the bigger planets 16 (display, layout). */
+/** The expansion's features and view: orbitRev 12, its score-only successor 13, the fuel revision 14, grace 15, the bigger planets 16 and the lost flight 17 (display, layout). */
 export function orbitXpRev(rev: number | null | undefined): boolean {
-  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG;
+  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG || rev === ORBIT_REV_LOST;
 }
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;

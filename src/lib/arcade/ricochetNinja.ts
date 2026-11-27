@@ -839,9 +839,101 @@ export const MOON_BIG_BODY: NinjaBody = makeBody(MOON_BIG_HW, MOON_BIG_HH);
 export const MOON_BIG_STD_SPEC: StdSpec = { ...MOON_STD_SPEC, rev: MOON_BIG_REV };
 export const MOON_V4_BAND_CURVE = MOON_V3_BAND_CURVE;
 
-/** The body a state of this stamp plays with: MOON_BIG_BODY on ricoRev 4 and later, NINJA_BODY before. */
+/*
+ * ricoRev 5 (the 30 × 60 ninja, D5, 22 Nov 2026; Joe's approval of 20 Nov 2026, the polish plan's row C3.5;
+ * docs/arcade-standard/ricochet.md "ricoRev 5"): ricoRev 4's game (its levels' table, its parts and their 200 exactly)
+ * with the ninja's body box MOON_MID_HW × MOON_MID_HH either side of its centre, between rev 3's 26 × 52 and rev 4's
+ * 34 × 68 (the old box × 15 / 13), so the figure is drawn smaller than rev 4's and still hit by exactly what is drawn.
+ * Everything that reads the body follows it (NinjaBody), and the deal plans, places and proves every tower with this
+ * body at every level, from the same attempt stream as rev 3 and 4 (each tower its own; a perfect run is 200 on every
+ * tower). Rev 4 states keep MOON_BIG_BODY and play, deal and score as before at every level; rev 3 keeps NINJA_BODY.
+ */
+export const MOON_MID_REV = 5;
+export const MOON_MID_HW = 15;
+export const MOON_MID_HH = 30;
+export const MOON_MID_BODY: NinjaBody = makeBody(MOON_MID_HW, MOON_MID_HH);
+/*
+ * ricoRev 5's scoring lines, levels and human-limited witness (D5, 23 Nov 2026; Joe's decisions of 23 Nov 2026, the
+ * Normal scoring refit and the ladder; docs/arcade-standard/ricochet.md "ricoRev 5: lines, limits and levels"), folded
+ * into the same unshipped stamp:
+ *  - every part keeps its maximum (height 125, flow 30, lantern rides 30, scrolls 15; Expert's height 135 and rides 20
+ *    with its four lanterns) and is paid on a straight line (stdLine) from 0 to its own full line: Normal's
+ *    MOON_MID_LINES (about what the realistic elite, the skill-band elite held to the human limits, takes on three runs
+ *    in four), each level's its own (MOON_MID_LEVELS, the ladder);
+ *  - Hard's knock-down 3.5 m (rev 4: 3 m); the levels' towers are otherwise built with rev 4's settings;
+ *  - the deal's witness is held to the human limits (0.25 s to react, 0.15 s to move): every input at least
+ *    MOON_HUMAN_MOVE_TICKS after the one before, every leap off a landing at least MOON_HUMAN_LAND_TICKS after it (the
+ *    landing is seen coming: a 0.25 s reaction anticipated by 12 ticks, as the skill-band bot plays under the limits),
+ *    and everything near its path in view at least MOON_HUMAN_REACT_TICKS before the input that commits to it
+ *    (moonWitnessHuman); a tower is kept only when that witness takes every part in full with no hit through the real
+ *    step, so a 200 there is a person's at every level.
+ * ricoRev 4 and 3 keep MOON_LEVELS, MOON_STD_SPEC's lines and their frame-exact witnesses, and deal, play and score
+ * exactly as before.
+ */
+/** A Moon Climb stamp's part lines: each part's maximum and the count it is full at (ricoRev 5 and later). */
+export interface MoonLines {
+  /** Height: the maximum and the metres it is full at. */
+  coreMax: number;
+  fullM: number;
+  /** Flow: the maximum and the Flow steps (each MOON_FLOW_STEP clean leaps in a row) it is full at. */
+  flowMax: number;
+  flowFull: number;
+  /** Lantern rides: the maximum and the rides it is full at. */
+  ridesMax: number;
+  ridesFull: number;
+  /** Scrolls: the maximum and the scrolls it is full at. */
+  scrollsMax: number;
+  scrollsFull: number;
+}
+/** ricoRev 5's Normal lines (Joe, 23 Nov 2026: height about 220 m, flow about 40 %, lantern rides about 3 of 6, scrolls about 2 of 3). */
+export const MOON_MID_LINES: Readonly<MoonLines> = { coreMax: 125, fullM: 220, flowMax: 30, flowFull: 4, ridesMax: 30, ridesFull: 3, scrollsMax: 15, scrollsFull: 2 };
+/** The human limits the ricoRev 5 witness keeps (HUMAN_LIMITS in sim ticks: 0.15 s to move, 0.25 s to react). */
+export const MOON_HUMAN_MOVE_TICKS = 9;
+export const MOON_HUMAN_REACT_TICKS = 15;
+/** A leap off a landing no sooner than this after it (a 0.25 s reaction to a landing seen coming, anticipated by 12 ticks). */
+export const MOON_HUMAN_LAND_TICKS = 3;
+/** The camera (the renderer's ninjaCamera, mirrored for the witness's view test): px of world shown above and below the ninja's height, and the lowest camera height. */
+export const MOON_VIEW_ABOVE = Math.round(NINJA_WORLD_H * 0.62);
+export const MOON_VIEW_BELOW = NINJA_WORLD_H - MOON_VIEW_ABOVE;
+export const MOON_VIEW_CAM_MIN = NINJA_WORLD_H - 24 - MOON_VIEW_ABOVE;
+/** An object within this many px of the ninja's body on an input's stretch is one that input reacts to (it must be in view MOON_HUMAN_REACT_TICKS before). */
+export const MOON_HUMAN_NEAR = 48;
+/**
+ * The parts' spec for a stamp's lines (ricoRev 5 and later). `of` keeps the standard's meaning, the item count where
+ * the items are counted (the tower's sky lanterns, its three scrolls), else the line itself (metres, Flow steps), as
+ * skylineRev 12 keeps its own; the line a part is full at is in its `how` (the help) and in MoonLines.
+ */
+function moonLinesSpec(rev: number, L: Readonly<MoonLines>, sky = MOON_SKY): StdSpec {
+  return {
+    field: "ricoRev",
+    rev,
+    parts: [
+      { key: "core", label: "Height", max: L.coreMax, of: L.fullM, item: "metre", how: `every metre climbed counts the same, all of it at ${L.fullM} m` },
+      { key: "flow", label: "Flow", max: L.flowMax, of: L.flowFull, item: "flow", how: `every ${MOON_FLOW_STEP} clean leaps in a row count the same, all of it at ${L.flowFull * MOON_FLOW_STEP} clean leaps` },
+      { key: "rides", label: "Lantern rides", max: L.ridesMax, of: sky, item: "ride", how: `every sky lantern you ride counts the same, all of it at ${L.ridesFull} ride${L.ridesFull === 1 ? "" : "s"}` },
+      { key: "scrolls", label: "Scrolls", max: L.scrollsMax, of: MOON_SCROLLS, item: "scroll", how: `every scroll counts the same, all of it at ${L.scrollsFull} scroll${L.scrollsFull === 1 ? "" : "s"}` },
+    ],
+  };
+}
+/** The parts on ricoRev 5 at Normal: rev 4's maxima on MOON_MID_LINES. */
+export const MOON_MID_STD_SPEC: StdSpec = moonLinesSpec(MOON_MID_REV, MOON_MID_LINES);
+/** ricoRev 5's height line at Normal (a straight line, full at MOON_MID_LINES.fullM). */
+export const MOON_V5_BAND_CURVE = bandCurve([0, MOON_MID_LINES.fullM], [0, MOON_MID_LINES.coreMax]);
+
+/** The body a state of this stamp plays with: MOON_MID_BODY on ricoRev 5 and later, MOON_BIG_BODY on ricoRev 4, NINJA_BODY before. */
 export function ninjaBodyFor(rev: number | null | undefined): NinjaBody {
-  return (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_BODY : NINJA_BODY;
+  const r = rev ?? 0;
+  return r >= MOON_MID_REV ? MOON_MID_BODY : r >= MOON_BIG_REV ? MOON_BIG_BODY : NINJA_BODY;
+}
+/** The Moon Climb stamp a revision's towers and states are built on: 5 from ricoRev 5, 4 on ricoRev 4, else 3. */
+export function moonRevOf(rev: number | null | undefined): number {
+  const r = rev ?? 0;
+  return r >= MOON_MID_REV ? MOON_MID_REV : r >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV;
+}
+/** A Moon Climb stamp's parts at Normal: ricoRev 5's, 4's or 3's (each rev 3's parts under its own stamp). */
+function moonBaseSpec(rev: number | null | undefined): StdSpec {
+  const r = moonRevOf(rev);
+  return r === MOON_MID_REV ? MOON_MID_STD_SPEC : r === MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
 }
 /*
  * Levels (ricoRev 4, the Action overhaul's difficulty levels, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels";
@@ -880,28 +972,48 @@ export const MOON_LEVELS: Readonly<Record<MoonLevel, MoonLevelCfg>> = {
   hard: { blades: 1300, pace: 1000, patchGap: 1000, ice: 650, sky: 6, skyVy: MOON_SKY_VY, knock: 120, coreMax: 125, fullM: 245, rideEach: 5, salt: 0x2b8d63 },
   expert: { blades: 1600, pace: 750, patchGap: 800, ice: 880, sky: 4, skyVy: 256, knock: 160, coreMax: 135, fullM: 260, rideEach: 5, salt: 0x3c9e75 },
 };
-/** The level a stored level names on a stamp that has levels (ricoRev 4), else null (Normal). */
+/** ricoRev 5's levels (D5, 23 Nov 2026): rev 4's towers (the same build settings and salts) with Hard's knock-down 3.5 m, and each level's own part lines (the ladder). */
+export interface MoonMidLevelCfg extends MoonLevelCfg {
+  lines: Readonly<MoonLines>;
+}
+export const MOON_MID_LEVELS: Readonly<Record<MoonLevel, Readonly<MoonMidLevelCfg>>> = {
+  easy: { ...MOON_LEVELS.easy, coreMax: 125, fullM: 220, lines: { coreMax: 125, fullM: 220, flowMax: 30, flowFull: 4, ridesMax: 30, ridesFull: 3, scrollsMax: 15, scrollsFull: 2 } },
+  hard: { ...MOON_LEVELS.hard, knock: 140, coreMax: 125, fullM: 190, lines: { coreMax: 125, fullM: 190, flowMax: 30, flowFull: 3, ridesMax: 30, ridesFull: 2, scrollsMax: 15, scrollsFull: 2 } },
+  expert: { ...MOON_LEVELS.expert, coreMax: 135, fullM: 160, lines: { coreMax: 135, fullM: 160, flowMax: 30, flowFull: 2, ridesMax: 20, ridesFull: 1, scrollsMax: 15, scrollsFull: 2 } },
+};
+/** The level table a stamp's towers and states read: MOON_MID_LEVELS from ricoRev 5, MOON_LEVELS on ricoRev 4. */
+export function moonLevelTable(rev: number | null | undefined): Readonly<Record<MoonLevel, Readonly<MoonLevelCfg>>> {
+  return (rev ?? 0) >= MOON_MID_REV ? MOON_MID_LEVELS : MOON_LEVELS;
+}
+/** The level a stored level names on a stamp that has levels (ricoRev 4 and 5, each its own table), else null (Normal). */
 export function moonLevelOf(rev: number | null | undefined, level: unknown): MoonLevel | null {
   if ((rev ?? 0) < MOON_BIG_REV) return null;
   return level === "easy" || level === "hard" || level === "expert" ? level : null;
 }
-/** A state's level settings (null: Normal). */
-export function moonLevelCfg(s: { lvl?: MoonLevel | null }): MoonLevelCfg | null {
-  return s.lvl ? MOON_LEVELS[s.lvl] : null;
+/** A state's level settings, from its stamp's table (null: Normal). */
+export function moonLevelCfg(s: { lvl?: MoonLevel | null; rev?: number }): MoonLevelCfg | null {
+  return s.lvl ? moonLevelTable(s.rev)[s.lvl] : null;
+}
+/** A stamp's part lines at a level (ricoRev 5 and later; null before, whose parts are MOON_STD_SPEC's and MOON_LEVELS'). */
+export function moonLinesFor(rev: number | null | undefined, level: MoonLevel | null | undefined): Readonly<MoonLines> | null {
+  if ((rev ?? 0) < MOON_MID_REV) return null;
+  return level ? MOON_MID_LEVELS[level].lines : MOON_MID_LINES;
 }
 /** A state's full height (metres), sky lanterns, knock-down (px) and height part's maximum. */
-export function moonFullM(s: { lvl?: MoonLevel | null }): number {
-  return moonLevelCfg(s)?.fullM ?? MOON_CORE_FULL_M;
+export function moonFullM(s: { lvl?: MoonLevel | null; rev?: number }): number {
+  return moonLinesFor(s.rev, s.lvl)?.fullM ?? moonLevelCfg(s)?.fullM ?? MOON_CORE_FULL_M;
 }
-export function moonSkyCount(s: { lvl?: MoonLevel | null }): number {
+export function moonSkyCount(s: { lvl?: MoonLevel | null; rev?: number }): number {
   return moonLevelCfg(s)?.sky ?? MOON_SKY;
 }
-export function moonKnockPx(s: { lvl?: MoonLevel | null }): number {
+export function moonKnockPx(s: { lvl?: MoonLevel | null; rev?: number }): number {
   return moonLevelCfg(s)?.knock ?? NINJA_KNOCK;
 }
-/** The parts at a level (rev 4): Normal's MOON_BIG_STD_SPEC, or the level's maxima and full height. */
+/** The parts at a level (rev 4 and 5): that stamp's Normal spec, or the level's maxima and full height (rev 5: its lines). */
 export function moonStdSpecFor(rev: number | null | undefined, level: MoonLevel | null): StdSpec {
-  const base = (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
+  const lines = moonLinesFor(rev, level);
+  if (lines) return level ? moonLinesSpec(moonRevOf(rev), lines, MOON_MID_LEVELS[level].sky) : MOON_MID_STD_SPEC;
+  const base = moonBaseSpec(rev);
   if (!level || (rev ?? 0) < MOON_BIG_REV) return base;
   const c = MOON_LEVELS[level];
   return {
@@ -971,7 +1083,7 @@ export interface MoonFields {
   /** Display only: the tick of the last Flow step and of the last grab. */
   flowTick: number;
   grabTick: number;
-  /** ricoRev 4's level (absent: Normal, so every Normal state is exactly today's). */
+  /** ricoRev 4 and 5's level (absent: Normal, so every Normal state is exactly today's). */
   lvl?: MoonLevel;
 }
 export type MoonState = NinjaState & MoonFields & { tower: NinjaTower & { ledges: MoonLedge[]; sky: MoonSky[] } };
@@ -1201,7 +1313,11 @@ function routeClearOfRect(plan: { xs: Int16Array; ys: Int32Array }, to: number, 
  */
 function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLevel | null = null): MoonPlan {
   const s = freshMoon(tower, rev, level);
-  const lv = level ? MOON_LEVELS[level] : null;
+  const lv = level ? moonLevelTable(rev)[level] : null;
+  // ricoRev 5: the witness keeps the human limits (a double jump MOON_HUMAN_MOVE_TICKS or more into its leap, a leap off
+  // a landing MOON_HUMAN_LAND_TICKS or more after it); rev 3 and 4 plan exactly as before.
+  const human = rev >= MOON_MID_REV;
+  let landT = -999;
   const skyCount = lv ? lv.sky : MOON_SKY;
   const events: MoonEvent[] = [];
   const xs = new Int16Array(NINJA_RUN_TICKS + 1);
@@ -1218,7 +1334,7 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLev
   for (let t = 120 + below(r, 200); t < NINJA_RUN_TICKS - 300; t += 330 + below(r, 220)) ledgeAt.push(t);
   let nextSky = 0;
   let nextLedge = 0;
-  let tapAt = 1 + below(r, 20);
+  let tapAt = (human ? MOON_HUMAN_LAND_TICKS : 1) + below(r, 20);
   let djAt = -1;
   let djApexTick = -1;
   let offAt = -1;
@@ -1229,7 +1345,7 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLev
     let tap = false;
     let a = 0;
     // Never let a wait slide far enough to break the flow (a slide onto moss or ice ends the wait).
-    if (s.mode === MODE_CLING && t < tapAt && s.slid >= MOON_FLOW_SLIDE - 3 * 256) tapAt = t;
+    if (s.mode === MODE_CLING && t < tapAt && s.slid >= MOON_FLOW_SLIDE - 3 * 256) tapAt = human ? Math.max(t, landT + MOON_HUMAN_LAND_TICKS) : t;
     if (s.mode === MODE_CLING && t === tapAt) {
       tap = true;
       djAt = -1;
@@ -1239,7 +1355,7 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLev
       if (!feature && onWall && nextLedge < ledgeAt.length && t >= ledgeAt[nextLedge]!) feature = placeLedge(r, s, t, xs, ys, tower) && (nextLedge++, true);
       // This leap: a double jump on about one in three, somewhere in its first two thirds.
       if (!feature && below(r, 100) < 34) {
-        djAt = t + 7 + below(r, 10);
+        djAt = t + (human ? MOON_HUMAN_MOVE_TICKS : 7) + below(r, 10);
         djApexTick = djAt + 8;
       }
       leapsFrom.push({ tick: t, dj: djAt > 0, wall: onWall });
@@ -1267,7 +1383,8 @@ function planMoon(r: Rng, tower: MoonState["tower"], rev: number, level: MoonLev
         wait = roll < 58 ? 0 : roll < 82 ? 3 + below(r, 10) : 14 + below(r, 18);
       }
       landings.push({ tick: t, y: s.y >> 8, surf, waited: wait, wall: onWall });
-      tapAt = t + 1 + wait;
+      tapAt = human ? t + Math.max(MOON_HUMAN_LAND_TICKS, 1 + wait) : t + 1 + wait;
+      landT = t;
     }
     xs[t] = s.x;
     ys[t] = s.y >> 8;
@@ -1349,7 +1466,7 @@ function shurikenClearOfLedges(sh: NinjaShuriken, ledges: readonly MoonLedge[]):
 
 function buildMoon(r: Rng, patches: NinjaPatch[], rev: number, level: MoonLevel | null = null): { tower: MoonState["tower"]; plan: MoonPlan } {
   const b = ninjaBodyFor(rev);
-  const lv = level ? MOON_LEVELS[level] : null;
+  const lv = level ? moonLevelTable(rev)[level] : null;
   /** A level's hazard spacing (Normal's ÷ its density) and shuriken period (× its pace); Normal's exactly at Normal. */
   const spaced = (gap: number) => (lv ? Math.trunc((gap * 1000) / lv.blades) : gap);
   const paced = (period: number) => (lv ? Math.max(30, Math.trunc((period * lv.pace) / 1000)) : period);
@@ -1424,7 +1541,7 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number, level: MoonLevel 
   return { tower, plan };
 }
 
-/** Plays a tap list (tick and direction) through the real rev-3 (or rev-4) run (the deal's proof and the oracle's). */
+/** Plays a tap list (tick and direction) through the real rev-3 (or rev-4 or rev-5) run (the deal's proof and the oracle's). */
 export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev = MOON_REV, level: MoonLevel | null = null): MoonState {
   let s = moonInit(seed, rev, level);
   const at = new Map(events.map((e) => [e.t, e.a]));
@@ -1435,22 +1552,146 @@ export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev =
   return s;
 }
 
-/** True when a rev-3 or rev-4 state earned every part in full (the deal's proof). */
+/** True when a rev-3, rev-4 or rev-5 state earned every part in full (the deal's proof). */
 function moonPerfect(s: MoonState): boolean {
   return s.hits === 0 && s.scrolls === MOON_SCROLLS && s.rides === moonSkyCount(s) && s.flow * MOON_FLOW_EACH >= MOON_FLOW_MAX && ninjaMetres(s) >= moonFullM(s);
 }
 
+/** Where the renderer's camera sits on a tick (ninjaCamera: the ninja's height, the floor never above the bottom), px. */
+export function moonViewCam(ypx: number): number {
+  return Math.max(ypx, MOON_VIEW_CAM_MIN);
+}
+
+/** Why a witness breaks the human limits (moonWitnessHuman), or "" when it keeps them. */
+export let moonHumanFailure = "";
+
 /**
- * Builds a tower for this stamp (rev 3, or rev 4's bigger body) and proves it: the witness through the real step of the
- * same stamp. Rev 4 draws its attempts from the same seeded stream as rev 3, so its towers are rev 3's plans re-made
- * with the bigger body (the hazards and ledges then placed, and the whole proved, for that body).
+ * ricoRev 5's human limits on a tap list (the deal's witness; scripts read it too): played through the real step,
+ *  - every input comes at least MOON_HUMAN_MOVE_TICKS (0.15 s) after the one before;
+ *  - every input while resting (on a wall, a ledge, a lantern, or the floor at the start) comes at least
+ *    MOON_HUMAN_LAND_TICKS after that rest began (the landing seen coming: a 0.25 s reaction anticipated by 12 ticks);
+ *  - every katana, shuriken, scroll, sky lantern and ledge that comes within MOON_HUMAN_NEAR px of the ninja's body
+ *    between an input and the next (60 ticks for the last) was in the camera's view MOON_HUMAN_REACT_TICKS (0.25 s)
+ *    before that input (a lantern also already in the sky), so the input can be a reaction to it.
+ * Returns true when all three hold (moonHumanFailure says why not).
  */
+export function moonWitnessHuman(tower: MoonState["tower"], events: readonly MoonEvent[], rev: number, level: MoonLevel | null = null): boolean {
+  moonHumanFailure = "";
+  const b = ninjaBodyFor(rev);
+  const sorted = [...events].sort((p, q) => p.t - q.t);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i]!.t - sorted[i - 1]!.t < MOON_HUMAN_MOVE_TICKS) {
+      moonHumanFailure = `inputs at ${sorted[i - 1]!.t} and ${sorted[i]!.t}`;
+      return false;
+    }
+  }
+  // The run: each tick's place, and the tick each rest began.
+  const xs = new Int16Array(NINJA_RUN_TICKS + 1);
+  const ys = new Int32Array(NINJA_RUN_TICKS + 1);
+  let s = freshMoon(tower, rev, level);
+  xs[0] = s.x;
+  ys[0] = s.y >> 8;
+  const at = new Map(sorted.map((e) => [e.t, e.a]));
+  let restFrom = 0;
+  while (!s.ended) {
+    const t = s.tick + 1;
+    const a = at.get(t);
+    if (a !== undefined && (s.mode === MODE_CLING || s.mode === MODE_RIDE) && t - restFrom < MOON_HUMAN_LAND_TICKS) {
+      moonHumanFailure = `a leap at ${t}, ${t - restFrom} ticks after landing`;
+      return false;
+    }
+    const was = s.mode;
+    s = stepMoon(s, a === undefined ? null : { t, k: NINJA_INPUT_TAP, a, b: 0, c: 0, d: 0 });
+    if (was !== s.mode && (s.mode === MODE_CLING || s.mode === MODE_RIDE)) restFrom = s.tick;
+    xs[s.tick] = s.x;
+    ys[s.tick] = s.y >> 8;
+  }
+  const end = s.tick;
+  const N2 = MOON_HUMAN_NEAR * MOON_HUMAN_NEAR;
+  const inView = (v: number, lo: number, hi: number) => {
+    const cam = moonViewCam(ys[v]!);
+    return hi >= cam - MOON_VIEW_BELOW && lo <= cam + MOON_VIEW_ABOVE;
+  };
+  const rectD2 = (x: number, y: number, x0: number, x1: number, y0: number, y1: number) => {
+    const dx = Math.max(0, x0 - (x + b.hw), x - b.hw - x1);
+    const dy = Math.max(0, y0 - (y + b.hh), y - b.hh - y1);
+    return dx * dx + dy * dy;
+  };
+  for (let i = 0; i < sorted.length; i++) {
+    const t0 = sorted[i]!.t;
+    const t1 = Math.min(end, i + 1 < sorted.length ? sorted[i + 1]!.t : t0 + 60);
+    const v = Math.max(0, t0 - MOON_HUMAN_REACT_TICKS);
+    for (let t = t0; t <= t1; t++) {
+      const x = xs[t]!;
+      const y = ys[t]!;
+      const lo = y - b.hh - MOON_HUMAN_NEAR - 40;
+      const hi = y + b.hh + MOON_HUMAN_NEAR + 40;
+      for (const k of tower.katanas) {
+        if (k.y < lo || k.y > hi) continue;
+        const x0 = k.wall === 0 ? NINJA_WALL_L : NINJA_WALL_R - KATANA_LEN;
+        if (rectD2(x, y, x0, x0 + KATANA_LEN, k.y - KATANA_HALF, k.y + KATANA_HALF) <= N2 && !inView(v, k.y - KATANA_HALF, k.y + KATANA_HALF)) {
+          moonHumanFailure = `a katana at ${k.y} px near the input at ${t0}, out of view at ${v}`;
+          return false;
+        }
+      }
+      for (const sh of tower.shurikens) {
+        if (Math.max(sh.y0, sh.y0 + sh.dy) + SHURIKEN_R < lo || Math.min(sh.y0, sh.y0 + sh.dy) - SHURIKEN_R > hi) continue;
+        const p = shurikenAt(sh, t);
+        const r = MOON_HUMAN_NEAR + SHURIKEN_R;
+        if (ninjaBoxD2(x, y, p.x, p.y, b) <= r * r) {
+          const q = shurikenAt(sh, v);
+          if (!inView(v, q.y - SHURIKEN_R, q.y + SHURIKEN_R)) {
+            moonHumanFailure = `a shuriken near the input at ${t0}, out of view at ${v}`;
+            return false;
+          }
+        }
+      }
+      for (const c of tower.scrolls) {
+        const r = MOON_HUMAN_NEAR + SCROLL_R;
+        if (ninjaBoxD2(x, y, c.x, c.y, b) <= r * r && !inView(v, c.y - SCROLL_R, c.y + SCROLL_R)) {
+          moonHumanFailure = `a scroll near the input at ${t0}, out of view at ${v}`;
+          return false;
+        }
+      }
+      for (const l of tower.sky) {
+        const p = moonSkyAt(l, t);
+        const r = MOON_HUMAN_NEAR + MOON_SKY_R;
+        if (!p || ninjaBoxD2(x, y, p.x, p.y, b) > r * r) continue;
+        const q = moonSkyAt(l, v);
+        if (!q || !inView(v, q.y - MOON_SKY_R, q.y + MOON_SKY_R)) {
+          moonHumanFailure = `a sky lantern near the input at ${t0}, not in view at ${v}`;
+          return false;
+        }
+      }
+      for (const l of tower.ledges) {
+        if (rectD2(x, y, l.x - MOON_LEDGE_HW, l.x + MOON_LEDGE_HW, l.lo, l.hi) <= N2 && !inView(v, l.lo, l.hi)) {
+          moonHumanFailure = `a ledge near the input at ${t0}, out of view at ${v}`;
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Builds a tower for this stamp (rev 3, rev 4's bigger body or rev 5's 30 × 60 one) and proves it: the witness through
+ * the real step of the same stamp. Rev 4 and 5 draw their attempts from the same seeded stream as rev 3, so their towers
+ * are rev 3's plans re-made with their own body (the hazards and ledges then placed, and the whole proved, for that body).
+ */
+/** The last moonBuildDeal's attempts (a statistic for the scripts): attempts built, whether it ended on a proved tower, and how many perfect witnesses broke the human limits. */
+export const moonBuildStats = { attempts: 0, proved: false, limitFails: 0 };
 export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
-  // A level (ricoRev 4 only): its own settings and its own attempt stream; Normal exactly as before.
+  // A level (ricoRev 4 and 5): its own settings and its own attempt stream; Normal exactly as before.
   const lvl = moonLevelOf(rev, level);
-  const lv = lvl ? MOON_LEVELS[lvl] : null;
+  const lv = lvl ? moonLevelTable(rev)[lvl] : null;
+  // ricoRev 5: a tower is kept only when its witness also keeps the human limits (moonWitnessHuman).
+  const human = rev >= MOON_MID_REV;
   let fallback: MoonDeal | null = null;
+  moonBuildStats.limitFails = 0;
+  moonBuildStats.proved = false;
   for (let attempt = 0; ; attempt++) {
+    moonBuildStats.attempts = attempt + 1;
     const r: Rng = { s: (seed ^ Math.imul(attempt + 1, 0x7f4a7c15) ^ (lv ? lv.salt : 0)) | 0 };
     const patches = buildPatches(r, lv);
     const { tower, plan } = buildMoon(r, patches, rev, lvl);
@@ -1465,7 +1706,13 @@ export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | n
       s = stepMoon(s, a === undefined ? null : { t: s.tick + 1, k: NINJA_INPUT_TAP, a, b: 0, c: 0, d: 0 });
     }
     const deal = { tower, witness: plan.events, witnessMetres: ninjaMetres(s) };
-    if (moonPerfect(s)) return deal;
+    if (moonPerfect(s)) {
+      if (!human || moonWitnessHuman(tower, plan.events, rev, lvl)) {
+        moonBuildStats.proved = true;
+        return deal;
+      }
+      moonBuildStats.limitFails += 1;
+    }
     fallback ??= deal;
     if (attempt >= 60) return fallback;
   }
@@ -1474,10 +1721,11 @@ export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | n
 const MOON_CACHE = new Map<string, MoonDeal>();
 export function moonDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
   const lvl = moonLevelOf(rev, level);
-  const key = `${rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV}:${seed}${lvl ? `:${lvl}` : ""}`;
+  const r = moonRevOf(rev);
+  const key = `${r}:${seed}${lvl ? `:${lvl}` : ""}`;
   let d = MOON_CACHE.get(key);
   if (!d) {
-    d = moonBuildDeal(seed, rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV, lvl);
+    d = moonBuildDeal(seed, r, lvl);
     if (MOON_CACHE.size >= 8) MOON_CACHE.delete(MOON_CACHE.keys().next().value!);
     MOON_CACHE.set(key, d);
   }
@@ -1485,22 +1733,33 @@ export function moonDeal(seed: number, rev = MOON_REV, level: MoonLevel | null =
 }
 
 export function moonInit(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonState {
-  const r = rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV;
+  const r = moonRevOf(rev);
   const lvl = moonLevelOf(r, level);
   return freshMoon(moonDeal(seed | 0, r, lvl).tower, r, lvl);
 }
 
 /* ------------------------------- Scoring ------------------------------- */
 
-/** True for a Moon Climb state (ricoRev 3 or 4). */
+/** True for a Moon Climb state (ricoRev 3, 4 or 5). */
 export function isMoonState(state: Pick<NinjaState, "rev"> | null | undefined): boolean {
-  return !!state && (state.rev === MOON_REV || state.rev === MOON_BIG_REV);
+  return !!state && (state.rev === MOON_REV || state.rev === MOON_BIG_REV || state.rev === MOON_MID_REV);
 }
 
 export function moonStdParts(state: MoonState): StdPart[] | null {
   if (!state || !isMoonState(state) || !state.std) return null;
-  const spec = state.rev === MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
+  const spec = moonBaseSpec(state.rev);
   const m = ninjaMetres(state);
+  // ricoRev 5: each part on a straight line to its own full line (Normal's MOON_MID_LINES, a level's its own).
+  const L = moonLinesFor(state.rev, state.lvl);
+  if (L) {
+    const lspec = moonStdSpecFor(state.rev, state.lvl ?? null);
+    return [
+      stdPart(lspec, "core", stdLine(L.coreMax, m, L.fullM), `${m} m`),
+      stdPart(lspec, "flow", stdLine(L.flowMax, state.flow, L.flowFull), `best Flow ×${state.bestStreak}`),
+      stdPart(lspec, "rides", stdLine(L.ridesMax, state.rides, L.ridesFull), `${state.rides} / ${moonSkyCount(state)}`),
+      stdPart(lspec, "scrolls", stdLine(L.scrollsMax, state.scrolls, L.scrollsFull), `${state.scrolls} / ${MOON_SCROLLS}`),
+    ];
+  }
   // A level (ricoRev 4): its own height maximum and full height, its own count of lanterns.
   const lv = moonLevelCfg(state);
   if (lv) {
@@ -1586,17 +1845,26 @@ export const moonBigGame: ArcadeGame<MoonState, ArcadeInputEvent | null> = {
   init: (seed: number) => moonInit(seed, MOON_BIG_REV),
 };
 
-const MOON_LEVEL_GAMES = new Map<MoonLevel, ArcadeGame<MoonState, ArcadeInputEvent | null>>();
-/** Moon Climb's game for a stamp (rev 3 or 4) and, on rev 4, a stored level (absent or Normal: today's game). */
+/** Moon Climb's 30 × 60 ninja (ricoRev 5): rev 4's game, its towers dealt and played with MOON_MID_BODY. */
+export const moonMidGame: ArcadeGame<MoonState, ArcadeInputEvent | null> = {
+  ...moonGame,
+  init: (seed: number) => moonInit(seed, MOON_MID_REV),
+};
+
+/** The level games, by stamp (4 or 5) and level. */
+const MOON_LEVEL_GAMES = new Map<string, ArcadeGame<MoonState, ArcadeInputEvent | null>>();
+/** Moon Climb's game for a stamp (rev 3, 4 or 5) and, on rev 4 and 5, a stored level (absent or Normal: that stamp's Normal game). */
 export function moonGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<MoonState, ArcadeInputEvent | null> {
-  const lvl = moonLevelOf(rev, level);
-  if (!lvl) return (rev ?? 0) >= MOON_BIG_REV ? moonBigGame : moonGame;
-  let g = MOON_LEVEL_GAMES.get(lvl);
-  if (!g) MOON_LEVEL_GAMES.set(lvl, (g = { ...moonBigGame, init: (seed: number) => moonInit(seed, MOON_BIG_REV, lvl) }));
+  const r = moonRevOf(rev);
+  const lvl = moonLevelOf(r, level);
+  if (!lvl) return r === MOON_MID_REV ? moonMidGame : r === MOON_BIG_REV ? moonBigGame : moonGame;
+  const key = `${r}:${lvl}`;
+  let g = MOON_LEVEL_GAMES.get(key);
+  if (!g) MOON_LEVEL_GAMES.set(key, (g = { ...(r === MOON_MID_REV ? moonMidGame : moonBigGame), init: (seed: number) => moonInit(seed, r, lvl) }));
   return g;
 }
 
-/** The ninja climb's game for a stamp (rev 2, 3 or 4) and its stored level (rev 4). */
+/** The ninja climb's game for a stamp (rev 2, 3, 4 or 5) and its stored level (rev 4 and 5). */
 export function ninjaGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<NinjaState, ArcadeInputEvent | null> {
   return ((rev ?? 0) >= MOON_REV ? moonGameFor(rev, level) : ninjaGame) as ArcadeGame<NinjaState, ArcadeInputEvent | null>;
 }

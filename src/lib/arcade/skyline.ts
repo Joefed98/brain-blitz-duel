@@ -241,6 +241,8 @@ export function skylineCheckpoint(state: SkylineState): SkylineCheckpoint {
   if (state.lives !== undefined) values.push(state.lives, state.livesLost ?? 0, state.trimRun ?? 0, state.rescues ?? 0);
   // Levels (15 Nov 2026): a level's code last (absent at Normal), so every Normal checksum is unchanged.
   if (state.lvl) values.push(state.lvl);
+  // skylineRev 12 at a level (D5, 23 Nov 2026): the ladder's table, after the level's code (absent at Normal and on rev 11).
+  if (state.ladder) values.push(state.ladder);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -448,6 +450,9 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null, level?: string | null): ArcadeGame<SkylineState> {
+  // skylineRev 12 (D5 item I5): skylineRev 11's play at every level, on the lower full lines.
+  if (rev === SKYLINE_REV_FLOORS && isSkylineLevel(level)) return skylineFloorsGameAt(level);
+  if (rev === SKYLINE_REV_FLOORS) return skylineFloorsGame;
   // Levels (15 Nov 2026): skylineRev 11 at Easy, Hard or Expert (the puzzle's `level`); Normal and older stamps as before.
   if (rev === SKYLINE_REV_LIVES && isSkylineLevel(level)) return skylineLivesGameAt(level);
   if (rev === SKYLINE_REV_LIVES) return skylineLivesGame;
@@ -497,7 +502,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD || rev === SKYLINE_REV_COUNT || rev === SKYLINE_REV_LIVES) return SKYLINE_SKY_H;
+  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD || rev === SKYLINE_REV_COUNT || rev === SKYLINE_REV_LIVES || rev === SKYLINE_REV_FLOORS) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -617,9 +622,10 @@ export function skylineKindAt(state: SkylineState, index: number): number {
 }
 
 /** The sliding block's width for a kind, given the top block's width. */
-export function skylineKindWidth(kind: number, topW: number): number {
+export function skylineKindWidth(kind: number, topW: number, maxW: number = SKYLINE_START_W): number {
   if (kind === SKYLINE_KIND_NARROW) return Math.max(Math.min(topW, SKYLINE_NARROW_MIN), Math.trunc((topW * 3) / 4));
-  if (kind === SKYLINE_KIND_WIDE) return Math.min(SKYLINE_START_W, topW + SKYLINE_WIDE_GROW);
+  // skylineRev 12 at a level (D5): a wide block is capped at the level's own start width (maxW); SKYLINE_START_W otherwise.
+  if (kind === SKYLINE_KIND_WIDE) return Math.min(maxW, topW + SKYLINE_WIDE_GROW);
   return topW;
 }
 
@@ -627,6 +633,11 @@ export function skylineKindWidth(kind: number, topW: number): number {
 export interface SkylineExpandFields {
   /** skylineRev 10 (the scoring audit): 1 = perfect drops counted up to SKYLINE_V9_FULL_AT, never a share. Outside the checksum. */
   perfectCount?: number;
+  /**
+   * skylineRev 12 (D5 item I5, 22 Nov 2026): 1 = skylineRev 12's full lines (Floors full at SKYLINE_V12_FLOORS_FULL_AT,
+   * perfect drops at SKYLINE_V12_PERFECTS_FULL_AT). Scoring only: outside the checkpoint checksum (the play is skylineRev 11's).
+   */
+  fullLines?: number;
   expandRev?: number;
   /** The block-kind schedule (skylineKinds), one per block index. */
   kinds?: number[];
@@ -661,6 +672,12 @@ export interface SkylineExpandFields {
   lvl?: number;
   lostX?: number;
   lostW?: number;
+  /**
+   * skylineRev 12 at a level (D5, 23 Nov 2026; docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): 1 = the level
+   * is played on SKYLINE_V12_LEVEL_RULES (the block-width ladder) and scored on its own full lines. Absent at Normal and on
+   * every older round (a skylineRev 11 level keeps SKYLINE_LEVEL_RULES). Folded into the checkpoint checksum after `lvl`.
+   */
+  ladder?: number;
 }
 
 const kindCache = new Map<number, number[]>();
@@ -716,7 +733,8 @@ function stepExpand(state: SkylineState, tapped: boolean): SkylineState {
     width = perfect ? state.w : right - left;
   } else {
     perfect = Math.abs(state.x - below.x) <= skylineTolOf(state);
-    width = perfect ? Math.min(SKYLINE_START_W, below.w + SKYLINE_PERFECT_GROW) : right - left;
+    // skylineRev 12 at a level (D5): a perfect drop grows the tower back up to the level's own start width.
+    width = perfect ? Math.min(skylineMaxWOf(state), below.w + SKYLINE_PERFECT_GROW) : right - left;
     x = perfect ? below.x : left;
   }
   const blocks = [...state.blocks, { x, w: width }];
@@ -724,7 +742,7 @@ function stepExpand(state: SkylineState, tapped: boolean): SkylineState {
   const streak = perfect ? (state.streak ?? 0) + 1 : 0;
   const mult = perfect ? skylineStreakMult(streak) : 1;
   const nextKind = skylineKindAt(state, placed);
-  const nextW = skylineKindWidth(nextKind, width);
+  const nextW = skylineKindWidth(nextKind, width, skylineMaxWOf(state));
   const dir = state.dir >= 0 ? -1 : 1;
   const milestone = placed % SKYLINE_MILESTONE_EVERY === 0;
   const next: SkylineState = {
@@ -918,6 +936,8 @@ export function skylineStdParts(state: SkylineState): StdPart[] | null {
   const perfects = state.perfects;
   const best = state.bestStreak ?? 0;
   const golds = state.golds ?? 0;
+  // skylineRev 12 (D5): the refit's full lines on Normal (45 floors, 24 perfect drops, 5 in a row, 2 gold blocks), a level's own.
+  if (state.fullLines) return skylineV12Parts(state);
   return [
     stdPart(SKYLINE_STD_SPEC, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, SKYLINE_V9_FULL_AT), `${placed} floor${placed === 1 ? "" : "s"}`),
     // skylineRev 10: perfect drops counted (up to SKYLINE_V9_FULL_AT), so a drop that isn't perfect never lowers the score.
@@ -1032,7 +1052,7 @@ function stepLives(state: SkylineState, tapped: boolean): SkylineState {
   let out: SkylineState = { ...next, trimRun };
   const at = next.placed;
   if (
-    trimRun >= SKYLINE_V11_TRIM_RUN &&
+    trimRun >= skylineTrimRunOf(state) &&
     skylineKindAt(next, at) === SKYLINE_KIND_NORMAL &&
     skylineKindAt(next, at + 1) === SKYLINE_KIND_NORMAL
   ) {
@@ -1040,7 +1060,7 @@ function stepLives(state: SkylineState, tapped: boolean): SkylineState {
     while (kinds.length <= at) kinds.push(SKYLINE_KIND_NORMAL);
     kinds[at] = SKYLINE_KIND_WIDE;
     const top = next.blocks[next.blocks.length - 1]!;
-    const w = skylineKindWidth(SKYLINE_KIND_WIDE, top.w);
+    const w = skylineKindWidth(SKYLINE_KIND_WIDE, top.w, skylineMaxWOf(state));
     trimRun = 0;
     out = { ...out, kinds, w, x: next.dir === 1 ? 0 : SKYLINE_WORLD_RIGHT - w, trimRun, rescues: (state.rescues ?? 0) + 1 };
   }
@@ -1104,29 +1124,33 @@ export function skylineStateLevel(state: Pick<SkylineState, "lvl">): SkylineLeve
   return state.lvl === 1 ? "easy" : state.lvl === 3 ? "hard" : state.lvl === 4 ? "expert" : null;
 }
 
-function levelRulesOf(state: Pick<SkylineState, "lvl">): SkylineLevelRules | null {
+function levelRulesOf(state: Pick<SkylineState, "lvl" | "ladder">): SkylineLevelRules | SkylineV12LevelRules | null {
   const level = skylineStateLevel(state);
-  return level ? SKYLINE_LEVEL_RULES[level] : null;
+  if (!level) return null;
+  // skylineRev 12 at a level (D5): the ladder's own table; a skylineRev 11 level keeps the frozen SKYLINE_LEVEL_RULES.
+  return state.ladder ? SKYLINE_V12_LEVEL_RULES[level] : SKYLINE_LEVEL_RULES[level];
 }
 
 /** The slide speed on this state: its level's table, else skylineSpeed (every Normal and older round). */
-export function skylineSpeedOf(state: Pick<SkylineState, "placed" | "lvl">): number {
+export function skylineSpeedOf(state: Pick<SkylineState, "placed" | "lvl" | "ladder">): number {
   const r = levelRulesOf(state);
   return r ? Math.min(r.speedMax, r.speedStart + r.speedStep * state.placed) : skylineSpeed(state.placed);
 }
 
 /** A perfect drop's tolerance on this state (SKYLINE_PERFECT_TOL at Normal). */
-export function skylineTolOf(state: Pick<SkylineState, "lvl">): number {
+export function skylineTolOf(state: Pick<SkylineState, "lvl" | "ladder">): number {
   return levelRulesOf(state)?.tol ?? SKYLINE_PERFECT_TOL;
 }
 
 /** The blocks placed before gusts blow on this state (SKYLINE_WIND_FROM at Normal). */
-export function skylineWindFrom(state: Pick<SkylineState, "lvl">): number {
-  return levelRulesOf(state)?.windFrom ?? SKYLINE_WIND_FROM;
+export function skylineWindFrom(state: Pick<SkylineState, "lvl" | "ladder">): number {
+  const r = levelRulesOf(state);
+  // skylineRev 12's Easy has no wind at all (windFrom null): no block count ever reaches it.
+  return r ? (r.windFrom ?? Number.MAX_SAFE_INTEGER) : SKYLINE_WIND_FROM;
 }
 
 /** The lives a run on this state started with (SKYLINE_V11_LIVES at Normal). */
-export function skylineStartLives(state: Pick<SkylineState, "lvl">): number {
+export function skylineStartLives(state: Pick<SkylineState, "lvl" | "ladder">): number {
   return levelRulesOf(state)?.lives ?? SKYLINE_V11_LIVES;
 }
 
@@ -1137,6 +1161,164 @@ export function skylineLivesGameAt(level: SkylineLevel): ArcadeGame<SkylineState
   if (!game) {
     game = { ...skylineLivesGame, init: (seed: number) => ({ ...initLives(seed), lives: SKYLINE_LEVEL_RULES[level].lives, lvl: SKYLINE_LEVEL_CODE[level] }) };
     skylineLevelGames.set(level, game);
+  }
+  return game;
+}
+
+/* ================= skylineRev 12 (22–23 Nov 2026, D5): the Normal refit and the block-width ladder ================= */
+
+/**
+ * skylineRev 12 (docs/arcade-standard/skyline.md "skylineRev 12" and "Levels (D5, 23 Nov 2026)"; plan row I5 approved by
+ * Joe 20 Nov 2026, the refit and the levels 23 Nov 2026). Never dealt before D5 merges, so its lines and levels are one
+ * stamp.
+ *
+ * Normal: skylineRev 11's play exactly (lives, the wide-block rescue, the gold blocks where skylineKindsV9 deals them, the
+ * wind and the slide; a skylineRev 11 Normal log replays tick for tick, the same checksum), scored on full lines the
+ * realistic elite (0.25 s to react, 0.15 s to move) reaches on about half its runs (SKYLINE_V12_LINES):
+ *  - Floors (140): every floor counts the same, all of it at SKYLINE_V12_FLOORS_FULL_AT (45) floors (rev 11: 61);
+ *  - Perfect drops (30): counted, all of it at SKYLINE_V12_PERFECTS_FULL_AT (24) perfect drops (rev 11: 61);
+ *  - Perfect streak (10): 2 for each perfect drop in the best streak, all of it at SKYLINE_V12_STREAK_FULL_AT (5) in a
+ *    row (rev 11: 1 each, full at 10);
+ *  - Gold blocks (20): 10 for each gold block landed perfectly, all of it at SKYLINE_V12_GOLD_FULL_AT (2) of the 5
+ *    (rev 11: 4 each, all five).
+ * States add `fullLines: 1`, outside the checkpoint checksum.
+ *
+ * Levels (Easy, Hard, Expert; SKYLINE_V12_LEVEL_RULES): the lever is the width of the blocks (the first block, and the
+ * width a perfect drop or a wide block grows the tower back to), with the slide, the perfect tolerance, the wind start,
+ * the rescue's trim count and each part's full line per level. States add `ladder: 1` (folded into the checksum after
+ * `lvl`) and `fullLines: 1`. A skylineRev 11 level round keeps SKYLINE_LEVEL_RULES and replays exactly as before.
+ */
+export const SKYLINE_REV_FLOORS = 12;
+/** Floors at which skylineRev 12's core is full. */
+export const SKYLINE_V12_FLOORS_FULL_AT = 45;
+/** Perfect drops at which skylineRev 12's perfect-drops part is full (24; 30 before the refit of 23 Nov 2026, never dealt). */
+export const SKYLINE_V12_PERFECTS_FULL_AT = 24;
+/** Perfect drops in a row at which skylineRev 12's streak part is full (2 points each). */
+export const SKYLINE_V12_STREAK_FULL_AT = 5;
+/** Gold blocks (landed perfectly) at which skylineRev 12's gold part is full (10 points each, of the 5 dealt). */
+export const SKYLINE_V12_GOLD_FULL_AT = 2;
+
+/** The counts at which each of skylineRev 12's parts is full (Floors 140, Perfect drops 30, Perfect streak 10, Gold blocks 20). */
+export interface SkylineV12Lines {
+  floors: number;
+  perfects: number;
+  streak: number;
+  gold: number;
+}
+/** Normal's full lines on skylineRev 12. */
+export const SKYLINE_V12_LINES: Readonly<SkylineV12Lines> = {
+  floors: SKYLINE_V12_FLOORS_FULL_AT,
+  perfects: SKYLINE_V12_PERFECTS_FULL_AT,
+  streak: SKYLINE_V12_STREAK_FULL_AT,
+  gold: SKYLINE_V12_GOLD_FULL_AT,
+};
+
+/** One level of skylineRev 12's ladder: skylineRev 11's levers plus the block width, the rescue and the full lines. */
+export interface SkylineV12LevelRules extends Omit<SkylineLevelRules, "windFrom"> {
+  /** The first block's width (1/256 px), and the most a perfect drop or a wide block grows the tower back to. */
+  startW: number;
+  /** Gusts blow once this many blocks are placed (null: no wind at all). */
+  windFrom: number | null;
+  /** The wide-block rescue comes after this many placed drops in a row that are not perfect. */
+  trimRun: number;
+  /** Each part's full line on this level. */
+  lines: SkylineV12Lines;
+}
+
+/**
+ * skylineRev 12's levels, frozen with the sim (a stored round replays on these numbers forever); gameLevels.ts carries the
+ * same figures for the phone (skyline-ladder-check). Normal is 200 px blocks (SKYLINE_START_W), slide 768 → 1,536, 3 px,
+ * wind from block 20, the rescue after 5 trims, 3 lives and SKYLINE_V12_LINES.
+ */
+export const SKYLINE_V12_LEVEL_RULES: Readonly<Record<SkylineLevel, Readonly<SkylineV12LevelRules>>> = {
+  easy: { startW: 66_560, speedStart: 320, speedStep: 10, speedMax: 640, tol: 1_280, windFrom: null, trimRun: 3, lives: 3, lines: { floors: 40, perfects: 40, streak: 20, gold: 3 } },
+  hard: { startW: 28_160, speedStart: 768, speedStep: 26, speedMax: 1_536, tol: 768, windFrom: 8, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 6, gold: 2 } },
+  expert: { startW: 12_800, speedStart: 768, speedStep: 26, speedMax: 1_536, tol: 768, windFrom: 0, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 5, gold: 2 } },
+};
+
+function ladderRulesOf(state: Pick<SkylineState, "lvl" | "ladder">): Readonly<SkylineV12LevelRules> | null {
+  if (!state.ladder) return null;
+  const level = skylineStateLevel(state);
+  return level ? SKYLINE_V12_LEVEL_RULES[level] : null;
+}
+
+/** The widest a block can be on this state: its skylineRev 12 level's start width, else SKYLINE_START_W (every other round). */
+export function skylineMaxWOf(state: Pick<SkylineState, "lvl" | "ladder">): number {
+  return ladderRulesOf(state)?.startW ?? SKYLINE_START_W;
+}
+
+/** The trims in a row before the wide-block rescue on this state (SKYLINE_V11_TRIM_RUN but on a skylineRev 12 level). */
+export function skylineTrimRunOf(state: Pick<SkylineState, "lvl" | "ladder">): number {
+  return ladderRulesOf(state)?.trimRun ?? SKYLINE_V11_TRIM_RUN;
+}
+
+/** The full lines a skylineRev 12 state scores on: its level's, else Normal's SKYLINE_V12_LINES. */
+export function skylineLinesOf(state: Pick<SkylineState, "lvl" | "ladder">): Readonly<SkylineV12Lines> {
+  return ladderRulesOf(state)?.lines ?? SKYLINE_V12_LINES;
+}
+
+/** skylineRev 12's core straight line (the help's curve, liveBands.ts): 140 at SKYLINE_V12_FLOORS_FULL_AT floors. */
+export const SKYLINE_V12_BAND_CURVE = bandCurve([0, SKYLINE_V12_FLOORS_FULL_AT], [0, SKYLINE_V9_CORE_MAX]);
+export const SKYLINE_STD_SPEC_V12: StdSpec = {
+  ...SKYLINE_STD_SPEC_V11,
+  rev: SKYLINE_REV_FLOORS,
+  parts: SKYLINE_STD_SPEC_V11.parts.map((p) =>
+    p.key === "core"
+      ? { ...p, how: `every floor counts the same, all of it at ${SKYLINE_V12_FLOORS_FULL_AT} floors` }
+      : p.key === "perfects"
+        ? { ...p, how: `every perfect drop counts the same, all of it at ${SKYLINE_V12_PERFECTS_FULL_AT} perfect drops` }
+        : p.key === "streak"
+          ? { ...p, how: `${SKYLINE_V9_STREAK_MAX / SKYLINE_V12_STREAK_FULL_AT} for each perfect drop in your best streak, all of it at ${SKYLINE_V12_STREAK_FULL_AT} in a row` }
+          : p.key === "gold"
+            ? { ...p, how: `${SKYLINE_V9_GOLD_MAX / SKYLINE_V12_GOLD_FULL_AT} for each gold block landed perfectly, all of it at ${SKYLINE_V12_GOLD_FULL_AT} of the ${SKYLINE_V9_GOLD_COUNT} gold blocks` }
+            : p,
+  ),
+};
+
+/** skylineRev 12's scored parts on a state carrying `fullLines` (its level's lines, else Normal's). */
+function skylineV12Parts(state: SkylineState): StdPart[] {
+  const L = skylineLinesOf(state);
+  const placed = state.placed;
+  const perfects = state.perfects;
+  const best = state.bestStreak ?? 0;
+  const golds = state.golds ?? 0;
+  return [
+    stdPart(SKYLINE_STD_SPEC_V12, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, L.floors), `${placed} floor${placed === 1 ? "" : "s"}`),
+    stdPart(SKYLINE_STD_SPEC_V12, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, perfects, L.perfects), `${perfects} perfect drop${perfects === 1 ? "" : "s"}`),
+    stdPart(SKYLINE_STD_SPEC_V12, "streak", stdLine(SKYLINE_V9_STREAK_MAX, best, L.streak), `best ${best} in a row`),
+    stdPart(SKYLINE_STD_SPEC_V12, "gold", stdLine(SKYLINE_V9_GOLD_MAX, golds, L.gold), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
+  ];
+}
+
+/** skylineRev 12 at Normal: skylineRev 11's lives game on the refit's full lines. */
+export const skylineFloorsGame: ArcadeGame<SkylineState> = {
+  ...skylineLivesGame,
+  init: (seed: number) => ({ ...skylineLivesGame.init(seed), fullLines: 1 }),
+};
+
+/** skylineRev 12 at a level: the ladder's first block, lives and code, on skylineRev 11's lives game (its step reads the table). */
+function initLadder(seed: number, level: SkylineLevel): SkylineState {
+  const r = SKYLINE_V12_LEVEL_RULES[level];
+  const s = initLives(seed);
+  return {
+    ...s,
+    blocks: [{ x: (SKYLINE_WORLD_RIGHT - r.startW) >> 1, w: r.startW }],
+    x: s.dir === 1 ? 0 : SKYLINE_WORLD_RIGHT - r.startW,
+    w: r.startW,
+    lives: r.lives,
+    lvl: SKYLINE_LEVEL_CODE[level],
+    fullLines: 1,
+    ladder: 1,
+  };
+}
+
+const skylineFloorsLevelGames = new Map<SkylineLevel, ArcadeGame<SkylineState>>();
+/** skylineRev 12 at a level: the block-width ladder (SKYLINE_V12_LEVEL_RULES) on its own full lines. */
+export function skylineFloorsGameAt(level: SkylineLevel): ArcadeGame<SkylineState> {
+  let game = skylineFloorsLevelGames.get(level);
+  if (!game) {
+    game = { ...skylineLivesGame, init: (seed: number) => initLadder(seed, level) };
+    skylineFloorsLevelGames.set(level, game);
   }
   return game;
 }

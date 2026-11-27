@@ -13,14 +13,17 @@ const run = makeArcadeRun<BfState, BfCheckpoint>({ tag: "blockfall", game: block
 /** blockfallRev 2 (Blockzone, 3 Nov 2026): its own game (90 s, the soft drop, no hold); the same wire format. */
 const runZone = makeArcadeRun<BfState, BfCheckpoint>({ tag: "blockfall", game: blockfallGameFor(2), checkpoint: bfCheckpoint, keys: BF_CHECKPOINT_KEYS, interval: BF_CHECKPOINT_INTERVAL });
 
-/** Blockzone's runner at a level (stage 3 of the Retro overhaul): Normal's own, else one built on the level's game. */
+/** Blockzone's runner at a level (stage 3 of the Retro overhaul): Normal's own, else one built on the level's game, by
+ * stamp (blockfallRev 3, D5's ladder: the levels' own table; blockfallRev 2's levels replay on theirs). */
 const runZoneByLevel = new Map<string, typeof runZone>();
-function runZoneFor(level?: Level | null): typeof runZone {
+function runZoneFor(level?: Level | null, rev?: number | null): typeof runZone {
   if (!level || level === "normal") return runZone;
-  let r = runZoneByLevel.get(level);
+  const stamp = (rev ?? 2) >= 3 ? 3 : 2;
+  const key = `${stamp}:${level}`;
+  let r = runZoneByLevel.get(key);
   if (!r) {
-    r = makeArcadeRun<BfState, BfCheckpoint>({ tag: "blockfall", game: blockfallGameFor(2, level), checkpoint: bfCheckpoint, keys: BF_CHECKPOINT_KEYS, interval: BF_CHECKPOINT_INTERVAL });
-    runZoneByLevel.set(level, r);
+    r = makeArcadeRun<BfState, BfCheckpoint>({ tag: "blockfall", game: blockfallGameFor(stamp, level), checkpoint: bfCheckpoint, keys: BF_CHECKPOINT_KEYS, interval: BF_CHECKPOINT_INTERVAL });
+    runZoneByLevel.set(key, r);
   }
   return r;
 }
@@ -42,7 +45,7 @@ export interface BlockfallResult extends FlatReplay<BfState, BfCheckpoint> {
 
 /** The single place a Blockfall / Blockzone score is worked out (no stamp: blockfallRev 1). */
 export function replayBlockfallRun(seed: number, raw: string, rev?: number | null, level?: Level | null): BlockfallResult {
-  const r = ((rev ?? 1) >= 2 ? runZoneFor(level) : run).replay(seed, raw);
+  const r = ((rev ?? 1) >= 2 ? runZoneFor(level, rev) : run).replay(seed, raw);
   const s = r.state;
   const toppedOut = s.ended === 2;
   return {
