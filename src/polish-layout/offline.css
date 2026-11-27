@@ -17,12 +17,12 @@ html[data-offline] [data-offline-banner] {
   margin: 0 0 12px;
   padding: 6px 12px 6px 9px;
   border-left: 3px solid var(--jz-red);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
   color: var(--jz-text-2);
-  font-size: 13.5px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
-  line-height: 1.25;
+  line-height: var(--jz-line-caption);
 }
 html[data-offline] [data-offline-banner] > svg {
   color: var(--jz-red);
@@ -41,8 +41,8 @@ html[data-offline-install] [data-offline-install-card] {
   flex: none;
   align-items: center;
   gap: 4px;
-  color: var(--ap-faint, #8a8794);
-  font-size: 12px;
+  color: var(--jz-text-3);
+  font-size: var(--jz-size-caption);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -54,14 +54,14 @@ html[data-offline-install] [data-offline-install-card] {
 .of-clock-lg {
   display: block;
   flex: none;
-  color: var(--ap-faint);
+  color: var(--jz-text-3);
 }
 .of-clock {
   display: inline-block;
   width: 14px;
   height: 14px;
   flex: none;
-  color: var(--ap-faint, #8a8794);
+  color: var(--jz-text-3);
   vertical-align: -2px;
 }
 
@@ -72,12 +72,12 @@ html[data-offline-install] [data-offline-install-card] {
   font-size: 56px;
   font-weight: 700;
   line-height: 1;
-  color: var(--ap-text, #f5f5f7);
+  color: var(--jz-text);
   font-variant-numeric: tabular-nums;
 }
 .of-result-score[data-pending] {
   font-family: inherit;
-  font-size: 26px;
+  font-size: var(--jz-size-title);
   font-weight: 800;
-  color: var(--ap-text-2, #bdbdcc);
+  color: var(--jz-text-3);
 }

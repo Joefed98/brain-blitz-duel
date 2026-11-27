@@ -89,7 +89,7 @@
     background: transparent;
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
@@ -114,7 +114,7 @@
      A 36 px button keeps a 44 px target through an invisible hit area. */
   /* 36: the guide's small button. The face is 36 px; the element is 44 px tall (4 px of transparent target above and
      below), so every target stays at least 44 × 44. */
-  .jz-btn[data-size="36"] { height: 44px; font-size: 15px; }
+  .jz-btn[data-size="36"] { height: 44px; font-size: var(--jz-size-label); }
   .jz-btn[data-variant="secondary"][data-size="36"] {
     border-block: 4px solid transparent;
     background-clip: padding-box;
@@ -125,13 +125,13 @@
   .jz-btn[data-variant="gold"][data-size="36"]::after {
     inset: -2px -6px;
   }
-  .jz-btn[data-size="44"] { height: 44px; font-size: 15px; }
-  .jz-btn[data-size="46"] { height: 46px; font-size: 15px; }
-  .jz-btn[data-size="48"] { height: 48px; font-size: 16px; }
-  .jz-btn[data-size="50"] { height: 50px; font-size: 16px; }
-  .jz-btn[data-size="52"] { height: 52px; font-size: 17px; }
-  .jz-btn[data-size="58"] { height: 58px; font-size: 17px; }
-  .jz-btn[data-size="60"] { height: 60px; font-size: 17px; }
+  .jz-btn[data-size="44"] { height: 44px; font-size: var(--jz-size-label); }
+  .jz-btn[data-size="46"] { height: 46px; font-size: var(--jz-size-label); }
+  .jz-btn[data-size="48"] { height: 48px; font-size: var(--jz-size-body); }
+  .jz-btn[data-size="50"] { height: 50px; font-size: var(--jz-size-body); }
+  .jz-btn[data-size="52"] { height: 52px; font-size: var(--jz-size-body); }
+  .jz-btn[data-size="58"] { height: 58px; font-size: var(--jz-size-body); }
+  .jz-btn[data-size="60"] { height: 60px; font-size: var(--jz-size-body); }
 
   /* The ledge: every raised button is its face plus a 4 px solid band below (the face's height less 4). Pressed, the
      whole button sinks 4 px and the band goes, so the face lands where the ledge was. */
@@ -351,6 +351,7 @@
   }
   .jz-stat-value {
     font: var(--jz-type-title);
+    font-stretch: var(--jz-width-title);
     font-variant-numeric: tabular-nums;
   }
   .jz-stat-label {
@@ -432,9 +433,9 @@
   .jz-row-title {
     overflow: hidden;
     color: var(--jz-text-2);
-    font-size: 16px;
+    font-size: var(--jz-size-label);
     font-weight: 700;
-    line-height: 20px;
+    line-height: var(--jz-line-label);
     letter-spacing: normal;
     text-overflow: ellipsis;
     text-transform: none;
@@ -443,9 +444,9 @@
   .jz-row-sub {
     overflow: hidden;
     color: var(--jz-text-3);
-    font-size: 14px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
-    line-height: 18px;
+    line-height: var(--jz-line-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -467,9 +468,9 @@
     font-family: var(--jz-font);
     min-width: 0;
     overflow: hidden;
-    font-size: 20px;
+    font-size: var(--jz-size-heading);
     font-weight: var(--jz-weight-bold);
-    line-height: 26px;
+    line-height: var(--jz-line-heading);
     letter-spacing: 0;
     text-overflow: ellipsis;
     text-transform: none;
@@ -478,9 +479,9 @@
   /* The "See all" side: a quiet link in text 2. */
   .jz-section-head > :not(h2, h3) {
     color: var(--jz-text-2);
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: var(--jz-weight-medium);
-    line-height: 20px;
+    line-height: var(--jz-line-label);
     white-space: nowrap;
   }
 
@@ -499,7 +500,7 @@
     background: var(--jz-surface-2);
     color: var(--jz-text-2);
     font-family: var(--jz-font);
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
@@ -541,8 +542,8 @@
     background: color-mix(in srgb, var(--jz-bg) 60%, transparent);
     box-shadow: inset 0 0 0 1px var(--jz-line);
     font-family: var(--jz-font);
-    font-size: 13px;
-    line-height: 22px;
+    font-size: var(--jz-size-caption);
+    line-height: var(--jz-line-caption);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     overflow: hidden;
@@ -610,7 +611,7 @@
     border: 1px solid var(--jz-surface-2);
     border-radius: var(--jz-round);
     color: var(--jz-text-2);
-    font-size: 12px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
     white-space: nowrap;
   }
@@ -639,7 +640,7 @@
     background: transparent;
     color: var(--jz-text-2);
     font-family: var(--jz-font);
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
@@ -703,7 +704,7 @@
     box-shadow: var(--jz-well-shadow);
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 16px;
+    font-size: var(--jz-size-label);
     font-weight: var(--jz-weight-regular);
     outline: none;
   }
@@ -735,7 +736,7 @@
     min-width: 0;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--jz-space-8);
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-sm);
   }
   .jz-code > span {
     display: flex;
@@ -747,7 +748,7 @@
     box-shadow: var(--jz-well-shadow);
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 20px;
+    font-size: var(--jz-size-heading);
     font-weight: var(--jz-weight-bold);
     text-transform: uppercase;
   }
@@ -768,7 +769,7 @@
     background: transparent;
     color: transparent;
     caret-color: transparent;
-    font-size: 16px;
+    font-size: var(--jz-size-label);
     outline: none;
     opacity: 0.01;
   }
@@ -823,9 +824,9 @@
   .jz-sheet-head > h2 {
     margin: 0;
     font-family: var(--jz-font);
-    font-size: 20px;
+    font-size: var(--jz-size-heading);
     font-weight: var(--jz-weight-bold);
-    line-height: 26px;
+    line-height: var(--jz-line-heading);
     letter-spacing: 0;
     text-transform: none;
   }
@@ -844,8 +845,8 @@
     animation: jz-toast-in var(--jz-dur-toast-in) var(--jz-ease-out) both;
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 15px;
-    line-height: 20px;
+    font-size: var(--jz-size-label);
+    line-height: var(--jz-line-label);
   }
   .jz-toast[data-tone="live"] { border-left-color: var(--jz-cyan); }
   .jz-toast[data-tone="error"] { border-left-color: var(--jz-loss); }
@@ -855,7 +856,7 @@
     position: relative;
     display: block;
     overflow: hidden;
-    border-radius: var(--jz-radius);
+    border-radius: var(--jz-radius-sm);
     background: var(--jz-surface);
   }
   .jz-skel::after {
@@ -869,7 +870,7 @@
   .jz-skel[data-kind="line"] { height: 14px; border-radius: 4px; }
   .jz-skel[data-kind="row"] { height: 62px; }
   .jz-skel[data-kind="card"] { height: 120px; }
-  .jz-skel[data-kind="tile"] { width: 56px; height: 56px; border-radius: var(--jz-radius-tile); }
+  .jz-skel[data-kind="tile"] { width: 56px; height: 56px; border-radius: var(--jz-radius-lg); }
   .jz-skel-stack {
     display: flex;
     flex-direction: column;
@@ -887,7 +888,7 @@
     /* Dark text on the LIVE red: white on it is 3.1:1, --jz-bg on it about 6:1 (theme-check). */
     color: var(--jz-bg);
     font-family: var(--jz-font);
-    font-size: 11px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-bold);
     letter-spacing: 0.06em;
     line-height: 1;
@@ -952,17 +953,17 @@
   }
   .jz-tile-name {
     overflow: hidden;
-    font-size: 14px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
-    line-height: 18px;
+    line-height: var(--jz-line-caption);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .jz-tile-best {
     color: var(--jz-text-3);
-    font-size: 12px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
-    line-height: 16px;
+    line-height: var(--jz-line-caption);
     font-variant-numeric: tabular-nums;
   }
   .jz-tile-charge {
@@ -997,24 +998,24 @@
   .jz-plate[data-kind="strip"] {
     min-height: 44px;
     gap: var(--jz-space-12);
-    font-size: 16px;
+    font-size: var(--jz-size-label);
   }
   .jz-plate[data-kind="full"] {
     flex-direction: column;
     gap: var(--jz-space-8);
-    font-size: 18px;
+    font-size: var(--jz-size-body);
     text-align: center;
   }
   .jz-plate[data-kind="mini"] {
     gap: var(--jz-space-8);
-    font-size: 14px;
+    font-size: var(--jz-size-caption);
   }
   .jz-plate-you {
-    font-size: 13px;
+    font-size: var(--jz-size-caption);
   }
   .jz-plate-meta {
     color: var(--jz-text-3);
-    font-size: 14px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-regular);
   }
 
@@ -1029,18 +1030,18 @@
     border-radius: var(--jz-round);
     color: var(--jz-text-2);
     font-family: var(--jz-font);
-    font-size: 12px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-bold);
     font-variant-numeric: tabular-nums;
     line-height: 1;
   }
-  .jz-medal[data-size="m"] { width: 36px; height: 36px; font-size: 15px; }
-  .jz-medal[data-size="l"] { width: 64px; height: 64px; font-size: 26px; }
+  .jz-medal[data-size="m"] { width: 36px; height: 36px; font-size: var(--jz-size-label); }
+  .jz-medal[data-size="l"] { width: 64px; height: 64px; font-size: var(--jz-size-title); }
   .jz-medal[data-size="m"]:not([data-medal]),
   .jz-medal[data-size="l"]:not([data-medal]) {
     border: 1px solid var(--jz-surface-2);
   }
-  .jz-medal[data-shared] { font-size: 10px; letter-spacing: -0.04em; }
+  .jz-medal[data-shared] { font-size: 10px; letter-spacing: -0.04em; } /* off the scale: a glyph inside the 22 px disc */
   /* 1st to 3rd: the approved medal art (design foundation F5), its width the size, 7/6 as tall. */
   .jz-medal[data-medal] {
     position: relative;
@@ -1064,12 +1065,12 @@
     border-radius: var(--jz-round);
     background: var(--jz-text);
     color: var(--jz-on-metal);
-    font-size: 10px;
+    font-size: 10px; /* off the scale: the "=" glyph inside a 12 px tag */
     font-weight: var(--jz-weight-bold);
     line-height: 1;
   }
-  .jz-medal[data-size="m"] .jz-medal-tie { min-width: 16px; height: 16px; font-size: 13px; }
-  .jz-medal[data-size="l"] .jz-medal-tie { min-width: 22px; height: 22px; font-size: 17px; }
+  .jz-medal[data-size="m"] .jz-medal-tie { min-width: 16px; height: 16px; font-size: var(--jz-size-caption); }
+  .jz-medal[data-size="l"] .jz-medal-tie { min-width: 22px; height: 22px; font-size: var(--jz-size-body); }
 
   /* ------------------------------------------------------------------ Reward art (src/design/art: Emblem, Trophy, Badge) */
   .jz-art {
@@ -1110,7 +1111,7 @@
   .jz-tab > span {
     max-width: 100%;
     overflow: hidden;
-    font-size: 11px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
     line-height: 12px;
     text-overflow: ellipsis;
@@ -1298,8 +1299,8 @@
   .jz-level-bars > span:nth-child(3) { height: 80%; }
   .jz-level-bars > span:nth-child(4) { height: 100%; }
   .jz-level-bars > span[data-on] { background: var(--level-colour); }
-  .jz-level-name { font-size: 15px; }
-  .jz-level-mark[data-size="m"] .jz-level-name { font-size: 17px; }
+  .jz-level-name { font-size: var(--jz-size-label); }
+  .jz-level-mark[data-size="m"] .jz-level-name { font-size: var(--jz-size-body); }
   .jz-level-crown { display: block; flex: none; color: color-mix(in srgb, var(--jz-text-3) 45%, transparent); }
   .jz-level-crown[data-on] { color: var(--jz-gold); }
 
@@ -1334,7 +1335,7 @@
 }
 .jz-gallery-label {
   color: var(--jz-text-3);
-  font-size: 12px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
 }
 
@@ -1390,16 +1391,16 @@
     text-transform: none;
     letter-spacing: normal;
     color: var(--jz-text);
-    font-size: 28px;
-    line-height: 32px;
+    font-size: var(--jz-size-title);
+    line-height: var(--jz-line-title);
     font-weight: var(--jz-weight-bold);
-    font-stretch: 112%;
+    font-stretch: var(--jz-width-title);
   }
   .jz-empty-body {
     margin: 0;
     color: var(--jz-text-2);
-    font-size: 16px;
-    line-height: 23px;
+    font-size: var(--jz-size-label);
+    line-height: var(--jz-line-label);
   }
   .jz-empty-actions {
     display: flex;
@@ -1429,8 +1430,8 @@
       height: 120px;
     }
     .jz-empty .jz-empty-title {
-      font-size: 24px;
-      line-height: 28px;
+      font-size: var(--jz-size-title);
+      line-height: var(--jz-line-title);
     }
   }
 
@@ -1498,16 +1499,16 @@
     text-transform: none;
     letter-spacing: normal;
     color: var(--jz-text);
-    font-size: 17px;
-    line-height: 22px;
+    font-size: var(--jz-size-body);
+    line-height: var(--jz-line-body);
     font-weight: var(--jz-weight-bold);
-    font-stretch: 105%;
+    font-stretch: var(--jz-width-body);
   }
   .jz-empty-card-body {
     margin: 0;
     color: var(--jz-text-2);
-    font-size: 14px;
-    line-height: 20px;
+    font-size: var(--jz-size-caption);
+    line-height: var(--jz-line-caption);
   }
   .jz-empty-card-actions {
     display: flex;
@@ -1532,6 +1533,7 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -1544,6 +1546,7 @@
   margin: 0;
   color: var(--jz-text-2);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
   text-transform: none;
   letter-spacing: 0;
 }

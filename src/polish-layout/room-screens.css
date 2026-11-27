@@ -1,7 +1,7 @@
 /*
  * Polish batch R (25 Oct 2026, presentation only; docs/polish-batches/room-screens.md): the room and
  * other non-game screens take the tab pages' look (app-pages.css, DESIGN.md): Archivo in
- * sentence case, flat #17171B panels of divided rows, and gold only for the action that plays (Start
+ * sentence case, flat --jz-surface panels of divided rows, and gold only for the action that plays (Start
  * game, Ready, Continue, Play again, Join, the daily Play / Continue, Create a room, I agree).
  *
  * - Scope: every skinned screen that is not a tab page ([data-skin] without [data-tab-screen]): the
@@ -16,67 +16,59 @@
  */
 
 :where([data-skin]:not([data-tab-screen])) {
-  --background: var(--ap-bg);
-  --foreground: var(--ap-text);
-  --card-foreground: var(--ap-text);
-  --muted-foreground: var(--ap-text-2);
-  --primary: var(--ap-text);
-  --primary-foreground: var(--ap-bg);
-  --me: var(--ap-text);
-  --opponent: var(--ap-text);
-  --card: var(--ap-panel);
-  --border: var(--ap-divider);
-  --font-display: var(--ap-font);
-  --font-body: var(--ap-font);
-  --font-mono: var(--ap-font);
-  --th-font-head: var(--ap-font);
-  --th-font-body: var(--ap-font);
-  --th-font-mono: var(--ap-font);
-  --th-bg: var(--ap-bg);
-  --th-text: var(--ap-text);
-  --th-text-2: var(--ap-text-2);
-  --th-gold-text: var(--ap-text);
-  --th-teal-text: var(--ap-text);
+  --background: var(--jz-bg);
+  --foreground: var(--jz-text);
+  --card-foreground: var(--jz-text);
+  --muted-foreground: var(--jz-text-3);
+  --primary: var(--jz-text);
+  --primary-foreground: var(--jz-bg);
+  --me: var(--jz-text);
+  --opponent: var(--jz-text);
+  --card: var(--jz-surface);
+  --border: var(--jz-line);
+  --font-display: var(--jz-font);
+  --font-body: var(--jz-font);
+  --font-mono: var(--jz-font);
 }
 [data-skin]:not([data-tab-screen]) {
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 /* Headings and every label in sentence case (the copy is written that way; the old look upper-cased it). */
 [data-skin]:not([data-tab-screen]) :is(h1, h2, h3):not([data-skin-off] *) {
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-weight: 800;
-  font-stretch: 108%;
+  font-stretch: var(--jz-width-title);
   text-transform: none;
   letter-spacing: -0.01em;
 }
-[data-skin]:not([data-tab-screen]) :is(.uppercase, .font-display, .font-mono, .th-name):not([data-skin-off], [data-skin-off] *) {
+[data-skin]:not([data-tab-screen]) :is(.uppercase, .font-display, .font-mono, .jz-name):not([data-skin-off], [data-skin-off] *) {
   text-transform: none;
   letter-spacing: normal;
 }
-[data-skin]:not([data-tab-screen]) .th-kicker:not([data-skin-off] *) {
-  font-family: var(--ap-font);
-  font-size: 13px;
+[data-skin]:not([data-tab-screen]) .jz-kicker:not([data-skin-off] *) {
+  font-family: var(--jz-font);
+  font-size: var(--jz-size-caption);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: var(--ap-text-2);
+  color: var(--jz-text-3);
 }
 /* Text emphasis (DESIGN.md section 3): player names a step below white, so the score beside them is the one
    bright thing; an award's line under the name is supporting detail. Unlayered, so it beats text-foreground. */
-[data-skin]:not([data-tab-screen]) .th-name:not([data-skin-off] *) {
+[data-skin]:not([data-tab-screen]) .jz-name:not([data-skin-off] *) {
   color: var(--jz-text-2);
 }
-[data-skin]:not([data-tab-screen]) [data-award] .th-name + span {
+[data-skin]:not([data-tab-screen]) [data-award] .jz-name + span {
   color: var(--jz-text-3);
 }
 
-/* The page behind: flat #0D0D0F like the tab pages, the home-bar strip the screen edge's black. */
+/* The page behind: flat --jz-bg like the tab pages, the home-bar strip the screen edge's black. */
 [data-skin]:not([data-tab-screen]) > .screen-background {
   background:
     linear-gradient(to top, var(--screen-edge) calc(env(safe-area-inset-bottom, 0px) + 16px), transparent calc(env(safe-area-inset-bottom, 0px) + 16px)),
-    var(--ap-bg);
+    var(--jz-bg);
 }
 [data-skin]:not([data-tab-screen]) > .screen-background::before {
   display: none;
@@ -84,55 +76,52 @@
 
 /* ------------------------------------------------------------------ surfaces */
 /* The skin's glass cards are the tab pages' flat panels. */
-[data-skin]:not([data-tab-screen]) .th-card,
-[data-skin]:not([data-tab-screen]).th-card {
-  background: var(--ap-panel);
+[data-skin]:not([data-tab-screen]) .jz-card,
+[data-skin]:not([data-tab-screen]).jz-card {
+  background: var(--jz-surface);
   background-image: none;
   border-color: transparent;
   box-shadow: none;
 }
-[data-skin]:not([data-tab-screen]) .th-card::before {
+[data-skin]:not([data-tab-screen]) .jz-card::before {
   display: none;
 }
 /* "You": a 3 px bar in the player's own colour (--you, set on the row) and "(you)" after the name; never gold. */
-[data-skin]:not([data-tab-screen]) .th-card[data-tint="me"],
+[data-skin]:not([data-tab-screen]) .jz-card[data-tint="me"],
 [data-skin]:not([data-tab-screen]) [data-you] {
-  box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+  box-shadow: inset 3px 0 0 var(--you, var(--jz-text-3));
 }
-[data-skin]:not([data-tab-screen]) .th-sheet,
-.th-sheet[data-skin]:not([data-tab-screen]) {
-  background: var(--ap-panel);
+[data-skin]:not([data-tab-screen]) .jz-dialog,
+.jz-dialog[data-skin]:not([data-tab-screen]) {
+  background: var(--jz-surface);
   background-image: none;
-  border-color: var(--ap-divider);
-  box-shadow: 0 -18px 40px -18px rgb(0 0 0 / 0.9);
+  border-color: var(--jz-line);
+  box-shadow: var(--jz-shadow-overlay);
 }
 /* Buttons, inputs, chips and segmented switches are the shared components (src/design/components,
    components.css) since design foundation F2. */
 
 /* Scores are white; the old gold "top score" glow is gone. */
-[data-skin]:not([data-tab-screen]) .th-score-top {
-  color: var(--ap-text);
-  text-shadow: none;
-}
-[data-skin]:not([data-tab-screen]) .th-score {
-  font-family: var(--ap-font);
+
+[data-skin]:not([data-tab-screen]) .jz-score {
+  font-family: var(--jz-font);
   font-weight: 800;
   letter-spacing: -0.01em;
 }
 [data-skin]:not([data-tab-screen]) .jz-medal {
-  font-family: var(--ap-font);
+  font-family: var(--jz-font);
   font-weight: 800;
 }
-[data-skin]:not([data-tab-screen]) .th-pill {
-  font-family: var(--ap-font);
-  font-size: 11px;
+[data-skin]:not([data-tab-screen]) .jz-cat-pill {
+  font-family: var(--jz-font);
+  font-size: var(--jz-size-caption);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: capitalize;
 }
-[data-skin]:not([data-tab-screen]) .th-pill:is([data-tone="gold"], [data-tone="teal"]) {
-  --cat: var(--ap-line);
-  --cat-hi: var(--ap-text-2);
+[data-skin]:not([data-tab-screen]) .jz-cat-pill:is([data-tone="gold"], [data-tone="teal"]) {
+  --cat: var(--jz-surface-2);
+  --cat-hi: var(--jz-text-3);
 }
 
 /* Tap feedback, as on the tab pages: sink to 97 % and lighten; transform and filter only. */
@@ -166,7 +155,7 @@
 /* The title in the accent lifted a fifth towards white: the large name stays clear of the gradient's tinted top
    (theme-check: 4.5:1 or more for every category and group, Action's red included). */
 .round-intro {
-  --intro-title: color-mix(in srgb, var(--category-accent) 80%, #fff);
+  --intro-title: color-mix(in srgb, var(--category-accent) 80%, white);
 }
 .round-intro .round-intro-title {
   color: var(--intro-title);
@@ -197,13 +186,13 @@
   background:
     linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
     linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 32px) no-repeat,
-    radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    radial-gradient(140% 90% at 50% 50%, transparent 55%, color-mix(in srgb, black 55%, transparent) 100%);
 }
 
 /* The batch's own pieces sit in the components layer, so a component's utilities (sizes, padding) still win. */
 @layer components {
   .rs-you {
-    color: var(--ap-text-2);
+    color: var(--jz-text-3);
     font-weight: 500;
   }
   .rs-pill {
@@ -212,10 +201,10 @@
     flex: none;
     align-items: center;
     padding: 0 9px;
-    border: 1px solid var(--ap-line);
-    border-radius: 999px;
-    color: var(--ap-text-2);
-    font-size: 12px;
+    border: 1px solid var(--jz-surface-2);
+    border-radius: var(--jz-round);
+    color: var(--jz-text-3);
+    font-size: var(--jz-size-caption);
     font-weight: 650;
     white-space: nowrap;
   }
@@ -269,7 +258,7 @@
     min-width: 0;
     flex: 1;
     /* P3, 22 Nov 2026 (plan section 4, room screens): larger type on the main action, the row's height unchanged. */
-    font-size: 20px;
+    font-size: var(--jz-size-heading);
   }
   .rs-chat-btn {
     position: relative;
@@ -279,9 +268,9 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--ap-line);
-    border-radius: 14px;
-    color: var(--ap-text-2);
+    border: 1px solid var(--jz-surface-2);
+    border-radius: var(--jz-radius-md);
+    color: var(--jz-text-3);
     -webkit-tap-highlight-color: transparent;
   }
   .rs-chat-btn > svg {
@@ -299,11 +288,11 @@
     align-items: center;
     justify-content: center;
     padding: 0 4px;
-    border-radius: 999px;
-    background: var(--ap-text);
-    box-shadow: 0 0 0 2px var(--ap-bg);
-    color: var(--ap-bg);
-    font-size: 10.5px;
+    border-radius: var(--jz-round);
+    background: var(--jz-text);
+    box-shadow: 0 0 0 2px var(--jz-bg);
+    color: var(--jz-bg);
+    font-size: var(--jz-size-caption);
     font-weight: 800;
     line-height: 1;
   }
@@ -314,8 +303,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: var(--ap-text-2);
-    font-size: 14px;
+    color: var(--jz-text-3);
+    font-size: var(--jz-size-caption);
     font-weight: 550;
     text-align: center;
   }
@@ -327,8 +316,8 @@
     height: 44px;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    color: var(--ap-text-2);
+    border-radius: var(--jz-radius-md);
+    color: var(--jz-text-3);
     -webkit-tap-highlight-color: transparent;
   }
   .rs-menu {
@@ -336,11 +325,11 @@
     z-index: 70;
     min-width: 200px;
     overflow: hidden;
-    border: 1px solid var(--ap-divider);
-    border-radius: 14px;
-    background: var(--ap-panel);
-    box-shadow: 0 18px 40px rgb(0 0 0 / 0.6);
-    font-family: var(--ap-font);
+    border: 1px solid var(--jz-line);
+    border-radius: var(--jz-radius-md);
+    background: var(--jz-surface);
+    box-shadow: var(--jz-shadow-overlay);
+    font-family: var(--jz-font);
   }
   .rs-menu > button {
     display: flex;
@@ -349,21 +338,21 @@
     align-items: center;
     gap: 10px;
     padding: 0 16px;
-    color: var(--ap-text);
-    font-size: 15px;
+    color: var(--jz-text);
+    font-size: var(--jz-size-label);
     font-weight: 600;
     text-align: left;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
   }
   .rs-menu > button + button {
-    border-top: 1px solid var(--ap-divider);
+    border-top: 1px solid var(--jz-line);
   }
   .rs-menu > button:active {
-    background: rgb(255 255 255 / 0.05);
+    background: var(--jz-press-tint);
   }
   .rs-menu > button[data-danger] {
-    color: #FF8A80;
+    color: var(--jz-loss-text);
   }
 
   /* ------------------------------------------------------------------ lists and rows */
@@ -375,26 +364,26 @@
     gap: 12px;
   }
   .rs-title {
-    font-size: 22px;
+    font-size: var(--jz-size-heading);
     font-weight: 800;
-    font-stretch: 110%;
-    line-height: 1.15;
+    font-stretch: var(--jz-width-title);
+    line-height: var(--jz-line-heading);
     letter-spacing: -0.015em;
-    color: var(--ap-text);
+    color: var(--jz-text);
     white-space: nowrap;
   }
   .rs-meta {
-    font-size: 13px;
+    font-size: var(--jz-size-caption);
     font-weight: 500;
-    color: var(--ap-text-2);
+    color: var(--jz-text-3);
     white-space: nowrap;
   }
   .rs-list {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 18px;
-    background: var(--ap-panel);
+    border-radius: var(--jz-radius-lg);
+    background: var(--jz-surface);
   }
   .rs-row {
     position: relative;
@@ -412,16 +401,16 @@
     right: 0;
     left: 14px;
     height: 1px;
-    background: var(--ap-divider);
+    background: var(--jz-line);
     pointer-events: none;
   }
   .rs-row[data-you] {
-    box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+    box-shadow: inset 3px 0 0 var(--you, var(--jz-text-3));
   }
   .rs-name {
     min-width: 0;
     overflow: hidden;
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -430,38 +419,38 @@
   /* A standings row's round column ("+142", or "2nd +7" in a Placings room) and the Placings notes. */
   .rs-gain {
     white-space: nowrap;
-    font-size: 13px;
+    font-size: var(--jz-size-caption);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    color: var(--ap-text-2);
+    color: var(--jz-text-3);
   }
   .rs-sub {
     overflow: hidden;
-    font-size: 12.5px;
+    font-size: var(--jz-size-caption);
     font-weight: 500;
-    line-height: 16px;
-    color: var(--ap-text-2);
+    line-height: var(--jz-line-caption);
+    color: var(--jz-text-3);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .rs-total {
-    font-size: 22px;
+    font-size: var(--jz-size-heading);
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    color: var(--ap-text);
+    color: var(--jz-text);
     white-space: nowrap;
   }
   .rs-move {
     width: 22px;
     flex: none;
-    font-size: 11px;
+    font-size: var(--jz-size-caption);
     font-weight: 700;
     text-align: center;
     white-space: nowrap;
   }
-  .rs-move[data-move="up"] { color: #5BE3A0; }
-  .rs-move[data-move="down"] { color: #FF7A6E; }
-  .rs-move[data-move="same"] { color: var(--ap-faint); }
+  .rs-move[data-move="up"] { color: var(--jz-cyan); }
+  .rs-move[data-move="down"] { color: var(--jz-red); }
+  .rs-move[data-move="same"] { color: var(--jz-text-3); }
   /* A list that can still scroll under the footer: a fade at its bottom while there is more below. */
   /* The lobby's players in two columns (31 Oct 2026, rooms of up to 16). */
   .rs-grid {
@@ -477,12 +466,12 @@
     align-items: center;
     gap: 4px;
     padding: 4px 4px 4px 10px;
-    border-radius: 14px;
-    background: var(--ap-panel);
+    border-radius: var(--jz-radius-md);
+    background: var(--jz-surface);
     text-align: left;
   }
   .rs-cell[data-you] {
-    box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+    box-shadow: inset 3px 0 0 var(--you, var(--jz-text-3));
   }
   /* Another player's name chip is a button (safety, 10 Nov 2026: a tap reports them); keep it laid out as the span
      it replaced (a button centres its text by default). */
@@ -507,7 +496,7 @@
     top: 0;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 68px + 16px);
     z-index: 2;
-    background: #1d1d23;
+    background: var(--jz-surface-2);
   }
   .rs-scroll[data-pin][data-more] {
     -webkit-mask-image: none;
@@ -523,8 +512,8 @@
     display: none;
   }
   .rs-scroll[data-more] {
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
   }
 
   /* Room settings (31 Oct 2026): the summary line under the room code, then the host's sheet. */
@@ -551,10 +540,10 @@
     cursor: default;
   }
   .rss-note {
-    font-size: 13px;
+    font-size: var(--jz-size-caption);
     font-weight: 500;
-    line-height: 1.35;
-    color: var(--ap-text-2);
+    line-height: var(--jz-line-caption);
+    color: var(--jz-text-3);
   }
   /* The rounds slider: a 44 px tall touch strip, a 26 px thumb, the range past the picks' cap hatched. */
   .rss-slider {
@@ -568,15 +557,15 @@
     width: var(--rss-cap, 0%);
     height: 6px;
     transform: translateY(-50%);
-    border-radius: 999px;
-    background: repeating-linear-gradient(135deg, var(--ap-line) 0 4px, transparent 4px 8px);
+    border-radius: var(--jz-round);
+    background: repeating-linear-gradient(135deg, var(--jz-surface-2) 0 4px, transparent 4px 8px);
     pointer-events: none;
   }
   .rss-slider [role="slider"] {
     width: 26px;
     height: 26px;
-    border: 2px solid var(--ap-text);
-    background: var(--ap-bg);
+    border: 2px solid var(--jz-text);
+    background: var(--jz-bg);
   }
 
   /* The lobby's room code, white and large. */
@@ -584,10 +573,10 @@
     /* P3, 22 Nov 2026: larger type on the room code (was 36 px). */
     font-size: 48px;
     font-weight: 850;
-    font-stretch: 108%;
+    font-stretch: var(--jz-width-title);
     letter-spacing: 0.1em;
     line-height: 1;
-    color: var(--ap-text);
+    color: var(--jz-text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -595,14 +584,14 @@
     position: relative;
     height: 4px;
     overflow: hidden;
-    border-radius: 999px;
-    background: var(--ap-divider);
+    border-radius: var(--jz-round);
+    background: var(--jz-line);
   }
   .rs-meter > span {
     position: absolute;
     inset: 0 auto 0 0;
     border-radius: inherit;
-    background: var(--ap-text-2);
+    background: var(--jz-text-3);
   }
 
   /* A tie note under a standings row's name: its own line across the row, so it is never cut short. */
@@ -648,20 +637,20 @@
     flex-direction: column;
     align-items: flex-end;
     margin-right: 4px;
-    font-size: 12px;
+    font-size: var(--jz-size-caption);
     font-weight: var(--jz-weight-medium);
-    line-height: 15px;
+    line-height: var(--jz-line-caption);
     color: var(--jz-text-3);
     white-space: nowrap;
   }
   .intro-best-label {
-    font-size: 11px;
+    font-size: var(--jz-size-caption);
     color: var(--jz-text-3);
   }
   .intro-best-value {
-    font-size: 20px;
+    font-size: var(--jz-size-heading);
     font-weight: var(--jz-weight-bold);
-    font-stretch: 105%;
+    font-stretch: var(--jz-width-score);
     line-height: 22px;
     color: var(--jz-text);
     font-variant-numeric: tabular-nums;
@@ -675,7 +664,7 @@
     height: 52px;
   }
   .intro-ready-count {
-    font-size: 13px;
+    font-size: var(--jz-size-caption);
     color: var(--jz-text-3);
   }
   .intro-ring {
@@ -688,7 +677,7 @@
     justify-content: center;
     color: var(--jz-text);
     font-family: var(--jz-font);
-    font-size: 15px;
+    font-size: var(--jz-size-label);
     font-weight: var(--jz-weight-bold);
     font-variant-numeric: tabular-nums;
   }
@@ -701,7 +690,7 @@
     font-family: var(--jz-font);
     font-size: min(40vh, 18rem);
     font-weight: var(--jz-weight-bold);
-    font-stretch: 105%;
+    font-stretch: var(--jz-width-countdown);
     font-variant-numeric: tabular-nums;
     line-height: 1;
     color: var(--category-accent);
@@ -714,9 +703,9 @@
   .intro-tray {
     position: absolute;
     border: 1px solid color-mix(in srgb, var(--category-accent) 18%, transparent);
-    border-radius: 20px;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), rgb(255 255 255 / 0.02));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    border-radius: var(--jz-radius-sheet);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), color-mix(in srgb, white 2%, transparent));
+    box-shadow: inset 0 1px 0 var(--jz-sheen);
     pointer-events: none;
     transition: opacity 200ms ease-out;
   }
@@ -728,13 +717,13 @@
 .reveal-tray {
   position: absolute;
   z-index: -1;
-  border: 1px solid color-mix(in srgb, var(--category-accent, #3A3A42) 22%, transparent);
-  border-radius: 20px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent, #3A3A42) 8%, transparent), rgb(255 255 255 / 0.02));
+  border: 1px solid color-mix(in srgb, var(--category-accent, var(--jz-surface-2)) 22%, transparent);
+  border-radius: var(--jz-radius-sheet);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent, var(--jz-surface-2)) 8%, transparent), color-mix(in srgb, white 2%, transparent));
   /* 7 Nov 2026 (accessibility audit #1): a dark base at 72 % under the tint, as the breakdown's, so the game's
      gradient no longer shows through behind the board's text. */
   background-color: color-mix(in srgb, var(--jz-bg) 72%, transparent);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 1px 0 var(--jz-sheen);
   pointer-events: none;
 }
 
@@ -782,7 +771,7 @@
   right: 0;
   left: 14px;
   height: 1px;
-  background: var(--ap-divider);
+  background: var(--jz-line);
   pointer-events: none;
 }
 /* The sweep is a band of light moved across a layer the row's own size, so nothing is clipped and it
@@ -850,7 +839,7 @@
 [data-round-dim] {
   border-color: color-mix(in srgb, var(--jz-line) 50%, transparent);
 }
-[data-round-dim] .th-score,
-[data-round-dim] .th-score + div {
+[data-round-dim] .jz-score,
+[data-round-dim] .jz-score + div {
   opacity: 0.6;
 }

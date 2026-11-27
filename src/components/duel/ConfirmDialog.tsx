@@ -20,28 +20,20 @@ export function ConfirmDialog({
       role="alertdialog"
       aria-label={title}
       data-skin="room"
-      className="th-scrim fixed inset-0 z-[70] flex items-center justify-center bg-background/90 p-6"
+      className="jz-scrim fixed inset-0 z-[70] flex items-center justify-center bg-background/90 p-6" /* design-lint-ignore: its stacking order over the room */
     >
-      <div className="th-sheet w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 text-center">
+      <div className="jz-dialog w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 text-center">
         <p className="whitespace-nowrap text-lg font-extrabold">
           {title}
         </p>
         <p className="text-sm text-muted-foreground">{body}</p>
         <div className="flex gap-3">
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            className="flex-1"
-          >
+          <Button variant="quiet" onClick={onCancel} className="flex-1">
             Cancel
           </Button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="press tap-target flex-1 rounded-[14px] bg-[var(--ap-text)] text-[15px] font-bold text-[var(--ap-bg)]"
-          >
+          <Button variant="secondary" onClick={onConfirm} className="flex-1">
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

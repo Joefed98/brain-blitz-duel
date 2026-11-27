@@ -3,8 +3,7 @@
  *
  * The single source for every colour, shape, spacing and motion value in app chrome. No hex,
  * rgb() or hsl() value lives anywhere else in new work (scripts/design-lint.ts enforces it on
- * changed lines). The old token sets (--th-* in polish-layout/theme.css, --ap-* in
- * polish-layout/app-pages.css) are aliases of these until the component PRs retire them.
+ * changed lines). The old --th-* and --ap-* aliases were retired in S1 (27 Nov 2026): every screen names these.
  *
  * Also here, values unchanged from where they lived before:
  * - the category accents and arcade group colours (were in styles.css :root);
@@ -159,13 +158,34 @@
   --jz-weight-medium: 600;
   --jz-weight-bold: 800;
   --jz-weight-black: 900;
-  /* The type scale (style guide round 2): six roles, Archivo, never under 13 px. */
+  /* The one type scale (style guide round 2; DESIGN.md section 3): six roles, Archivo, never under 13 px. Every size in
+     app chrome is one of these (S1, 27 Nov 2026); the shorthands set size, line, weight and family together, and the
+     --jz-size-* / --jz-line-* pairs set the size alone where a rule keeps its own weight. */
   --jz-type-display: 800 32px/38px var(--jz-font);
   --jz-type-title: 800 24px/30px var(--jz-font);
   --jz-type-heading: 800 20px/26px var(--jz-font);
   --jz-type-body: 700 17px/22px var(--jz-font);
   --jz-type-label: 600 15px/20px var(--jz-font);
   --jz-type-caption: 600 13px/18px var(--jz-font);
+  --jz-size-display: 32px;
+  --jz-line-display: 38px;
+  --jz-size-title: 24px;
+  --jz-line-title: 30px;
+  --jz-size-heading: 20px;
+  --jz-line-heading: 26px;
+  --jz-size-body: 17px;
+  --jz-line-body: 22px;
+  --jz-size-label: 15px;
+  --jz-line-label: 20px;
+  --jz-size-caption: 13px;
+  --jz-line-caption: 18px;
+  /* Archivo's width axis as a brand tool (approved 27 Nov 2026): wide and heavy for titles, scores and countdowns,
+     normal width for reading text. A `font:` shorthand resets the width, so set it after the shorthand. */
+  --jz-width-body: 100%;
+  --jz-width-title: 115%; /* display, title and heading */
+  --jz-width-score: 120%; /* scores, ratings, totals (always tabular-nums) */
+  --jz-width-countdown: 125%; /* the 3-2-1 and any count that runs down */
+  --jz-width-wordmark: 118%;
 
   /* ------------------------------------------------ space (section 4) */
   --jz-space-4: 4px;
@@ -185,12 +205,15 @@
   /* The angled cuts: the corner's leg length, used by .jz-cut-lg / .jz-cut-sm (utilities.css). */
   --jz-cut-lg: 14px;
   --jz-cut-sm: 8px;
-  --jz-radius: 8px;
   --jz-round: 999px;
-  --jz-radius-tile: 16px;
   --jz-radius-sheet: 20px;
-  /* The one shadow (sheets only). DESIGN.md names it without a value: this one is F1's pick. */
-  --jz-shadow-sheet: var(--jz-elev-2); /* style guide round 2's overlay level (was 0 -12px 32px rgb(0 0 0 / 0.55)) */
+  /* Radii (DESIGN.md section 4): 8 tags and avatars, 12 rows, secondary buttons and inputs, 16 panels and tiles, 20 a
+     sheet's top corners, and the pill. --jz-radius-sm / -md / -lg are defined with the style guide's tokens below. */
+  /* Named shadows: the style guide's three elevation levels (no glows, no drop shadows on dark panels). */
+  --jz-shadow-panel: var(--jz-elev-0); /* level 0: a panel on the page */
+  --jz-shadow-raised: var(--jz-elev-1); /* level 1: a raised button on its 4 px ledge */
+  --jz-shadow-overlay: var(--jz-elev-2); /* level 2: sheets, dialogs and toasts over the scrim */
+  --jz-shadow-sheet: var(--jz-shadow-overlay);
   /* The stripe texture (.jz-stripes): faint text-coloured diagonals. DESIGN.md gives no value: F1's pick. */
   --jz-stripe-ink: rgb(238 242 255 / 0.035);
   --jz-stripes: repeating-linear-gradient(135deg, var(--jz-stripe-ink) 0 2px, transparent 2px 10px);
@@ -232,6 +255,22 @@
   --jz-dur-toast-out: 200ms;
   --jz-dur-toast-hold: 3s;
   --jz-ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+
+  /* ------------------------------------------------ game art inside a page (S1, 27 Nov 2026; values unchanged) */
+  /* A game's own art inside a skinned screen ([data-skin-off]: a reveal board, a replay) draws on the page tokens it
+     was made with; these are those values, moved here from polish-layout/theme.css. Never for app chrome. */
+  --jz-game-bg: #0B0B0F;
+  --jz-game-text: oklch(0.97 0.005 285);
+  --jz-game-text-2: oklch(0.68 0.015 285);
+  --jz-game-gold: #F5B82E;
+  --jz-game-on-gold: oklch(0.16 0.02 82);
+  --jz-game-teal: #2ED3B7;
+  --jz-game-card: oklch(0.205 0.012 285);
+  --jz-game-border: oklch(0.29 0.015 285);
+  /* A game tile: black behind its art, a soft contact shadow; Sports tiles in the turf green. */
+  --jz-tile-bg: #000000;
+  --jz-shadow-tile: 0 4px 10px -3px rgb(0 0 0 / 0.65);
+  --jz-sports-turf: #2FBF71;
 
   /* ------------------------------------------------ category accents (moved from styles.css, unchanged) */
   --category-word: #4D8CFF;
@@ -286,8 +325,7 @@
 /*
  * The light theme (style guide round 2; phase 2 step 2b, 14 Nov 2026): every page under <html data-theme="light">,
  * set by Settings → Appearance (src/lib/appearance.ts; dark, the default, is the attribute's absence, so nothing
- * changes for anyone who never chooses). The values sit on :root itself, so every alias built on them (--th-* in
- * theme.css, --ap-* in app-pages.css) resolves light too. Text colours are the guide's light values, each at least
+ * changes for anyone who never chooses). The values sit on :root itself, so every value built on them resolves light too. Text colours are the guide's light values, each at least
  * 4.5 : 1 on bg, surface and surface 2 (theme-check). Gold stays the champagne face for buttons and fills; gold as text
  * or an icon takes --jz-gold-ink.
  */
@@ -406,26 +444,4 @@
   --jz-rarity-elite: #A99BFF;
   --jz-rarity-legendary: #AEEAF7;
   --screen-edge: #070709;
-  /* The page aliases, rebuilt on the dark values above (they resolve where declared). */
-  --th-bg: var(--jz-bg);
-  --th-text: var(--jz-text);
-  --th-text-2: var(--jz-text-2);
-  --th-gold-text: var(--jz-gold);
-  --th-teal-text: var(--jz-cyan);
-  --th-green-text: var(--jz-cyan);
-  --th-card: linear-gradient(var(--jz-surface), var(--jz-surface));
-  --th-card-edge: var(--jz-line);
-  --ap-bg: var(--jz-bg);
-  --ap-panel: var(--jz-surface);
-  --ap-input: var(--jz-surface);
-  --ap-divider: var(--jz-line);
-  --ap-outline: var(--jz-surface-2);
-  --ap-text: var(--jz-text);
-  --ap-text-2: var(--jz-text-3);
-  --ap-faint: var(--jz-text-3);
-  --ap-gold: var(--jz-gold);
-  --ap-gold-tint: color-mix(in srgb, var(--jz-gold) 16%, var(--jz-bg));
-  --ap-link: var(--jz-text-2);
-  --ap-line: var(--jz-surface-2);
-  --ap-done: var(--jz-surface-2);
 }

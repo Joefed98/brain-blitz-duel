@@ -18,7 +18,7 @@ export function RootPageFrame({ children }: { children: ReactNode }) {
     <div data-skin="room" className="jz-root-page">
       <div aria-hidden="true" className="screen-background" />
       <div data-shell-column="page" className="jz-root-column pad-safe">
-        <header className="ap-header">
+        <header className="jz-header">
           <AppWordmark />
         </header>
         {children}

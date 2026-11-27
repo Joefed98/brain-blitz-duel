@@ -5,15 +5,14 @@
 
 /**
  * The app's one font, Archivo (public/fonts, SIL Open Font License; @font-face in src/design/tokens.css),
- * preloaded with the stylesheet. Saira, Manrope and "Duelz Mono" were dropped in design foundation F1
- * (6 Nov 2026, DESIGN.md: one font).
+ * preloaded with the stylesheet (DESIGN.md: one font).
  */
 export const THEME_FONTS = ["/fonts/archivo-var-latin.woff2"] as const;
 
 /** The tab screens' one family (data-app-page: headings, body, numbers, buttons). */
 export const APP_PAGE_FAMILY = "Archivo";
 
-/** The font families the skin's tokens name (--th-font-head, --th-font-body, --th-font-mono): Archivo, all three, since F1. */
+/** The skin's head, body and number faces: Archivo, all three (one font; the --th-* aliases were retired in S1, 27 Nov 2026). */
 export const THEME_FAMILIES = { head: APP_PAGE_FAMILY, body: APP_PAGE_FAMILY, mono: APP_PAGE_FAMILY } as const;
 
 /**

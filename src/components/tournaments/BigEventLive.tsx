@@ -84,7 +84,7 @@ export function BigEventLive({ eventId }: { eventId: string }) {
   }, [counting]);
   if (!view) return null;
   return (
-    <div className="ap-stack" data-big-event={view.kind}>
+    <div className="jz-page-stack" data-big-event={view.kind}>
       {view.underReview ? (
         <Panel pad data-big-under-review>
           <p className="tn-meta">{view.underReview}</p>
@@ -135,7 +135,7 @@ function MyMatch({ view, now }: { view: BigEventView; now: number }) {
   const startsIn = (view.roundStartsAtMs ?? 0) - now;
   const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
-    <section aria-label="Your match" className="ap-section" data-big-my-match={m.state}>
+    <section aria-label="Your match" className="jz-page-section" data-big-my-match={m.state}>
       <SectionHeader title={m.roundLabel} right={m.state === "waiting" && startsIn > 0 ? <span className="tn-meta">{`Starts in ${countdown(startsIn)}`}</span> : undefined} />
       <Panel>
         {m.bye ? (
@@ -160,7 +160,7 @@ function MyMatch({ view, now }: { view: BigEventView; now: number }) {
 function Standings({ view }: { view: BigEventView }) {
   const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
-    <section aria-label="Standings" className="ap-section" data-big-standings>
+    <section aria-label="Standings" className="jz-page-section" data-big-standings>
       <SectionHeader title="Standings" right={<span className="tn-meta">{`${view.field} players`}</span>} />
       <Panel>
         {view.standings.map((s) => (
@@ -199,9 +199,9 @@ function Bracket({ view }: { view: BigEventView }) {
   const rounds = [...new Set(view.bracket.map((m) => m.round))].sort((a, b) => a - b);
   const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   return (
-    <section aria-label="Bracket" className="ap-section" data-big-bracket>
+    <section aria-label="Bracket" className="jz-page-section" data-big-bracket>
       {rounds.map((r) => (
-        <div key={r} className="ap-section" data-bracket-round={r}>
+        <div key={r} className="jz-page-section" data-bracket-round={r}>
           <SectionHeader title={roundName(size, r)} />
           <Panel>
             {view.bracket
@@ -258,7 +258,7 @@ function HallOfFameOn() {
   const [open, openPlate, close] = useNameplateSheet<OpenPlate>();
   if (!rows.length) return null;
   return (
-    <section aria-label="Hall of fame" className="ap-section" data-hall-of-fame>
+    <section aria-label="Hall of fame" className="jz-page-section" data-hall-of-fame>
       <SectionHeader title="Hall of fame" />
       <Panel>
         {rows.map((r) => (

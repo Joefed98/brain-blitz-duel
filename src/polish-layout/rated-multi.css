@@ -39,7 +39,7 @@
   min-width: 0;
   padding: var(--jz-space-8) var(--jz-space-12);
   border: 1px solid var(--jz-line);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
 }
 .rm-seat[data-you] { border: 2px solid var(--jz-gold); }
@@ -49,7 +49,7 @@
 .rm-recorded {
   flex: none;
   padding: var(--jz-space-4) var(--jz-space-8);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface-2);
   color: var(--jz-text-2);
   white-space: nowrap;

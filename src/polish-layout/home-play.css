@@ -40,6 +40,7 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -77,6 +78,7 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -138,8 +140,8 @@
   letter-spacing: -0.01em;
 }
 .hp-banner[data-hp-banner="placement"] .hp-banner-title {
-  font-size: 22px;
-  line-height: 27px;
+  font-size: var(--jz-size-heading);
+  line-height: var(--jz-line-heading);
 }
 .hp-banner-sub {
   overflow: hidden;
@@ -224,7 +226,7 @@
    none under Reduce motion. */
 .hp-banner-play {
   flex: none;
-  font-size: 20px;
+  font-size: var(--jz-size-heading);
 }
 .hp-sheen {
   position: absolute;
@@ -330,6 +332,7 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -358,7 +361,7 @@
   align-items: center;
   gap: var(--jz-space-4);
   padding-inline: var(--jz-space-12);
-  border-radius: 22px;
+  border-radius: var(--jz-radius-sheet);
   background: var(--jz-surface-2);
   color: var(--jz-win);
   font: var(--jz-type-body);
@@ -559,6 +562,7 @@
 }
 .hp-week-title {
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
 }
 .hp-week-sub {
   color: var(--jz-text-2);

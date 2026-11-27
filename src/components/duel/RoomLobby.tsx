@@ -167,7 +167,7 @@ export function LookPicker({
   onChange: (look: Partial<PlayerLook>) => void;
 }) {
   return (
-    <Panel data-look-picker className="th-card flex flex-col gap-2 px-3 py-3 text-left">
+    <Panel data-look-picker className="jz-card flex flex-col gap-2 px-3 py-3 text-left">
       <p className="font-display text-xs font-semibold jz-em-name">Your colour</p>
       <ColourWheel selected={look.colour} taken={taken} takenBy={takenBy} onPick={(colour) => onChange({ colour })} />
       <p className="mt-1 font-display text-xs font-semibold jz-em-name">Your icon</p>
@@ -329,7 +329,7 @@ export function RoomLobby({
       <section aria-label="Players" className="flex flex-col gap-2">
         {/* "Players" with "n of 16", then the neutral meter (the charge meter with celebrations on). */}
         <div className="rs-head">
-          <h2 className="ap-section-title">Players</h2>
+          <h2 className="jz-section-title">Players</h2>
           <span className="rs-meta">
             {players.length} of {MAX_PLAYERS}
           </span>
@@ -366,7 +366,7 @@ export function RoomLobby({
                     <NameplateStrip player={plateOf(player.player_slot, player.display_name, look)} />
                   </span>
                   {sub ? (
-                    <span className="rs-sub truncate text-[12px] leading-tight" data-host-label={isHostRow && !isMe ? "" : undefined}>
+                    <span className="rs-sub truncate jz-text-caption leading-tight" data-host-label={isHostRow && !isMe ? "" : undefined}>
                       {isMe && isHostRow ? "You, host" : sub}
                     </span>
                   ) : null}
@@ -426,7 +426,7 @@ export function RoomLobby({
           })}
         </ul>
         {me && canChooseLook && !picking ? (
-          <p className="rs-sub text-[13px]" data-look-hint>
+          <p className="rs-sub jz-text-caption" data-look-hint>
             Tap your name to change your colour and icon for this room.
           </p>
         ) : null}
@@ -448,18 +448,18 @@ export function RoomLobby({
           </p>
         ) : null}
         {isHost && !canStart ? (
-          <p className="text-[13px] leading-snug text-[var(--ap-text-2)]">Send the link to friends. Start when everyone’s in.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</p>
+          <p className="jz-text-caption leading-snug jz-em-detail">Send the link to friends. Start when everyone’s in.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</p>
         ) : null}
       </section>
 
       {tournamentHistory.length > 0 && (
         <section aria-label="Previous games" className="flex flex-col gap-1">
-          <h2 className="ap-section-title text-[15px]">Previous games</h2>
+          <h2 className="jz-section-title jz-text-label">Previous games</h2>
           {tournamentHistory
             .slice(-3)
             .reverse()
             .map((entry, index) => (
-              <p key={`${entry.date}-${index}`} className="text-[13px] text-[var(--ap-text-2)]">
+              <p key={`${entry.date}-${index}`} className="jz-text-caption jz-em-detail">
                 {entry.winner} won{entry.forfeit ? " (others left)" : ""},{" "}
                 {new Date(entry.date).toLocaleDateString()}
               </p>

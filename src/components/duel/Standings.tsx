@@ -71,10 +71,10 @@ export function RoundWinnerCard({ round, extras, looks }: { round: number; extra
         <RoomMiniCard slot={first.slot} look={looks?.get(first.slot)} name={first.name} size={32} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="rs-sub">{winners.length > 1 ? `Round ${round}, level` : `Round ${round} winner`}</span>
-          <span data-names className="rs-name th-name">{winners.map((w) => w.name).join(", ")}</span>
+          <span data-names className="rs-name jz-name">{winners.map((w) => w.name).join(", ")}</span>
         </span>
         <span className="flex shrink-0 flex-col items-end">
-          <span className="rs-total text-[18px]">+{winnerScore}</span>
+          <span className="rs-total jz-text-body">+{winnerScore}</span>
           {game ? <span className="rs-sub max-w-[120px]">{puzzleName(game)}</span> : null}
         </span>
       </div>
@@ -92,7 +92,7 @@ export function NextRoundCard({ round, totalRounds, next }: { round: number; tot
           <span className="rs-sub">{round + 1 >= totalRounds ? "Final round" : `Next, round ${round + 1} of ${totalRounds}`}</span>
           <span className="rs-name">{puzzleName(next)}</span>
         </span>
-        <span className="th-pill shrink-0" data-cat={category}>{CATEGORY_NAMES[category]}</span>
+        <span className="jz-cat-pill shrink-0" data-cat={category}>{CATEGORY_NAMES[category]}</span>
       </div>
     </div>
   );
@@ -203,14 +203,14 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                     {shownGain(row)}
                   </span>
                 ) : (
-                <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
+                <span className="whitespace-nowrap jz-text-caption font-semibold tabular-nums jz-em-detail">
                   +{row.roundScore}
                 </span>
                 )}
                 <AnimatedScore
                   value={shownTotal(row)}
                   {...(shown ? { from: shown.from, delayMs: shown.delayMs, durationMs: shown.countMs, quiet: true, skip: reveal.skipped } : {})}
-                  className="th-score rs-total text-right"
+                  className="jz-score rs-total text-right"
                 />
                 {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}
               </div>

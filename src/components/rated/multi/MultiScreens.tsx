@@ -143,7 +143,7 @@ export function MultiFilling({
         <span className="rm-bar" role="progressbar" aria-valuemin={0} aria-valuemax={size} aria-valuenow={filled}>
           <span className="rm-bar-fill" style={{ width: `${(filled / size) * 100}%` }} />
         </span>
-        <span className="jz-meta rm-quiet" data-fill-clock>
+        <span className="jz-caption rm-quiet" data-fill-clock>
           {clock(elapsedMs)}
         </span>
       </div>
@@ -161,7 +161,7 @@ export function MultiFilling({
             <li key={seat.seatId} className="rm-seat" data-you={seat.you ? "" : undefined} data-seat={seat.seatId}>
               <SeatDisc seat={seat} size={40} />
               <span className="rm-seat-text">
-                <span className="jz-card-title rm-name" data-ellipsis>
+                <span className="jz-heading rm-name" data-ellipsis>
                   {seat.name}
                 </span>
                 {seat.recorded ? <RecordedTag /> : null}
@@ -172,7 +172,7 @@ export function MultiFilling({
         })}
       </ul>
       <Panel pad className="rm-howto" data-how-it-scores>
-        <h2 className="jz-card-title">How it scores</h2>
+        <h2 className="jz-heading">How it scores</h2>
         <ol className="rm-points" data-points-table={table.join(",")}>
           {table.map((points, i) => (
             <li key={i}>
@@ -235,7 +235,7 @@ export function MultiStandings({
   const bySeat = useMemo(() => new Map(seats.map((s) => [s.seatId, s])), [seats]);
   return (
     <section className="rm-screen" data-rated-multi="standings" data-size={size} data-embedded={embedded ? "" : undefined}>
-      <p className="jz-meta rm-cyan">
+      <p className="jz-caption rm-cyan">
         After game {game} of {games}
       </p>
       <h1 className="jz-title">Standings</h1>
@@ -247,10 +247,10 @@ export function MultiStandings({
       <Panel pad tone="cyan" className="rm-headline" data-game-headline>
         {headline.tile ?? null}
         <span>
-          <span className="jz-card-title rm-strong">
+          <span className="jz-heading rm-strong">
             {headline.gameName}: {headline.winnerName} wins it
           </span>
-          <span className="jz-meta rm-text-2 rm-block">
+          <span className="jz-caption rm-text-2 rm-block">
             You came {ordinal(headline.yourPlace)} · +{headline.yourPoints} points
           </span>
         </span>
@@ -294,7 +294,7 @@ export function MultiStandings({
           {next.tile ?? null}
           <span className="rm-grow">
             <span className="jz-label rm-cyan rm-block">{game + 1 === games ? "Final game" : "Next game"}</span>
-            <span className="jz-card-title rm-strong">{next.gameName}</span>
+            <span className="jz-heading rm-strong">{next.gameName}</span>
           </span>
           {next.msLeft !== undefined ? (
             <span className="jz-score-l" data-next-clock>
@@ -386,7 +386,7 @@ export function MultiFinal({
             return (
               <li key={row.seatId} className="rm-pod" data-pod-place={row.place} data-standing={row.seatId}>
                 <SeatDisc seat={seat} size={row.place === 1 ? 56 : 48} />
-                <span className="jz-meta rm-name rm-centre" data-ellipsis>
+                <span className="jz-caption rm-name rm-centre" data-ellipsis>
                   {seat.you ? "You" : seat.name}
                 </span>
                 <SeatEmblem seat={seat} />
@@ -429,7 +429,7 @@ export function MultiFinal({
             </span>
           </div>
           {yourRating.parts?.length ? (
-            <div className="rm-rating-parts jz-meta">
+            <div className="rm-rating-parts jz-caption">
               {yourRating.parts.map((p) => (
                 <span key={p.label}>
                   <span className="rm-quiet">{p.label}</span> {p.rating.toLocaleString("en-GB")} <Change change={p.change} />
@@ -457,7 +457,7 @@ export function MultiFinal({
                   {seat.you ? <span className="rm-quiet"> (you)</span> : null}
                 </span>
                 <SeatEmblem seat={seat} />
-                {seat.left ? <LeftTag /> : seat.recorded ? <RecordedTag /> : change !== undefined ? <span className="jz-meta"><Change change={change} /></span> : null}
+                {seat.left ? <LeftTag /> : seat.recorded ? <RecordedTag /> : change !== undefined ? <span className="jz-caption"><Change change={change} /></span> : null}
                 <span className="jz-score-m" data-points>
                   {row.points}
                 </span>

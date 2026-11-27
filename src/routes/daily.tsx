@@ -223,7 +223,7 @@ function DailyScreen() {
     <button
       type="button"
       onClick={() => setMode({ kind: "board" })}
-      className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
+      className="press tap-target -ml-2 flex items-center gap-1 px-2 jz-text-label font-semibold jz-em-name"
     >
       <Icon name="back" size={18} className="-m-px" /> Daily
     </button>
@@ -360,7 +360,7 @@ function DailyScreen() {
       <button
         type="button"
         onClick={back}
-        className="press tap-target -ml-2 flex items-center gap-1 px-2 text-[15px] font-semibold text-[var(--ap-link)]"
+        className="press tap-target -ml-2 flex items-center gap-1 px-2 jz-text-label font-semibold jz-em-name"
       >
         <Icon name="back" size={18} className="-m-px" /> Play
       </button>
@@ -375,7 +375,7 @@ function DailyScreen() {
       <PhoneShell skin="play">
         <div className="flex flex-1 flex-col gap-5">
           {header}
-          <h1 className="ap-title text-[28px]">Daily challenge</h1>
+          <h1 className="jz-rail-title jz-text-title">Daily challenge</h1>
           <p className="jz-panel px-4 py-6 text-center text-sm text-muted-foreground">
             The daily challenge is coming soon.
           </p>
@@ -422,7 +422,7 @@ function DailyScreen() {
             </div>
             {state.state === "play" && editingName && !accountName ? (
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="daily-name" className="th-kicker text-muted-foreground">
+                <label htmlFor="daily-name" className="jz-kicker text-muted-foreground">
                   Name on the leaderboard
                 </label>
                 <Input
@@ -440,12 +440,12 @@ function DailyScreen() {
             ) : state.state === "play" ? (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="min-w-0 truncate">
-                  Playing as <span className="th-name text-foreground">{accountName ?? name}</span>
+                  Playing as <span className="jz-name text-foreground">{accountName ?? name}</span>
                 </span>
                 {accountName ? null : <button
                   type="button"
                   onClick={() => setEditingName(true)}
-                  className="press tap-target shrink-0 px-2 text-sm font-semibold text-[var(--ap-link)]"
+                  className="press tap-target shrink-0 px-2 text-sm font-semibold jz-em-name"
                 >
                   Change name
                 </button>}

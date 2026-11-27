@@ -25,7 +25,7 @@ export function NameplateStrip({ player, label }: { player: NameplatePlayer; lab
     return (
       <span className="nameplate" data-nameplate="hidden" data-hidden-player="">
         <span className="nameplate-disc" aria-hidden="true" data-hidden-disc="" />
-        <span className="nameplate-name th-name" data-ellipsis="" data-plain-hidden="">
+        <span className="nameplate-name jz-name" data-ellipsis="" data-plain-hidden="">
           {nameplateName(player)}
         </span>
       </span>
@@ -42,7 +42,7 @@ export function NameplateStrip({ player, label }: { player: NameplatePlayer; lab
         ) : (
           <PlayerBadge look={{ colour: player.colour, icon: player.icon ?? null }} name={player.name} size={36} />
         )}
-        <span className="nameplate-name th-name" data-ellipsis="">
+        <span className="nameplate-name jz-name" data-ellipsis="">
           {name}
         </span>
       </span>

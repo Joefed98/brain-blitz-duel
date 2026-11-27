@@ -87,12 +87,12 @@ export function DailyCard({
 }) {
   if (!status?.available) return null;
   return (
-    <section aria-label="Daily challenge" data-daily-card className="ap-section">
+    <section aria-label="Daily challenge" data-daily-card className="jz-page-section">
       <SectionHeader
         title="Today"
         right={
           <>
-            <span className="ap-meta">New at midnight</span>
+            <span className="jz-meta-line">New at midnight</span>
           </>
         }
       />
@@ -118,12 +118,12 @@ export function DailyCard({
                 </span>
               </span>
               {done !== null ? (
-                <span data-daily-done className="ap-done-score">
+                <span data-daily-done className="jz-done-score">
                   <Icon name="check" size={18} tone="cyan" className="-m-px" />
                   {done}
                 </span>
               ) : (
-                <span className="ap-pill-gold">{action}</span>
+                <span className="jz-pill-gold">{action}</span>
               )}
             </button>
           );

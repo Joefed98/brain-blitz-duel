@@ -162,7 +162,7 @@ export function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number })
   const me = board?.me ?? null;
   const [openCard, openRow, closeCard] = useNameplateSheet<OpenRow>();
   return (
-    <div className="ap-stack" data-arena-live>
+    <div className="jz-page-stack" data-arena-live>
       <Panel pad>
         <div className="tn-live-head">
           <LiveTag />
@@ -204,8 +204,8 @@ export function ArenaLive({ ev, now }: { ev: TournamentEventView; now: number })
         )}
         {message ? <p className="tn-meta" role="status">{message}</p> : null}
       </Panel>
-      <section aria-label="Leaderboard" className="ap-section">
-        <SectionHeader title="Points" right={board ? <span className="ap-meta">{`${board.players} playing`}</span> : undefined} />
+      <section aria-label="Leaderboard" className="jz-page-section">
+        <SectionHeader title="Points" right={board ? <span className="jz-meta-line">{`${board.players} playing`}</span> : undefined} />
         <PlatePodium
           rows={(board?.rows ?? []).map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: `${r.points}`, valueLabel: `${r.points} points` }))}
           onOpen={openRow}
@@ -257,7 +257,7 @@ export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPla
   // The tournament result (15 Nov 2026, the effects pass): the kit's win payoff on your total, once it's in.
   useAppMoment("win", "[data-tournament-result]", done ? ev.id : null);
   return (
-    <div className="ap-stack" data-score-attack>
+    <div className="jz-page-stack" data-score-attack>
       <Panel pad>
         {board?.underReview ? (
           <p className="tn-rule" data-under-review>
@@ -280,8 +280,8 @@ export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPla
         )}
       </Panel>
       {board?.open && board.rows.length ? (
-        <section aria-label="Leaderboard" className="ap-section">
-          <SectionHeader title="Leaderboard" right={<span className="ap-meta">{`${board.count} played`}</span>} />
+        <section aria-label="Leaderboard" className="jz-page-section">
+          <SectionHeader title="Leaderboard" right={<span className="jz-meta-line">{`${board.count} played`}</span>} />
           <PlatePodium
             rows={board.rows.map((r) => ({ place: r.place, plate: r.plate, isMe: r.isMe, value: r.total.toLocaleString("en-GB"), valueLabel: r.total.toLocaleString("en-GB") }))}
             onOpen={openRow}
@@ -456,7 +456,7 @@ export function TournamentEventScreen({
 
         </div>
         <div className="tn-event-side">
-        <section aria-label="Prizes" className="ap-section">
+        <section aria-label="Prizes" className="jz-page-section">
           <SectionHeader title="Prizes" />
           <Panel>
             {ev.prizes.map((p) => (
@@ -472,7 +472,7 @@ export function TournamentEventScreen({
           <p className="tn-meta">Prizes are fixed by Joulz. Entry fees never go into a prize pot.</p>
         </section>
 
-        <section aria-label="How it works" className="ap-section">
+        <section aria-label="How it works" className="jz-page-section">
           <SectionHeader title="How it works" />
           <Panel>
             <ol className="tn-how tn-how-pad">

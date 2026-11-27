@@ -1,6 +1,6 @@
 /*
  * Joulz design utilities (DESIGN.md sections 3 and 4; design foundation F1, 6 Nov 2026).
- * Built only on tokens.css. Nothing uses them yet: the component PRs adopt them screen by screen.
+ * Built only on tokens.css.
  */
 
 /* ------------------------------------------------ the angled cuts (section 4) */
@@ -34,46 +34,59 @@
 }
 
 /* ------------------------------------------------ type roles (section 3) */
-.jz-wordmark,
-.jz-display,
-.jz-title,
-.jz-screen-title,
-.jz-section,
-.jz-card-title,
-.jz-body,
-.jz-meta,
-.jz-label,
-.jz-tab-label,
+/* The one scale: the six roles of tokens.css, plus the score and countdown faces on the same sizes (S1, 27 Nov 2026).
+   Titles, scores and countdowns are wide (Archivo's width axis); reading text is normal width. */
+.jz-display { font: var(--jz-type-display); font-stretch: var(--jz-width-title); }
+.jz-title { font: var(--jz-type-title); font-stretch: var(--jz-width-title); }
+.jz-heading { font: var(--jz-type-heading); font-stretch: var(--jz-width-title); }
+.jz-body { font: var(--jz-type-body); font-stretch: var(--jz-width-body); }
+.jz-label { font: var(--jz-type-label); font-stretch: var(--jz-width-body); }
+.jz-caption { font: var(--jz-type-caption); font-stretch: var(--jz-width-body); }
+.jz-wordmark {
+  font: var(--jz-weight-black) var(--jz-size-heading) / var(--jz-size-heading) var(--jz-font);
+  font-stretch: var(--jz-width-wordmark);
+  text-transform: uppercase;
+}
+/* Scores: heavy, wide and tabular, on the heading, title and display sizes. */
 .jz-score-s,
 .jz-score-m,
 .jz-score-l {
   font-family: var(--jz-font);
-}
-.jz-wordmark { font-size: 22px; line-height: 22px; font-weight: var(--jz-weight-black); font-stretch: 118%; text-transform: uppercase; }
-.jz-display { font-size: 40px; line-height: 40px; font-weight: var(--jz-weight-bold); font-stretch: 115%; }
-.jz-title { font-size: 30px; line-height: 32px; font-weight: var(--jz-weight-bold); font-stretch: 112%; }
-.jz-screen-title { font-size: 22px; line-height: 24px; font-weight: var(--jz-weight-bold); font-stretch: 108%; }
-.jz-section { font-size: 18px; line-height: 22px; font-weight: var(--jz-weight-bold); font-stretch: 110%; }
-.jz-card-title { font-size: 16px; line-height: 20px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
-.jz-body { font-size: 15px; line-height: 21px; font-weight: var(--jz-weight-regular); font-stretch: 100%; }
-.jz-meta { font-size: 14px; line-height: 18px; font-weight: var(--jz-weight-regular); font-stretch: 100%; }
-.jz-label { font-size: 12px; line-height: 16px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
-.jz-tab-label { font-size: 11px; line-height: 12px; font-weight: var(--jz-weight-medium); font-stretch: 100%; }
-.jz-score-s,
-.jz-score-m,
-.jz-score-l {
   font-weight: var(--jz-weight-bold);
-  font-stretch: 105%;
+  font-stretch: var(--jz-width-score);
   font-variant-numeric: tabular-nums;
 }
-.jz-score-s { font-size: 18px; line-height: 22px; }
-.jz-score-m { font-size: 22px; line-height: 26px; }
-.jz-score-l { font-size: 28px; line-height: 32px; }
+.jz-score-s { font-size: var(--jz-size-heading); line-height: var(--jz-line-heading); }
+.jz-score-m { font-size: var(--jz-size-title); line-height: var(--jz-line-title); }
+.jz-score-l { font-size: var(--jz-size-display); line-height: var(--jz-line-display); }
+/* A count that runs down (the 3-2-1, a next-game clock): the widest face. Its size is the caller's. */
+.jz-countdown {
+  font-family: var(--jz-font);
+  font-weight: var(--jz-weight-black);
+  font-stretch: var(--jz-width-countdown);
+  font-variant-numeric: tabular-nums;
+}
 
-/* Text emphasis (DESIGN.md section 3): one bright thing per panel. */
-.jz-em-key { color: var(--jz-text); }
-.jz-em-name { color: var(--jz-text-2); }
-.jz-em-detail { color: var(--jz-text-3); }
+/* Size only (a role's size and line, the element's own weight): for markup that sets weight apart. In the utilities
+   layer and through --tw-leading, as Tailwind's own text sizes, so a leading-* class on the same element still wins. */
+@layer utilities {
+  .jz-text-display { font-size: var(--jz-size-display); line-height: var(--tw-leading, var(--jz-line-display)); }
+  .jz-text-title { font-size: var(--jz-size-title); line-height: var(--tw-leading, var(--jz-line-title)); }
+  .jz-text-heading { font-size: var(--jz-size-heading); line-height: var(--tw-leading, var(--jz-line-heading)); }
+  .jz-text-body { font-size: var(--jz-size-body); line-height: var(--tw-leading, var(--jz-line-body)); }
+  .jz-text-label { font-size: var(--jz-size-label); line-height: var(--tw-leading, var(--jz-line-label)); }
+  .jz-text-caption { font-size: var(--jz-size-caption); line-height: var(--tw-leading, var(--jz-line-caption)); }
+}
+
+/* Text emphasis (DESIGN.md section 3): one bright thing per panel. In the utilities layer, as Tailwind's colours. */
+@layer utilities {
+  .jz-em-key { color: var(--jz-text); }
+  .jz-em-name { color: var(--jz-text-2); }
+  .jz-em-detail { color: var(--jz-text-3); }
+  /* A surface fill and a ring in the page colour (round a mini card), for markup built on Tailwind. */
+  .jz-fill-surface { background-color: var(--jz-surface); }
+  .jz-ring-bg { --tw-ring-color: var(--jz-bg); }
+}
 
 /* ------------------------------------------------ the pressed state (section 5; design foundation F4) */
 /* Every button in app and game chrome sinks to 97 % over --jz-fast while pressed (DESIGN.md section 5).
@@ -94,17 +107,28 @@
     scale: 0.97;
   }
 
-  /* Every other button, link-button and role="button" in the chrome: the app's skinned screens and tab
-     pages, the tab bar and rail, the game frame's header, intros, the answer reveal, the help, settings,
-     chat and sound sheets, dialogs and the update overlay. Never inside game art (a reveal's board,
-     data-skin-off; a play area, data-game-arena / data-game-stage) and never twice (.press, .jz-press).
-     An animation rather than a transition, so it never replaces a control's own transitions; the
-     release snaps back. Reduced motion jumps to the pressed size (styles.css). */
+  /* Every other tappable thing in the chrome (S1, 27 Nov 2026: buttons, links, and the tab, switch, radio, checkbox,
+     option and menu item roles, and summaries): everywhere outside a game screen, and inside one only in its chrome (the
+     frame's header, the intro, the answer reveal, the help, settings, chat and sound sheets, dialogs). Never inside game
+     art (a reveal's board, data-skin-off; a play area, data-game-arena / data-game-stage) and never twice (.press,
+     .jz-press). An animation rather than a transition, so it never replaces a control's own transitions; the release
+     snaps back. Reduced motion jumps to the pressed size (styles.css). src/lib/pressFeel.ts adds the light haptic to the
+     same targets (JZ_TAPPABLE). */
   :where(
-      [data-skin],
-      [data-app-page],
-      [data-app-tabbar],
-      [data-app-rail],
+      button,
+      [role="button"],
+      [role="tab"],
+      [role="switch"],
+      [role="radio"],
+      [role="checkbox"],
+      [role="option"],
+      [role="menuitem"],
+      a[href],
+      summary
+    ):not(:disabled, [aria-disabled="true"], .press, .jz-press):not(
+      :is(.game-screen, [data-skin-off], [data-game-arena], [data-game-stage]) *
+    ):active,
+  :where(
       [data-game-frame-header],
       [data-intro-header],
       .round-instructions,
@@ -116,7 +140,18 @@
       [role="dialog"],
       [data-app-updating]
     )
-    :where(button, [role="button"], a[href]):not(:disabled, [aria-disabled="true"], .press, .jz-press):not(
+    :where(
+      button,
+      [role="button"],
+      [role="tab"],
+      [role="switch"],
+      [role="radio"],
+      [role="checkbox"],
+      [role="option"],
+      [role="menuitem"],
+      a[href],
+      summary
+    ):not(:disabled, [aria-disabled="true"], .press, .jz-press):not(
       :is([data-skin-off], [data-game-arena], [data-game-stage]) *
     ):active {
     animation: jz-press var(--jz-fast) var(--jz-ease) forwards;
@@ -126,4 +161,55 @@
   to {
     scale: 0.97;
   }
+}
+
+/* ------------------------------------------------ Tailwind's text sizes on the scale (S1, 27 Nov 2026) */
+/* Inside app chrome, text-xs … text-4xl land on the six roles (nearest role, ties to the smaller), so a screen built on
+   Tailwind sizes follows the one scale without new markup. Game art inside a page keeps Tailwind's own sizes. */
+:where(
+    [data-skin],
+    [data-app-page],
+    [data-app-tabbar],
+    [data-app-rail],
+    [data-help-sheet],
+    [data-settings-sheet],
+    [data-room-chat-sheet],
+    [data-sound-panel],
+    [role="dialog"],
+    [data-app-updating]
+  ) {
+  --text-xs: var(--jz-size-caption);
+  --text-xs--line-height: var(--jz-line-caption);
+  --text-sm: var(--jz-size-caption);
+  --text-sm--line-height: var(--jz-line-caption);
+  --text-base: var(--jz-size-label);
+  --text-base--line-height: var(--jz-line-label);
+  --text-lg: var(--jz-size-body);
+  --text-lg--line-height: var(--jz-line-body);
+  --text-xl: var(--jz-size-heading);
+  --text-xl--line-height: var(--jz-line-heading);
+  --text-2xl: var(--jz-size-title);
+  --text-2xl--line-height: var(--jz-line-title);
+  --text-3xl: var(--jz-size-display);
+  --text-3xl--line-height: var(--jz-line-display);
+  --text-4xl: var(--jz-size-display);
+  --text-4xl--line-height: var(--jz-line-display);
+}
+:where([data-skin-off], [data-game-arena], [data-game-stage]) {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 1.25rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: calc(2.5 / 2.25);
 }

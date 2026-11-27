@@ -14,7 +14,7 @@ export function ProfileBoards({
 }) {
   const account = useAccount();
   return (
-    <section aria-label="Leaderboards" data-profile-boards className="ap-section">
+    <section aria-label="Leaderboards" data-profile-boards className="jz-page-section">
       <SectionHeader title="Leaderboards" />
       <Panel>
         <Row

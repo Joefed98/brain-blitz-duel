@@ -324,6 +324,7 @@
 }
 .gm-hero-name {
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
 }
 .gm-hero-goal {
   display: -webkit-box;
@@ -552,7 +553,7 @@
 .gm-page-level[data-level-option="hard"][aria-checked="true"] { border-color: var(--jz-level-hard); }
 .gm-page-level[data-level-option="expert"][aria-checked="true"] { border-color: var(--jz-level-expert); }
 .gm-page-level .jz-level-name {
-  font-size: 14px;
+  font-size: var(--jz-size-caption);
 }
 .gm-page-level-best {
   display: inline-flex;
@@ -631,6 +632,7 @@
 .gm-section-title {
   color: var(--jz-text);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
 }
 .gm-section-meta {
   color: var(--jz-text-2);
@@ -752,6 +754,7 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -779,6 +782,7 @@
 .gm-ch-summary-count {
   color: var(--jz-text);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
   font-variant-numeric: tabular-nums;
 }
 .gm-ch-summary-bar > span {
@@ -831,14 +835,14 @@
 }
 .round-instructions-short .intro-goal-short {
   margin-top: var(--jz-space-4);
-  font-size: 22px;
-  line-height: 28px;
+  font-size: var(--jz-size-heading);
+  line-height: var(--jz-line-heading);
   font-weight: var(--jz-weight-bold);
 }
 .round-instructions.round-instructions-short > .intro-how > .intro-how-short {
   color: var(--jz-text-2);
   font: var(--jz-type-label);
-  font-size: 16px;
+  font-size: var(--jz-size-label);
 }
 .round-instructions.round-instructions-short > .intro-score > .intro-score-short {
   color: var(--jz-text-3);
@@ -884,6 +888,7 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-heading);
+  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
 }

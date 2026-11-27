@@ -1,7 +1,7 @@
 /**
  * The one wordmark (design foundation F4, 6 Nov 2026): APP_NAME uppercased in Archivo 900 at 118 %
  * width, every letter white, then the gold bolt (LogoMark, --jz-gold). The app header draws it in CSS
- * (AppWordmark, polish-layout/app-pages.css .ap-wordmark); the share card draws it on a canvas, which
+ * (AppWordmark, polish-layout/app-pages.css .jz-wordmark-row); the share card draws it on a canvas, which
  * can't set a width axis, so it uses WORDMARK_FAMILY, a face of the app's own Archivo file pinned to
  * that weight and width (a variable font is drawn at the face's single width, clamped to it).
  * scripts/og-image.ts draws it with the same numbers. Both shapes come from logoGeometry.ts.

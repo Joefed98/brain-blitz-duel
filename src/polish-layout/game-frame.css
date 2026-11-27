@@ -44,12 +44,11 @@
 .game-frame-name {
   display: block;
   overflow: hidden;
-  /* Set here, not inherited: the intro draws the name as an h1, which the base layer gave the display face (it
-     rendered in Space Grotesk on the intro and Archivo in the live header until F3). */
+  /* Set here, not inherited: the intro draws the name as an h1, which the base layer gave the display face . */
   font-family: var(--jz-font);
   font-size: clamp(14px, calc(100cqw / (var(--name-len, 12) * 0.63)), 19px);
   font-weight: var(--jz-weight-bold);
-  font-stretch: 110%;
+  font-stretch: var(--jz-width-title);
   line-height: 22px;
   letter-spacing: -0.01em;
   color: var(--jz-text);
@@ -185,7 +184,7 @@
   font-family: var(--jz-font);
   font-size: 22px;
   font-weight: var(--jz-weight-bold);
-  font-stretch: 105%;
+  font-stretch: var(--jz-width-score);
   font-variant-numeric: tabular-nums;
   line-height: 24px;
   color: var(--jz-text);
@@ -211,7 +210,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: transparent;
   box-shadow: none;
   padding: 0;

@@ -131,11 +131,11 @@ export function FinalResult({
       {/* With the cards above (rooms), the side names its total; elsewhere it keeps the colour and initial. */}
       {opponentSlot === undefined ? <PlayerBadge look={look} name={name} size={30} className="mb-1" /> : null}
       <p className="flex min-w-0 max-w-full items-baseline justify-center gap-1 text-sm">
-        <span className="th-name truncate font-semibold">{name}</span>
+        <span className="jz-name truncate font-semibold">{name}</span>
         {you ? <span className="rs-you shrink-0">(you)</span> : null}
       </p>
       {/* Each player's total underlined in their own colour. */}
-      <p style={hold(total)} className="th-score mt-0.5 text-[40px] leading-none tabular-nums text-foreground">
+      <p style={hold(total)} className="jz-score mt-0.5 text-[40px] leading-none tabular-nums text-foreground" /* design-lint-ignore: a moment numeral above the scale (S1) */>
         <AnimatedScore value={total} {...countUp(total, from)} />
       </p>
       <span aria-hidden="true" className="mt-2 block h-[3px] w-14 rounded-full" style={{ background: colour }} />
@@ -195,12 +195,12 @@ export function FinalResult({
               style={{ animationDelay: `${240 + i * 110}ms` }}
             >
               {hasGameIcon(type) ? <GameIcon type={type as PuzzleType} size={34} /> : <span className="h-[34px] w-[34px]" />}
-              <span className="rs-name min-w-0 flex-1 text-[14px]">{puzzleName(type)}</span>
+              <span className="rs-name min-w-0 flex-1 jz-text-caption">{puzzleName(type)}</span>
               {/* The winning score bright, the losing one grey. */}
-              <span className="th-score shrink-0 whitespace-nowrap text-[17px] tabular-nums">
-                <span className={row.mine >= row.theirs ? "text-foreground" : "text-[var(--ap-faint)]"}>{row.mine}</span>
-                <span className="mx-2 text-[var(--ap-faint)]">–</span>
-                <span className={row.theirs >= row.mine ? "text-foreground" : "text-[var(--ap-faint)]"}>{row.theirs}</span>
+              <span className="jz-score shrink-0 whitespace-nowrap jz-text-body tabular-nums">
+                <span className={row.mine >= row.theirs ? "text-foreground" : "jz-em-detail"}>{row.mine}</span>
+                <span className="mx-2 jz-em-detail">–</span>
+                <span className={row.theirs >= row.mine ? "text-foreground" : "jz-em-detail"}>{row.theirs}</span>
               </span>
             </li>
           );
@@ -249,4 +249,4 @@ export function FinalResult({
 }
 
 /** A player's own colour; neutral without one. */
-const colourOf = (look: PlayerLook | undefined) => (look ? PLAYER_COLOURS[look.colour]?.hex : undefined) ?? "var(--ap-text-2)";
+const colourOf = (look: PlayerLook | undefined) => (look ? PLAYER_COLOURS[look.colour]?.hex : undefined) ?? "var(--jz-text-3)";

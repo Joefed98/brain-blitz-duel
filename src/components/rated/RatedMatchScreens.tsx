@@ -90,7 +90,7 @@ export function Searching({
         <RatedCard player={me} label="Your card" />
       </div>
       <div className="rt-search-text" role="status" aria-live="polite">
-        <h1 className="jz-screen-title rt-search-title">Finding an opponent</h1>
+        <h1 className="jz-title rt-search-title">Finding an opponent</h1>
         <p className="rt-search-sub">
           {pickText}
           {me.rank ? `, near your ${ratingText(me.rank.rating)}` : ""}

@@ -38,7 +38,7 @@ export function Nameplate({
     <span data-jz="nameplate" data-kind={kind} className={`jz-plate${className ? ` ${className}` : ""}`}>
       <PlayerBadge look={look} name={name} size={disc ?? DISC[kind]} />
       <span className="flex min-w-0 items-baseline gap-1">
-        <span data-ellipsis className="jz-plate-name rs-name th-name">
+        <span data-ellipsis className="jz-plate-name rs-name jz-name">
           {name}
         </span>
         {you ? <span className="rs-you jz-plate-you shrink-0">(you)</span> : null}

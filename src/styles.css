@@ -848,8 +848,7 @@
   --ball-orange: #FF8A3D;
   --ball-brown: #8B5A2B;
   --ball-yellow: #FFE600;
-  /* One font, Archivo (DESIGN.md section 3; design foundation F3, 6 Nov 2026). Space Grotesk, Inter and
-     JetBrains Mono are gone; the mono role keeps even-width digits through tabular-nums (below). Press Start 2P
+  /* One font, Archivo (DESIGN.md section 3; design foundation F3, 6 Nov 2026). No other face in app or game chrome; the mono role keeps even-width digits through tabular-nums (below). Press Start 2P
      stays, inside Retro game art only. */
   --font-display: var(--jz-font);
   --font-body: var(--jz-font);

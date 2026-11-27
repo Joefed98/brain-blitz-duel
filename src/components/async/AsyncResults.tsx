@@ -122,12 +122,12 @@ export function AsyncResults({
     <PhoneShell skin="play">
       <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in" {...enter}>
         <header className="flex flex-col items-center gap-1 text-center">
-          <p className="th-kicker">{title}, results</p>
-          <p className="th-score text-6xl tabular-nums text-foreground">
+          <p className="jz-kicker">{title}, results</p>
+          <p className="jz-score text-6xl tabular-nums text-foreground">
             <FxCountUp value={view.total} />
           </p>
           <p
-            className="whitespace-nowrap text-[15px] font-semibold text-foreground"
+            className="whitespace-nowrap jz-text-label font-semibold text-foreground"
             data-async-place
           >
             {placeLine ?? " "}
@@ -183,7 +183,7 @@ export function AsyncResults({
                     <span
                       data-ellipsis
                       data-row-line
-                      className="block truncate text-[12.5px] leading-tight text-muted-foreground"
+                      className="block truncate jz-text-caption leading-tight text-muted-foreground"
                     >
                       {reveal === undefined ? (
                         "…"
@@ -202,7 +202,7 @@ export function AsyncResults({
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className="th-score rs-total w-12 text-right"
+                      className="jz-score rs-total w-12 text-right"
                     >
                       {score}
                     </span>
@@ -214,7 +214,7 @@ export function AsyncResults({
                     {reveal ? (
                       <>
                         {reveal.detail.length > 0 ? (
-                          <p className="text-[12.5px] text-muted-foreground">
+                          <p className="jz-text-caption text-muted-foreground">
                             {reveal.detail.join(", ")}
                           </p>
                         ) : null}

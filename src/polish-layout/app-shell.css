@@ -89,7 +89,7 @@ html:has([data-tab-screen]) {
 
 /* The Play tab's late cards (PlaySlot, src/lib/playCards.ts, 22 Oct 2026): in the markup from the first
    frame, hidden unless the boot script reserved them (<html data-play-cards>), collapsing smoothly
-   (height, then the 22 px gap above, .ap-stack) when the server says they shouldn't show. */
+   (height, then the 22 px gap above, .jz-page-stack) when the server says they shouldn't show. */
 .play-slot {
   display: grid;
   grid-template-rows: 1fr;

@@ -290,7 +290,7 @@ function CustomiseScreen() {
                     ))}
                     {allAvatars ? null : (
                       <button type="button" onClick={() => setAllAvatars(true)} className="cz-avatar press" data-avatars-all>
-                        <span className="ap-best">+{AVATARS.length - FIRST_AVATARS}</span>
+                        <span className="jz-best">+{AVATARS.length - FIRST_AVATARS}</span>
                         <span>All {AVATARS.length}</span>
                       </button>
                     )}

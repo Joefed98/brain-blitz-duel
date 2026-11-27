@@ -133,10 +133,10 @@ export function SafetyNotices() {
       aria-label={current.kind === "rename" ? "Pick a new name" : current.kind === "banned" ? "Rooms and chat are off" : "A note from Joulz"}
       data-skin="room"
       data-safety-notice={current.kind}
-      className="th-scrim fixed inset-0 flex items-center justify-center bg-background/90 p-6"
+      className="jz-scrim fixed inset-0 flex items-center justify-center bg-background/90 p-6"
       style={{ zIndex: 70 }}
     >
-      <div className="th-sheet w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 text-center">{body}</div>
+      <div className="jz-dialog w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 text-center">{body}</div>
     </div>
   );
 }
