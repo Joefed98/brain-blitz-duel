@@ -46,6 +46,7 @@ import { ballTrackSounds } from "@/lib/fx/gameSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Practice fallback course (the first bank course). */
 const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
@@ -68,6 +69,7 @@ function view(width: number, height: number, BT_H: number) {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: BallTrackPuzzleData | null = puzzle.type === "balltrack" ? puzzle : null;
   const course = data?.course ?? PRACTICE_COURSE;
   const seed = data?.seed ?? 1;
@@ -197,7 +199,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-          btArtDraw(ctx, course, s, game.rotatable);
+          hudDraw(() => btArtDraw(ctx, course, s, game.rotatable));
         }
       }
       if (!submitted.current && time - draftAt >= 500) {

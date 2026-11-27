@@ -244,7 +244,7 @@ scene) is dropped for now: it needs `blockfallScene` and the world's own drawing
 **Puzzles in two columns** (B3) waits: a right controls column inside today's puzzle column (at most 960 px; 765 px at
 900 px tall, pinned by desktop-geometry-check) would make every board smaller, so puzzles keep one column on computers.
 
-### The canvas HUD in the panel (`ARENA_HUD_IN_PANEL`, off; for A3)
+### The canvas HUD in the panel (`ARENA_HUD_IN_PANEL`, on since 27 Nov 2026)
 
 The HUD painters already skip drawing when `hudInWorld()` is false (`src/lib/arcade/hudPlacement.ts`), but nothing
 carries their values to the panel, so the flag stays off (Joe, 21 Nov 2026) until this channel is in:
@@ -263,6 +263,18 @@ carries their values to the panel, so the flag stays off (Joe, 21 Nov 2026) unti
    `liveScore.ts` (at most 4 times a second, only when the list changed).
 4. `ArenaGamePanel`'s "This run" card (P4's) lists the store's items (label left, value right; `main` items as the big
    line), then the flag goes on in a small follow-up PR.
+
+Done (27 Nov 2026, P4): A3's channel (items 1–3) is in; the panel lists the store's items (`HudRows` in
+`ArenaGamePanel.tsx`: the Cabinet's "This run" card, and the single panel's status block, in a room too; the run's
+main count first and larger, a Retro readout on its own line, gold values in gold), only while the flag is on, so each
+value shows once. Eleven active arcade stages run their own frame loop rather than ArcadeCanvasStage's (Breaker, Tempo,
+Hover, Rally, Meteor, Pinball, Spacewalk, High Rise, Coral Pop, Gemstone, Ball Tracker); each wraps its world's draw in
+`useArenaHudDraw()` (`src/lib/gameFrame/arenaHud.ts`), which does what ArcadeCanvasStage does round its draw: the
+painters skip the world on the arena only, and the values go to the store. Phones, tablets upright, intro demos,
+reveals, replays and every check's render draw exactly as before (the flag is read only inside a live stage's draw on
+the arena). Left in the world for the desktop brief after F1 (Joe, 27 Nov 2026): Ball Tracker's strip above its
+board (`BtHud`, drawn outside the frame loop), Blockzone's speed gauge and Gemstone's colour-goal sizes under the board
+(each drawn by the game's own code, not the shared painters).
 
 Games whose HUD is drawn some other way and would keep it in the world: Rainbow Bridge, Curl Champ, Top Bins, Home Run,
 Crazy Golf, Cue Ball (its upright strip), Apex; Tenfall, Bonk and Pull! have DOM HUDs, already mirrored in "This run".
