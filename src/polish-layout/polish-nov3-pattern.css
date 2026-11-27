@@ -25,8 +25,11 @@
    in its render (90 % of a square), so the live-round repaint and size overrides are gone. */
 
 /* ---------------------------------------------------------------- Pipeline (pipes) */
-/* The Pattern overhaul (15 Nov 2026): Pipeline's look is the Blender sprites (polish-pattern/pipes.css); no glow on the
-   connected network. */
+/* The connected network glows (the old look, Joe's pick of 20 Nov 2026, earlier E1.4 and E0.2); the brighter steel,
+   channel and ripples are in pipes.css. */
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--jz-cyan) 90%, transparent));
+}
 
 /* ---------------------------------------------------------------- Turntable (rings): the link legend diagram */
 .rings-legend {

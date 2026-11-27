@@ -95,7 +95,9 @@ export function Board({
         gridTemplateColumns: fluid ? `1.15fr repeat(${W}, minmax(0, 1fr))` : reveal ? `auto repeat(${W}, minmax(0, 1fr))` : `auto repeat(${W}, ${cell}px)`,
         gridTemplateRows: fluid ? `auto repeat(${H}, minmax(0, 1fr))` : reveal ? `auto repeat(${H}, auto)` : `auto repeat(${H}, ${cell}px)`,
         ...(W !== H ? ({ "--nono-w": W, "--nono-h": H } as CSSProperties) : {}),
-        ...(reveal ? { fontSize: 12 } : {}),
+        // The polish plan's G5 (A2, 21 Nov 2026): one board at a time on the reveal stage (the shared switch), so its clues
+        // grow with the stage's width (12 px was sized for two boards side by side).
+        ...(reveal ? { fontSize: "clamp(12px, 4cqw, 16px)" } : {}),
       }}
     >
       <span />

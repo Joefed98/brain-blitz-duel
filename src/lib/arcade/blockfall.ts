@@ -18,7 +18,7 @@
  * three, 12 for four); a low stack at the buzzer up to 20 (full with the highest block in the bottom 4 rows, 0 from
  * row 10 up, a straight line between). Any run that played scores at least 1; no input scores 0.
  */
-import { retroLevelSettings, withRetroLevel, type BlockfallLv } from "./retroLevels";
+import { BLOCKFALL_LEVELS, BLOCKFALL_LEVELS_V3, withRetroLevel, type BlockfallLv } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import { clampInt, inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
@@ -412,8 +412,22 @@ export const blockfallGame: ArcadeGame<BfState, ArcadeInputEvent | null> = {
 
 export function blockfallGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
   // Stage 3 of the Retro overhaul: Blockzone at a level (retroLevels.ts: gravity, lock delay, previews, the core's full).
-  return (rev ?? 1) >= BLOCKFALL_REV_ZONE ? withRetroLevel(blockzoneGame, retroLevelSettings("blockfall", level)) : blockfallGame;
+  // D5's ladder (23 Nov 2026): blockfallRev 3, Blockzone's play on its level deals' own table (BLOCKFALL_LEVELS_V3);
+  // blockfallRev 2 keeps its table (BLOCKFALL_LEVELS), so its stored level rounds replay as before.
+  if ((rev ?? 1) < BLOCKFALL_REV_ZONE) return blockfallGame;
+  const off = level && level !== "normal" ? level : null;
+  if (!off) return blockzoneGame;
+  return withRetroLevel(blockzoneGame, (rev ?? 1) >= BLOCKFALL_REV_LEVELS ? BLOCKFALL_LEVELS_V3[off] : BLOCKFALL_LEVELS[off]);
 }
+
+/**
+ * blockfallRev 3 (D5's ladder, 23 Nov 2026; docs/arcade-standard/blockfall.md "Levels (D5, 23 Nov 2026)"): Blockzone's
+ * play exactly, on its level deals only (Normal stays blockfallRev 2), with the levels' own table: the pieces fall at 150
+ * %, 25 % and 15 % of Normal's time a row on Easy, Hard and Expert (a row every 72 / 12 / 7 ticks quickening to 36 / 6 /
+ * 4), lock delays of 45 / 15 / 12 ticks, 5 / 2 / 1 previews and lines full at 15 / 51 / 51. A level's state carries its
+ * row (`lv`) as before; each level deals a seed from its own proved list (blockfallLevelDeals.server.ts).
+ */
+export const BLOCKFALL_REV_LEVELS = 3;
 
 /* ======================= blockfallRev 2: Blockzone (3 Nov 2026) ======================= */
 /*
@@ -524,6 +538,13 @@ function stepZone(state: BfState, input: ArcadeInputEvent | null): BfState {
   return s;
 }
 
+/** Blockzone's low-stack points for a height: full at BF_LOW_FULL rows, 0 from BF_LOW_ZERO (a blockfallRev 3 level's own rows where its row sets them). */
+export function bfZoneLowPoints(state: { lv?: BlockfallLv | undefined }, height: number): number {
+  const full = state.lv?.lowFull ?? BF_LOW_FULL;
+  const zero = state.lv?.lowZero ?? BF_LOW_ZERO;
+  return stdLine(BF_ZONE_LOW_MAX, zero - height, zero - full);
+}
+
 function zoneStdParts(state: BfState): StdPart[] {
   const multi = bfMultiPoints(state);
   const clears = state.doubles + state.triples + state.quads;
@@ -532,7 +553,7 @@ function zoneStdParts(state: BfState): StdPart[] {
     stdPart(BF_ZONE_STD_SPEC, "core", stdLine(BF_ZONE_CORE_MAX, state.lines, state.lv?.fullAt ?? BF_ZONE_CORE_FULL), `${state.lines} lines`),
     stdPart(BF_ZONE_STD_SPEC, "pieces", stdEach(state.pieces, 1, BF_ZONE_PIECES_MAX), `${state.pieces} pieces`),
     stdPart(BF_ZONE_STD_SPEC, "multi", stdEach(multi, 1, BF_ZONE_MULTI_MAX), `${clears} multi-line clear${clears === 1 ? "" : "s"}`),
-    stdPart(BF_ZONE_STD_SPEC, "low", stdLine(BF_ZONE_LOW_MAX, BF_LOW_ZERO - height, BF_LOW_ZERO - BF_LOW_FULL), state.ended === 2 ? "topped out" : `stack ${height} high`),
+    stdPart(BF_ZONE_STD_SPEC, "low", bfZoneLowPoints(state, height), state.ended === 2 ? "topped out" : `stack ${height} high`),
   ];
 }
 

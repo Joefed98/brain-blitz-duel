@@ -13,7 +13,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG, BURST_REV_SMALL,
   BURST_V9_GOLDEN_LIFE,
   burstV9ClearNow,
   burstV10ClearNow,
@@ -450,7 +450,10 @@ const burstArtGameV11: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...bu
 const burstArtGameV12: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_WIDE), draw };
 /** burstRev 13: burstRev 12 with bigger atoms (drawn from the state, burstRadius). */
 const burstArtGameV13: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BIG), draw };
+/** burstRev 14 (D5): burstRev 13 with the middle atoms (drawn from the state, burstRadius, as burstRev 13). */
+const burstArtGameV14: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_SMALL), draw };
 export function burstArtGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_SMALL) return level && level !== "normal" ? { ...burstGameFor(BURST_REV_SMALL, level), draw } : burstArtGameV14;
   // Stage 3 of the Retro overhaul: a level's burstRev 13 (its own init), drawn as Normal's.
   if (rev === BURST_REV_BIG && level && level !== "normal") return { ...burstGameFor(BURST_REV_BIG, level), draw };
   if (rev === BURST_REV_BIG) return burstArtGameV13;

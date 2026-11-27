@@ -457,7 +457,7 @@ challenges never count. How the checks read a run:
 | Drone strike | Down all three drones. | Classic | Full set | line “Drones” = 30 of 30 |  | `bastion.drones` |
 | Hold the wall | Keep the base untouched. | Classic | Clean | line “Base intact” = 10 of 10 |  | `bastion.base` |
 | Quick hands | Make ten fast reloads. | Classic | Max-out | line “Fast reloads” = 20 of 20 |  | `bastion.quick-hands` |
-| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | line “Weak spots” = 30 of 30 | ● | `bastion.weak-at-the-knees` |
+| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | `weak` ≥ 30 | ● | `bastion.weak-at-the-knees` |
 
 #### Roofbound (`flip`)
 
@@ -479,18 +479,18 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Scroll keeper | Grab all three scrolls. | Classic | Full set | line “Scrolls” = 15 of 15 |  | `ricochet.scroll-keeper` |
-| Lantern lift | Ride all six sky lanterns. | Classic | Full set | line “Lantern rides” = 30 of 30 |  | `ricochet.lantern-lift` |
-| Moonwalker | Climb 245 m on Hard. | Hard | Max-out | line “Height” = 125 of 125 |  | `ricochet.moonwalker` |
+| Scroll keeper | Grab all three scrolls. | Classic | Full set | `scrolls` ≥ 3 |  | `ricochet.scroll-keeper` |
+| Lantern lift | Ride all six sky lanterns. | Classic | Full set | `rides` ≥ 6 |  | `ricochet.lantern-lift` |
+| Moonwalker | Climb 245 m on Hard. | Hard | Max-out | `metres` ≥ 245 |  | `ricochet.moonwalker` |
 
 #### High Rise (`skyline`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Gold top | Land all five gold blocks perfectly. | Classic | Full set | line “Gold blocks” = 20 of 20 |  | `skyline.gold` |
+| Gold top | Land all five gold blocks perfectly. | Classic | Full set | `golds` ≥ 5 |  | `skyline.gold` |
 | Thirty perfect | Make 30 perfect drops. | Classic | Target | `perfects` ≥ 30 |  | `skyline.perfects` |
-| Steady crane | Make ten perfect drops in a row. | Classic | Streak | line “Perfect streak” = 10 of 10 |  | `skyline.steady-crane` |
-| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | line “Floors” = 140 of 140 | ● | `skyline.skyscraper` |
+| Steady crane | Make ten perfect drops in a row. | Classic | Streak | `bestStreak` ≥ 10 |  | `skyline.steady-crane` |
+| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | `blocks` ≥ 61 | ● | `skyline.skyscraper` |
 
 #### Slice (`slice`)
 
@@ -505,16 +505,16 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Sun seeker | Reach the sun. | Classic | Finish | `finished` = 1 |  | `orbit.sun-seeker` |
-| Slingshot | Pull all four slingshots. | Classic | Full set | line “Slingshots” = 12 of 12 |  | `orbit.slingshot` |
-| Stargazer | Collect all the stardust on Hard. | Hard | Full set | line “Stardust” = 15 of 15 |  | `orbit.stargazer` |
+| Slingshot | Pull all four slingshots. | Classic | Full set | `slings` ≥ `slingsTotal`, `slingsTotal` ≥ 4 |  | `orbit.slingshot` |
+| Stargazer | Collect all the stardust on Hard. | Hard | Full set | `dust` ≥ `dustTotal`, `dustTotal` ≥ 1 |  | `orbit.stargazer` |
 
 #### Tempo (`beat`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Fever pitch | Start all four fevers. | Classic | Full set | line “Fever” = 25 of 25 |  | `beat.fever-pitch` |
-| Golden ear | Hit every golden note dead on. | Classic | Max-out | line “Golden notes” = 15 of 15 |  | `beat.gold` |
-| Encore | Score 180 or more. | Classic | Big score | `score` ≥ 180 | ● | `beat.score180` |
+| Golden ear | Hit every golden note dead on. | Classic | Max-out | from `beatRev` 13: `goldsHit` ≥ `golds`; before: line “Golden notes” = 15 of 15 |  | `beat.gold` |
+| Encore | Score 185 or more. | Classic | Big score | `score` ≥ 185 | ● | `beat.score180` |
 
 #### Blockzone (`blockfall`)
 
@@ -529,7 +529,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Twenty-four carat | Break every gold brick. | Classic | Full set | `goldBroken` ≥ `goldDealt`, `goldDealt` ≥ 1 |  | `breaker.twenty-four-carat` |
-| No drops | Score 100 without losing a ball. | Classic | Clean | `score` ≥ 100, `losses` = 0 |  | `breaker.no-drops` |
+| No drops | Break 55 bricks without losing a ball. | Classic | Clean | `bricks` ≥ 55, `losses` = 0 |  | `breaker.no-drops` |
 | Wall breaker | Clear the whole wall on Hard. | Hard | Finish | `cleared` = 1 |  | `breaker.wall-breaker` |
 
 #### Fission (`burst`)
@@ -553,7 +553,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Tight squeeze | Thread all five tight gates. | Classic | Full set | `tightGates` ≥ 5 |  | `hover.tight-squeeze` |
-| Chain gang | Complete all five star chains. | Classic | Full set | `chainPts` ≥ 30 |  | `hover.chain-gang` |
+| Chain gang | Complete all five star chains. | Classic | Full set | `starChains` ≥ 5 |  | `hover.chain-gang` |
 | All the way | Pass every barrier. | Classic | Finish | `gates` ≥ `totalGates`, `totalGates` ≥ 1 | ● | `hover.all-the-way` |
 
 #### Pinball (`pinball`)
@@ -562,22 +562,22 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Multiball madness | Start multiball. | Classic | Target | line “Multiball” = 20 of 20 |  | `pinball.multiball` |
 | Spell it out | Spell J-O-U-L-Z in one game. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
-| Jackpot | Hit three jackpots. | Classic | Full set | line “Jackpots” = 15 of 15 | ● | `pinball.jackpot` |
+| Jackpot | Hit three jackpots. | Classic | Full set | `jackpots` ≥ 3 | ● | `pinball.jackpot` |
 
 #### Rally (`rally`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Pink pong | Strike pink pads five times. | Classic | Target | line “Pink pads” ≥ 15 |  | `rally.pink-pong` |
-| Target practice | Hit all six gold targets. | Classic | Full set | line “Gold targets” = 30 of 30 |  | `rally.target-practice` |
-| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 130 of 130 |  | `rally.rally-king` |
+| Pink pong | Strike pink pads five times. | Classic | Target | `targetHits` ≥ 5 |  | `rally.pink-pong` |
+| Target practice | Hit all 6 gold targets. | Classic | Full set | `bonusHits` ≥ 6 |  | `rally.target-practice` |
+| Rally king | Return 23 gold balls on Hard. | Hard | Target | `goldHits` ≥ 23 |  | `rally.rally-king` |
 
 #### Meteor (`snake`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Star eater | Eat 36 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
-| Comet tail | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `snake.comet-tail` |
+| Comet tail | Score 165 or more. | Classic | Big score | `score` ≥ 165 |  | `snake.comet-tail` |
 | Golden comet | Eat all seven gold stars. | Classic | Full set | `goldStars` ≥ `goldStarsDealt`, `goldStarsDealt` ≥ 7 |  | `snake.golden-comet` |
 
 #### Wavefront (`wavefront`)

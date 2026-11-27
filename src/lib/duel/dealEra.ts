@@ -134,6 +134,36 @@ export const DEAL_PINS = {
   preD3Maze: { texts: true },
   /** wordStar.ts: Nucleus wordsmithRev 5, Forage wordHuntRev 4 and Roundabout wheelRev 5, before the D1 refit (21 Nov 2026). */
   preWordStar: { texts: true },
+  /** arcade.server.ts: Moon Climb ricoRev 4 (the 34 × 68 ninja), before the 30 × 60 one (D5, 22 Nov 2026). */
+  ricoPreMid: { texts: false },
+  /** arcade.server.ts: Fission burstRev 13 (bigger atoms), before burstRev 14's middle atoms (D5, 22 Nov 2026). */
+  burstPreSmall: { texts: false },
+  /** arcade.server.ts: Wavefront wavRev 15 from its own deal, before the wider formation (D5, 22 Nov 2026). */
+  wavPreWide: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 11, before skylineRev 12's lower full lines (D5 item I5, 22 Nov 2026). */
+  skylinePreCount: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
+  orbitPreLost: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 4 (Easy, Normal, Hard) and 3 (Expert), before the ladder (D5, 23 Nov 2026). */
+  bastionPreLadder: { texts: false },
+  /** arcade.server.ts: Tempo beatRev 12 (any seed, every level), before beatRev 13's lanes and lower full lines (D5's ladder, 23 Nov 2026). */
+  beatPreLanes: { texts: false },
+  /** arcade.server.ts: Blockzone's levels on blockfallRev 2 from Normal's deal, before blockfallRev 3's level deals (D5's ladder, 23 Nov 2026). */
+  blockfallPreLevels: { texts: false },
+  /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
+  hoverPreFit: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 18 at every level, before the ladder (swingRev 19, D5, 23 Nov 2026). */
+  swingPreLadder: { texts: false },
+  /** arcade.server.ts: Meteor snakeRev 15 at every level, before D5's ladder (snakeRev 16's lines and rocks, 23 Nov 2026). */
+  snakePreLadder: { texts: false },
+  /** arcade.server.ts: Rally rallyRev 13 at every level, before D5's ladder (rallyRev 14's paddles and lines, 23 Nov 2026). */
+  rallyPreLadder: { texts: false },
+  /** arcade.server.ts: Breaker brkRev 12 at every level, before brkRev 13's ladder (D5, 23 Nov 2026). */
+  breakerPreLadder: { texts: false },
+  /** arcade.server.ts: Pinball pinRev 8 at every level, before pinRev 9's ladder (D5, 23 Nov 2026). */
+  pinballPreLadder: { texts: false },
+  /** arcade.server.ts: Roofbound flipRev 13 at Easy, Hard and Expert, before the running-speed ladder (D5, 23 Nov 2026). */
+  flipPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

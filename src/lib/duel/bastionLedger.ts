@@ -6,7 +6,7 @@
  */
 import { checkInputEvents, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { bastionLedgerStart, bastionLedgerStep, type BtLedger } from "@/lib/arcade/bastionLook";
-import { bastionTankGameFor, BT2_TANKS, BT3_DRONES, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionTankCount, bastionTankGameFor, BT3_DRONES, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { decodeBastionTankRun } from "./bastion";
 
 export function bastionTankLedger(seed: number, raw: string, rev?: number | null, level?: unknown): { ledger: BtLedger; state: BastionTankState } {
@@ -17,8 +17,9 @@ export function bastionTankLedger(seed: number, raw: string, rev?: number | null
   const lastTick = endTick > 0 && endTick < runTicks ? endTick : runTicks;
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of checkInputEvents(run.events, runTicks, game.inputRanges ?? []).events) events.set(event.t, event);
-  const ledger = bastionLedgerStart(seed, BT2_TANKS, BT3_DRONES);
   let state = game.init(seed);
+  // One slot a tank of the run (30 before bastionRev 5; bastionRev 5's levels 20, 30, 40 or 45).
+  const ledger = bastionLedgerStart(seed, bastionTankCount(state.rev, state.lvl), BT3_DRONES);
   for (let tick = 1; tick <= lastTick; tick++) {
     const next = game.step(state, events.get(tick) ?? null);
     bastionLedgerStep(ledger, state, next);

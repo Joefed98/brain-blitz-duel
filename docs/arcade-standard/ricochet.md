@@ -1,3 +1,150 @@
+# Moon Climb: ricoRev 5's lines, limits and levels (D5, 23 Nov 2026)
+
+Joe's decisions of 23 Nov 2026 (the Normal scoring refit, the ladder test, per-level scoring lines; the difficulty spec's
+"### Moon Climb"), folded into the same unshipped stamp as the 30 × 60 ninja below: rooms, the Daily and rated play still
+deal **`ricoRev 5`**, and ricoRev 4 (every level) and ricoRev 3 deal, replay and score exactly as before (their own
+`MOON_LEVELS`, parts and frame-exact witnesses; ricochet-ladder-check 1 regrades the 150 runs recorded before ricoRev 5).
+
+- **The Normal refit** (`MOON_MID_LINES`): every part keeps its maximum and is paid on a straight line to its own full
+  line: height 125 full at **220 m** (was 245), flow 30 full at **4 Flow steps** (28 clean leaps; was 10), lantern rides 30
+  full at **3 rides** (was all 6), scrolls 15 full at **2 scrolls** (was all 3). Play is unchanged on Normal.
+- **The witness, held to the human limits** (`moonWitnessHuman`, HUMAN_LIMITS: 0.25 s to react, 0.15 s to move): the
+  deal's planner now leaves every input at least 9 ticks after the one before (a double jump 9 or more ticks into its leap,
+  was 7), every leap off a landing at least 3 ticks after it (the landing seen coming, as the skill-band bot plays under
+  the limits; was 1), and the tower is kept only when that witness also has everything near its path in the camera's view
+  15 ticks before the input that commits to it (the renderer's `ninjaCamera`, mirrored as `MOON_VIEW_*`), and takes every
+  part in full with no hit through the real step. ricoRev 4's frame-exact witnesses all break the limits (0 of 60 a
+  level kept them); every ricoRev 5 tower keeps them on its first attempt: **400 of 400 seeds at each level** (Normal,
+  Easy, Hard, Expert; no fallback, no extra attempt; builds 29 / 20 / 50 / 51 ms). The proof player (the flawless
+  skill-band level, which plays the witness) scores 200 on every tower at every level.
+- **Levels** (`MOON_MID_LEVELS`; the registry's `GAME_LEVELS.ricochet` mirrors it): the lever is the blades on the walls.
+  The towers are built with ricoRev 4's settings (Easy half the blades, slower lanterns; Hard 1.3× and 65 % ice; Expert
+  1.6×, faster shurikens, 88 % ice, 4 lanterns), Hard's knock-down is **3.5 m** (ricoRev 4: 3 m), and each level has its own
+  lines so 200 stays within a realistic elite's reach as the blades thicken.
+
+## Levels (D5, 23 Nov 2026)
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Blades on the walls (× Normal's) | 0.5 | 1 (about 160 a tower) | 1.3 | 1.6, shurikens 25 % faster |
+| Ice (share of patches) | 30 % | 40 % | 65 % | 88 % |
+| Sky lanterns (float speed) | 6 (slower) | 6 | 6 | 4 (faster) |
+| Knock-down on a hit | 2 m | 3 m | **3.5 m** | 4 m |
+| Height part full at | 220 m (125) | 220 m (125) | 190 m (125) | 160 m (135) |
+| Flow full at | 4 steps | 4 steps | 3 steps | 2 steps |
+| Lantern rides full at | 3 of 6 (30) | 3 of 6 (30) | 2 of 6 (30) | 1 of 4 (20) |
+| Scrolls full at | 2 of 3 | 2 of 3 | 2 of 3 | 2 of 3 |
+| Average player (mean) | 177.5 | 107.3 | 90.6 | 72.4 |
+| Realistic elite (mean, at 200) | 199.6, 95 % | 188.7, 48 % | 182.0, 34 % | 176.1, 26 % |
+| How 200 is proved | every tower's human-limited witness, 400 / 400 seeds | the same | the same | the same |
+
+Measured on the recorded ladder (`bun scripts/d5-ladder-record.ts ricochet --deals=96`, room deals 0–95 at every level,
+`scripts/fixtures/d5-ladder-ricochet.json.gz`), the average and elite skill-band bots under the human limits, every run
+graded by the server. Joe's ladder test holds: the average player steps down 70.2, 16.7 and 18.2 points, no level under
+15, and the elite reaches 200 on 95 > 48 > 34 > 26 % of runs (Expert at least a fifth). The lines were chosen on the
+recorded runs' own counts (the bots don't read the lines, so a line is scored exactly from a run's metres, Flow steps,
+rides and scrolls), from Normal's approved lines down: Hard 30 m, a Flow step and a ride lower, Expert 30 m, a Flow
+step and a ride lower again.
+
+### Before → after (D5, 23 Nov 2026)
+
+`bun scripts/d5-ladder.ts ricochet` before (ricoRev 5 as first built, 24 deals) and after (the 96-deal fixture): mean, and
+the share of runs at 200.
+
+| Level | Average before | Average after | Elite before | Elite after |
+|---|---|---|---|---|
+| Easy | 158.4 | 177.5 | 193.8, 13 % | 199.6, 95 % |
+| Normal | 82.0 | 107.3 | 158.3, 0 % | 188.7, 48 % |
+| Hard | 77.0 | 90.6 | 136.8, 0 % | 182.0, 34 % |
+| Expert | 42.8 | 72.4 | 97.8, 0 % | 176.1, 26 % |
+
+The average player's Normal rises 25 points: the refit's four lower lines each pay it something (its median run climbs
+143 m, rides one lantern and takes one scroll). Keeping the height line at 245 m with the other three refit lines would
+hold the average at 99.0 but leave the elite at 200 on only 21 % of Normal runs (on the same recorded runs), below Joe's
+40–60 %, so the height line moves to 220 m as approved.
+
+- **Challenges**: "Scroll keeper", "Lantern lift" and "Moonwalker" count the scrolls (3), the rides (6) and the metres (220
+  on Hard, Normal's full height; it was 245, ricoRev 4's, until practice-goals-check's live-number pass, 26 Nov 2026)
+  themselves, since the parts now fill sooner (docs/challenges/catalogue.md).
+- Checks: ricochet-ladder-check (the legacy runs, the stamp and pin, the level rules and registry, every sampled tower's
+  witness checked against the limits on its own and at 200 through the server, the ladder test on the fixture and a live
+  re-play sample, the challenges), ricochet-mid-check (its parts lines follow the refit).
+
+# Moon Climb: ricoRev 5, the 30 × 60 ninja (D5, 22 Nov 2026)
+
+Joe's approval of 20 Nov 2026 (the polish plan's row C3.5: "the ninja is too big"; `docs/polish-plan-final.md` 8.2). The
+rule that art sits within 2 px of the sim's collision box means a smaller figure needs a smaller box, so this is a stamp:
+rooms deal **`ricoRev 5`** (`MOON_MID_REV`), ricoRev 4's game with the ninja's body box `MOON_MID_HW` × `MOON_MID_HH`
+either side of its centre, **30 × 60 px** (rev 4: 34 × 68, rev 3: 26 × 52; the old box × 15 / 13).
+
+- **What follows the body** (`ninjaBodyFor(rev)`: `MOON_MID_BODY` from rev 5, `MOON_BIG_BODY` on exactly rev 4,
+  `NINJA_BODY` before): the cling x on each wall (85 and 305), the floor's standing height (`start`, (30 + 4) × 256, so
+  metres mean the same), a leap's sideways ticks (wall to wall still `NINJA_LEAP_TICKS` over the 220 px gap), the
+  mid-ledges' faces, the lantern hang (40 px) and the katana, shuriken, scroll and lantern touches.
+- **The deal**: `moonBuildDeal(seed, 5, level)` draws its attempts from the same seeded stream as rev 3 and 4 and plans,
+  places and proves every tower with the 30 × 60 body, at every level (the witness through the real rev-5 step takes
+  every part in full, no hit, the level's full height or more). Every rev-5 tower is its own (none equals rev 4's).
+  `MOON_LEVELS` applies on rev 5 exactly as on rev 4 for now (the level redesign comes later, tuned on this Normal).
+- **Parts**: rev 4's exactly at every level (`MOON_MID_STD_SPEC` = `MOON_STD_SPEC` under the new stamp; the levels'
+  parts from `moonStdSpecFor(5, level)`): height 125 (full at 245 m; 200 / 245 / 260 m on Easy / Hard / Expert), flow 30,
+  lantern rides 30, scrolls 15; hit scoring unchanged. No help, intro or challenge number changes.
+- **The figure**: `ninjaArtScale(5)` = 15 / 13, the body's own growth, so the same figure is drawn between rev 3's and
+  rev 4's on every side; each pose's drawn extent is within main's recorded figure + 0.5, × 15 / 13 (art-check 4a's
+  rule for rev 4, at the new scale). The figure's widest poses (the spinning tuck, the cape) reach past the box by the
+  same proportion as the approved rev-3 and rev-4 figures do (at most, over every pose: rev 5 7.25 px across, 3.5 up,
+  0.5 down; rev 4 8.25, 4, 0.5; rev 3 6.25, 3, 0.5): this stamp changes the size, not the figure's shape.
+- **The stage**: `moonArtGameFor(rev, level)` is now the sim's own game for the stamp and level (`moonGameFor`) with the
+  art, so the live stage plays exactly the game the server replays (it had mapped every stamp from 4 up to rev 4's
+  game, and keyed its level games by level alone). The intro still (`moonIntroState`) and the definition's example draw
+  the live stamp. Renderers are otherwise untouched.
+- **Older rounds**: ricoRev 4 (every level) and ricoRev 3 deal, replay and score exactly as before (ricochet-mid-check
+  1, against `scripts/fixtures/ricochet-mid-legacy.json.gz`: 60 towers and 150 runs, random taps and the skill-band bots
+  weak to flawless, recorded on the sources before the change by `scripts/ricochet-mid-legacy-record.ts`, and 24 deals
+  rooms made, 6 at each level). The deal pin `ricoPreMid` (`pinRicoPreMid`) deals ricoRev 4 for the checks written for it;
+  `ricoPreBig` still deals ricoRev 3 and wins over it.
+- **The intro demo**: `ACTION_DEMO_REVS.ricochet` and the stop rule are ricoRev 5, so the ricoRev 4 demo is stopped (the
+  intro shows its still) until one is recorded on 5 (`bun scripts/action-demos-record.ts ricochet --rev=5`, which
+  already keeps a 200 run with a clean window, then the "Save intro demos" workflow).
+
+### Measured (22 Nov 2026)
+
+`bun scripts/d5-ladder.ts ricochet --deals=24`: real deals at every level (room seeds 0–23), graded by the server, the
+average and elite skill-band bots under the human limits (0.25 s to react, 0.15 s to move). Average, median, best tenth's
+lowest, best, share at 200:
+
+| Level | Average, ricoRev 4 | Average, ricoRev 5 | Elite, ricoRev 4 | Elite, ricoRev 5 |
+|---|---|---|---|---|
+| Easy | 162.7 / 165 / 178 / 184 / 0 % | 158.4 / 160 / 173 / 178 / 0 % | 192.4 / 194 / 200 / 200 / 33 % | 193.8 / 195 / 200 / 200 / 13 % |
+| Normal | 85.4 / 86 / 104 / 122 / 0 % | 82.0 / 77 / 97 / 139 / 0 % | 159.5 / 159 / 184 / 200 / 4 % | 158.3 / 162 / 184 / 192 / 0 % |
+| Hard | 79.3 / 80 / 100 / 104 / 0 % | 77.0 / 75 / 94 / 110 / 0 % | 141.5 / 142 / 165 / 178 / 0 % | 136.8 / 137 / 153 / 183 / 0 % |
+| Expert | 40.8 / 42 / 56 / 71 / 0 % | 42.8 / 41 / 62 / 77 / 0 % | 100.1 / 99 / 128 / 144 / 0 % | 97.8 / 98 / 117 / 138 / 0 % |
+
+The proof player (`--bots=proof --deals=12`, the flawless level) scores 200 on 12 of 12 towers at every level on both
+stamps; on Moon Climb it plays each tower's witness frame for frame, so it is not held to the human limits (about a fifth
+of the witnesses' double jumps come sooner than 0.15 s into their leap, on both stamps: re-timing the witness under the
+limits is the levels' work).
+
+`bun scripts/ninja-bands.ts --rev=4|5 --from=10000 --seeds=40` (no human limits), medians weak → flawless:
+
+| Level | ricoRev 4 | ricoRev 5 | Metres 4 → 5 | Hits 4 → 5 |
+|---|---|---|---|---|
+| Random | 29 | 28 | 54 → 56 | 22 → 22 |
+| Weak | 49 | 54 | 85 → 97 | 21 → 20 |
+| Average | 84 | 88 | 138 → 148 | 18 → 18 |
+| Good | 128 | 129 | 201 → 201 | 15 → 16 |
+| Great | 153 | 153 | 227 → 230 | 14 → 14 |
+| Near-perfect | 172 | 178 | 247 → 258 | 12 → 13 |
+| Elite | 186 | 183 | 262 → 267 | 11 → 11 |
+| Flawless | 200 | 200 | 319 → 316 | 0 → 0 |
+
+The smaller box is clipped a little less often: without limits the medians rise 0–6 points (Elite 3 lower), and under
+the human limits the ladder is level within the towers' own spread (each rev-5 tower is a new one): still Easy > Normal >
+Hard > Expert for both players, and 200 on every tower for the witness.
+
+Checks: ricochet-mid-check (the legacy fixture, the stamp and pins, the body and hit box, the figure, every sampled tower
+at every level at 200 through the server's grade, grace, the bands); the checks written for ricoRev 4 need their stamp
+lines moved (the D5 report lists them for Joe).
+
 # Moon Climb: the stage-2 look pass and ricoRev 4, the bigger ninja (15 Nov 2026)
 
 ## Stage 2: effects and the reveal (display only, no stamp)
@@ -60,7 +207,7 @@ from stage 1. Gallery: `docs/design/pages-review/action/GALLERY.md` "Moon Climb"
   lantern lights what is near it and is never ringed by a glow (ricochet-overhaul-check 10a: a frame with the lantern
   differs from one without it only inside its radius + 2 px or on the stone).
 - **The ninja**: no gold rim round it any more (Joe: no glowing edges); the moonlit backing behind it fades out to its
-  edge. Drawn at `ninjaArtScale(rev)`: 1 up to ricoRev 3, 17 / 13 on ricoRev 4.
+  edge. Drawn at `ninjaArtScale(rev)`: 1 up to ricoRev 3, 17 / 13 on ricoRev 4, 15 / 13 on ricoRev 5.
 
 ## ricoRev 4: the bigger ninja (`MOON_BIG_REV`)
 

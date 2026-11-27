@@ -33,7 +33,8 @@ html body .eye-grid {
 html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state] {
   background: url("/attention/symscan/tile.webp") center / 100% 100% no-repeat;
   border-color: transparent;
-  box-shadow: 0 2px 3px rgb(0 0 0 / 0.45);
+  /* Spotlight (21 Nov 2026): pale stone tiles with dark-ink eagles, a short soft shadow. */
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.3);
 }
 html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="selected"],
 html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
@@ -58,16 +59,18 @@ html body .eye-target.eye-target {
   border-color: var(--jz-gold);
   box-shadow: none;
 }
+/* Spotlight (21 Nov 2026): the target chip larger (was 56 px). */
 .eye-target-lg {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
 }
 
 /* ------------------------------------------------------------------ Tally (countRev 7) */
+/* Spotlight (21 Nov 2026): the shapes on a light tray (the felt re-rendered pale; was dark plum). */
 html body .tally-tray.tally-spread {
   background: url("/attention/countup/felt.webp") center / cover no-repeat;
-  border: 1px solid var(--jz-navy-edge);
-  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.45);
+  border: 1px solid transparent;
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.2);
 }
 .tally-spot {
   display: block;
@@ -77,7 +80,7 @@ html body .tally-tray.tally-spread {
 }
 .tally-token {
   display: block;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35));
 }
 /* A counted mark: a small champagne dot with a dark edge, at the token's centre, staying put. */
 .tally-mark {
@@ -152,7 +155,15 @@ html body .bomb-plate .logic-terminal {
 html body .bomb-plate .logic-bomb-cap {
   background-color: transparent;
 }
-/* The clue card: matte, no glow, each clue on its own numbered pip. */
+/* The clue card: matte, no glow, each clue on its own numbered pip. Spotlight (21 Nov 2026): a white card with navy
+   ink (was navy), over the batch layers' dark card. */
+html body [data-puzzle-play][data-puzzle-play] .bomb-clues.bomb-clues,
+html body .bomb-clues.bomb-clues.bomb-clues {
+  background: var(--jz-white);
+  color: var(--jz-navy);
+  border: 1px solid transparent;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.3);
+}
 html body .bomb-clues.bomb-clues {
   list-style: none;
   margin: 0;
@@ -182,7 +193,7 @@ html body .bomb-clues.bomb-clues {
   border-radius: 999px;
   background: var(--jz-gold);
   color: var(--jz-navy);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -223,45 +234,33 @@ html body .bomb-clues.bomb-clues {
 .attn-rv-tabs [data-tone="bad"]::after {
   background: var(--warn);
 }
-/* The numbers that explain the score: big, plain, tabular. */
-.attn-rv-stats {
-  display: grid;
+/* The numbers that explain the score: the reveal template's facts strip (G6, 21 Nov 2026: `.reveal-facts` and
+   `.reveal-fact` draw the tiles); only the tones are Attention's own. */
+.attn-rv-stats.reveal-facts {
   width: 100%;
-  gap: 6px;
 }
-.attn-rv-stat {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
+.attn-rv-stat.reveal-fact {
   align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  border-radius: 12px;
-  background: var(--jz-navy);
-  border: 1px solid var(--jz-navy-edge);
+  text-align: center;
 }
 .attn-rv-stat-label {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--jz-text-2);
 }
 .attn-rv-stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  color: var(--jz-white, #fff);
   white-space: nowrap;
 }
-.attn-rv-stat[data-tone="good"] .attn-rv-stat-value {
+.attn-rv-stat[data-tone="good"] .reveal-fact-value {
   color: var(--jz-gold);
 }
-.attn-rv-stat[data-tone="bad"] .attn-rv-stat-value {
+.attn-rv-stat[data-tone="bad"] .reveal-fact-value {
   color: var(--warn);
+}
+/* The switch sits in the template's views row, full width. */
+.attn-rv-views {
+  width: 100%;
 }
 /* The key: one swatch per mark on the board. */
 .attn-rv-legend {
@@ -293,9 +292,9 @@ html body .bomb-clues.bomb-clues {
 [data-attn-mark="route"] .attn-rv-swatch { height: 0; border-top: 3px dashed var(--jz-cyan); border-radius: 0; }
 [data-attn-mark="dim"] .attn-rv-swatch { background: var(--jz-surface-2); opacity: 0.6; }
 
-/* Eagle Eye's reveal: the grid as wide as the screen allows (up to 360 px), found / wrong / missed rings. */
+/* Eagle Eye's reveal: the grid as wide as the reveal's stage (G6: up to 440 px), found / wrong / missed rings. */
 html body .eye-reveal .eye-reveal-grid {
-  width: min(100%, 360px);
+  width: min(100cqw, 440px);
 }
 html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="target"] {
   box-shadow: inset 0 0 0 2.5px var(--jz-gold), 0 2px 3px rgb(0 0 0 / 0.45);
@@ -356,9 +355,9 @@ html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
   opacity: 0.6;
 }
 
-/* Labyrinth's reveal: the maze as wide as the screen allows; the key's route in the ghost route's own colour. */
+/* Labyrinth's reveal: the maze as wide as the reveal's stage (G6); the key's route in the ghost route's own colour. */
 [data-attn-reveal="maze"] .maze-reveal-board {
-  width: min(100%, 360px);
+  width: min(100cqw, 440px);
 }
 [data-attn-reveal="maze"] [data-attn-mark="route"] .attn-rv-swatch {
   border-top-color: var(--maze-start);
@@ -464,14 +463,21 @@ html body .eye-cell.eye-cell.eye-cell.eye-cell[data-eye-state="missed"] {
   white-space: nowrap;
 }
 
-/* Labyrinth (concept A): satin-metal walls over the dark flagstone. */
+/* Labyrinth: deep navy walls over an ivory floor (Spotlight, 21 Nov 2026; were satin metal over dark flagstone), a
+   champagne exit; the floor image is the re-rendered ivory flagstone. */
 [data-polish="maze"],
 .maze-reveal-board,
 .maze-board {
-  --maze-wall: #5f6672;
-  --maze-wall-sheen: #9aa3b1;
-  --maze-wall-top: #e3e8ef;
-  --maze-wall-shadow: rgb(0 0 0 / 0.7);
+  --maze-wall: #1f2c52;
+  --maze-wall-sheen: #2c3d6e;
+  --maze-wall-top: #4a5f96;
+  --maze-wall-shadow: rgb(10 16 34 / 0.35);
+  --maze-floor: #efe8d8;
+  --maze-floor-alt: #e6dec9;
+  --maze-floor-speck: rgb(40 30 10 / 0.06);
+  --maze-start: #12957f;
+  --maze-start-floor: rgb(18 149 127 / 0.18);
+  --maze-exit-floor: color-mix(in srgb, var(--jz-gold) 75%, transparent);
 }
 
 /* Double Take (stage 2): a find draws its pen circle round the piece, on both pictures, in 320 ms (it ends drawn). */

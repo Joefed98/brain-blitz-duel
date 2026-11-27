@@ -75,6 +75,7 @@ import {
   SWING_V16_SQUEEZES,
   SWING_REV_SLIDE,
   SWING_REV_BIG,
+  SWING_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 is the live revision)
   SWING_V17_BAND_CURVE,
   type SwingState,
 } from "../src/lib/arcade/swing";
@@ -560,7 +561,8 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   ok(swingWorldWFor(SWING_REV_DARK) === 450 && swingWorldHFor(SWING_REV_DARK) === 844, "rev 16 plays in rev 13's 450 × 844 view");
   // LIVE_BANDS follows the revision rooms deal: swingRev 17 since 3 Nov 2026 (swing-slide-check), on its own line.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
-  ok(LIVE_BANDS.swing.rev === SWING_REV_BIG && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && SWING_V16_BAND_CURVE.points[1] === 140, "the help's numbers come from the revision rooms deal (swingRev 18 on rev 17's curve, after 16)");
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+  ok(LIVE_BANDS.swing.rev === SWING_REV_LADDER && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE && SWING_V16_BAND_CURVE.points[1] === 140, "the help's numbers come from the revision rooms deal (swingRev 19 on rev 17's curve, after 16)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   // The jungle canopy (3 Nov 2026): ledges are tree platforms and the dark is the canopy's deep shade, the same rule.
@@ -575,7 +577,8 @@ console.log(`witness: ${playSeeds.length} courses cleared through the dark by th
   ok(/pars/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && /Up to 200/.test(INTRO_SCORE.swing), `the intro score line: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 18 (after 16)");
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): the demo rule names swingRev 19.
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_LADDER\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 19 (after 16)");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
   // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the intro also passes the stored level.
   ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(?:, level)?\)/.test(introSrc), "the round's intro builds the course ahead");

@@ -47,6 +47,7 @@ import {
 } from "../src/lib/arcade/pinball4";
 import { playRevOf } from "./scoring-targets-revs";
 import { PIN_STD_SPEC_V7, PIN_STD_SPEC_V8 } from "../src/lib/arcade/pinball4";
+import { PIN_STD_SPEC_V9, PIN_V9_BAND_CURVE } from "../src/lib/arcade/pinball4"; // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
 
 const RECORD = process.argv.includes("--record");
 const FIXTURE = "scripts/fixtures/pinball-standard-runs.json.gz";
@@ -192,10 +193,11 @@ section("Rooms deal pinRev 6; the help, intro line, band, maximum and run length
   const live: any = LIVE_BANDS.pinball;
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 8's spec since stage 3, the
   // same parts as pinRev 7's.
-  ok(playRevOf("pinball", live.rev) === PIN_REV_STD && live.std === PIN_STD_SPEC_V8 && PIN_STD_SPEC_V8.parts === PIN_STD_SPEC_V7.parts && PIN_STD_SPEC_V7.parts.length === PIN_STD_SPEC.parts.length && live.curve === PIN_V6_BAND_CURVE, "LIVE_BANDS lists pinRev 6 and its spec");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's pinRev 9): its own spec and line, the same five parts.
+  ok(playRevOf("pinball", live.rev) === PIN_REV_STD && live.std === PIN_STD_SPEC_V9 && PIN_STD_SPEC_V9.parts.length === PIN_STD_SPEC_V7.parts.length && PIN_STD_SPEC_V7.parts.length === PIN_STD_SPEC.parts.length && live.curve === PIN_V9_BAND_CURVE, "LIVE_BANDS lists pinRev 6 and its spec");
   ok(PIN_V6_BAND_CURVE.units.join() === `0,${PIN_V6_FULL_AT}` && PIN_V6_BAND_CURVE.points.join() === "0,130", "the core's straight line to 130");
   const help = PUZZLE_INSTRUCTIONS.pinball;
-  ok(help.score.includes(stdHelpLines(PIN_STD_SPEC_V7)), `the help states the parts: ${help.score}`);
+  ok(help.score.includes(stdHelpLines(PIN_STD_SPEC_V9)), `the help states the parts: ${help.score}`); // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
   const how = help.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(!/multiplier/i.test(how) && /90 seconds/.test(how), "the help's how lines don't promise a multiplier and say 90 seconds");
   const intro = INTRO_SCORE.pinball ?? "";

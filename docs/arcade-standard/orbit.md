@@ -1,3 +1,96 @@
+# Orbit: orbitRev 17's lines, belts and levels (D5, 23 Nov 2026)
+
+Joe's decisions of 23 Nov 2026 (the Normal scoring refit, the ladder test; the difficulty spec's "### Orbit"), folded
+into the same unshipped stamp as the lost flight below: rooms, the Daily and rated play still deal **`orbitRev 17`**
+(`ORBIT_REV_LOST`), and orbitRev 16 and every earlier stamp deal, replay and score exactly as before (their own banks,
+parts and lines; orbit-ladder-check 1 regrades the 144 orbitRev 16 runs recorded before orbitRev 17, and the era pin
+`orbitPreLost` deals orbitRev 16 from the fuel banks).
+
+- **The Normal refit** (`ORBIT_V17_LINES` in `src/lib/arcade/orbitRev3.ts`): the six parts keep their maxima (planets
+  130, speed 20, stardust 15, slingshots 12, asteroid fields 12, perfect orbits 11) and each feature is paid on a straight
+  line to its own full line: speed full with **2,025 ticks (34 s) left** at the sun (was 2,700, 45 s), stardust at **22
+  motes** (was 30), slingshots at **3** (was 4), perfect orbits at **16** (was 21); asteroid fields stay full at 3. The
+  parts' `of` keeps the standard's meaning (30 motes, 4 moons, 3 fields); the lines are in `OrbitLines` and the help.
+- **New courses, with the witness held to the human limits** (`scripts/orbit-ladder-lib.ts`, `scripts/orbit-ladder-bank.ts`,
+  banks `src/lib/duel/orbitLadderBank{,Easy,Hard,Expert}.server.ts`): orbitRev 16's banks' frame-exact witnesses release
+  on any tick; a person can't. Every orbitRev 17 course (Normal included) is built with the fuel bank's three steps on the
+  real sim, but its witness releases only **24 ticks or more after the rocket settles into its orbit** (0.25 s to see the
+  new orbit and the planet ahead, 0.15 s to move: `ORBIT_HUMAN_READY_TICKS`) and **9 or more after its last input**, in the
+  middle of a window at least the level's narrowest wide (a black hole's at least 3 ticks), with every flight landing on
+  a quarter of the tank to spare. A course is kept only when that witness reaches the sun with every mote, slingshot and
+  field and scores **exactly 200** through the server's grade at the level (Normal and Easy also need Normal's pace and
+  perfect-orbit lines; a level's lines are never above its bank's least, orbit-ladder-check 4b).
+- **The lever: asteroid belts** round the planets (`LADDER_COURSES`; the registry's `GAME_LEVELS.orbit` mirrors it): Easy
+  none at all, Normal orbitRev 16's (from planet 31, about half of them), Hard a belt round **every fourth planet from
+  the second** (10 belts), Expert round **every third planet from the first** (14 belts). A hop past a belt on Hard and
+  Expert is placed only when a release window of the level's width lands at 12 or more of the belt's 24 phases, so a
+  player arriving at any moment finds it open within a lap or two. The tanks, checkpoint rules and zigzag are orbitRev 16's
+  levels' (Easy 240 with automatic checkpoints, hops 30–150; Hard 140, one checkpoint, hops 110–270, 3-tick windows;
+  Expert 120, no checkpoint, hops 140–300); Expert's narrowest window is **3 ticks** (orbitRev 16: 2).
+- **Per-level lines** (`ORBIT_V17_LEVEL_LINES`, read from the state's `lvl`, outside the checksum): Easy keeps Normal's;
+  Hard and Expert pay the speed part on any finish with 102 ticks left (Hard's slowest human-limited witness reaches the
+  sun with 102), and fill perfect orbits at 5 and 6.
+
+## Levels (D5, 23 Nov 2026)
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Asteroid belts | none | from planet 31, about half | every 4th planet from the 2nd | every 3rd planet from the 1st |
+| Tank, checkpoints | 240, automatic | 160, SET CHECKPOINT | 140, one | 120, none |
+| Hops (sideways) | 30–150 px | 60–220 px | 110–270 px | 140–300 px |
+| Narrowest release window | 4 ticks | 4 ticks | 3 ticks | 3 ticks |
+| Speed full with | 2,025 ticks left | 2,025 ticks left | 102 ticks left | 102 ticks left |
+| Stardust full at | 22 motes | 22 motes | 22 motes | 22 motes |
+| Slingshots full at | 3 of 4 | 3 of 4 | 3 of 4 | 3 of 4 |
+| Asteroid fields full at | 3 of 3 | 3 of 3 | **2 of 3** | 3 of 3 |
+| Perfect orbits full at | 16 | 16 | 5 | 6 |
+| Bank (courses kept / seeds tried) | 12 / 12 | 11 / 16 | 12 / 12 | 8 / 12 |
+| Average player (mean / median, best) | 132.4 / 131, best 179 | 100.1 / 99, best 165 | 74.1 / 76, best 118 | 67.8 / 64, best 121 |
+| Realistic elite (mean / median, at 200, sun reached) | 197.9 / 200, 51 %, 100 % | 194.3 / 196, 27 %, 97 % | 182.4 / 196, 26 %, 70 % | 180.8 / 183, 21 %, 64 % |
+| How 200 is proved | every course's human-limited witness through the server | the same | the same | the same |
+
+Measured on the recorded ladder (`bun scripts/orbit-ladder-record.ts play` then `write`: the same fixture as
+`bun scripts/d5-ladder-record.ts orbit --deals=96`, kept in two steps because the elite takes seconds a run; room deals
+0–95 at every level, `scripts/fixtures/d5-ladder-orbit.json.gz`), the average and elite skill-band bots under the human
+limits, every run graded by the server. Joe's ladder test holds: the average player steps down 32.3, 26.0 and 6.3 points,
+no level under 15, and the elite reaches 200 on 51 > 27 > 26 > 21 % of runs (Expert at least a fifth). A bank holds
+8–12 courses (a deal takes entry `seed mod` its length), so the 96 deals a level replay those courses with other seeds.
+
+**What the lines do, and their limits.** Hard and Expert play almost alike for both players: on Normal's lines the
+average scores 66.6 and 65.1 and the elite 171.4 and 171.1 (2 % and 0 % at 200). Course levers can't separate them
+within the spec (a belt round every second planet on Hard and round every planet on Expert left too few hops open for
+the witness: 0 of 2 and 0 of 1 seeds built in four salts), so the lines make the steps: with Normal's elite at 200 on 27 %
+and Expert needing a fifth, Hard and Expert must sit between 20 and 27 %. No set of Hard and Expert lines that only loosen
+from Normal's to Hard's to Expert's passes the test (searched over every speed, stardust, slingshot, field and perfect
+line); the chosen set differs between Hard and Expert in two lines only (fields 2 / 3, perfect orbits 5 / 6), and its
+margins are small: Hard reaches 200 on 25 runs to Normal's 26, Expert on 20 (19.2 the floor), the Hard to Expert step 6.3
+points. A larger bank and a course lever that parts Hard from Expert (for example Hard's hops 90–250) would give room;
+both need hours of building per level.
+
+### Before → after (D5, 23 Nov 2026)
+
+Before: orbitRev 17 as first built (orbitRev 16's courses and lines, 16 deals, `bun scripts/d5-ladder.ts orbit`); after:
+the 96-deal fixture. The third column scores the same recorded runs on orbitRev 16's lines (2,700 / 30 / 4 / 3 / 21), so
+it isolates the lines from the new courses.
+
+| Level | Average before | Average after (old lines) | Elite before | Elite after (old lines) |
+|---|---|---|---|---|
+| Easy | 118.3 | 132.4 (127.7) | 186.1, 0 % | 197.9, 51 % (190.5, 2 %) |
+| Normal | 108.1 | 100.1 (96.4) | 183.8, 0 % | 194.3, 27 % (186.3, 1 %) |
+| Hard | 79.0 | 74.1 (64.1) | 171.8, 0 % | 182.4, 26 % (163.8, 0 %) |
+| Expert | 82.8 | 67.8 (62.8) | 162.1, 0 % | 180.8, 21 % (164.0, 0 %) |
+
+- **Challenges**: "Slingshot" and "Stargazer" count the slingshots (all four) and the stardust (all of it, on Hard)
+  themselves, since the parts now fill sooner (docs/challenges/catalogue.md).
+- **Lever picture**: `src/lib/levels/pictures/retro-action/orbit.tsx` (`OrbitPicture`, `orbitWords`), the course as a
+  snake of 40 planets and the sun with each belted planet ringed, drawn from `GAME_LEVELS.orbit`'s `belts`.
+- Checks: orbit-ladder-check (the legacy runs, the stamp and pin, the level rules and registry, every bank's belts, every
+  sampled witness checked against the limits on its own and at 200 through the server, a bank entry rebuilt byte for byte,
+  the ladder test on the fixture and a live re-play sample, the challenges, the lever picture), orbit-lost-check (its deals
+  now on the ladder banks; its recorded runs score on orbitRev 17's lines, never below orbitRev 16's).
+- Builders: `bun scripts/orbit-ladder-bank.ts --level=<level> [--workers=N]` (Easy ~4 min, Hard ~13 min, Expert ~50 min
+  on two workers here), `--check <n>` rebuilds the first n entries byte for byte, `--prove` grades every witness.
+
 # Orbit on the arcade scoring standard (orbitRev 13, 29 Oct 2026; orbitRev 14, the fuel meter, 1 Nov 2026)
 
 Rooms dealt **orbitRev 13** (`ORBIT_REV_STD`, `src/lib/arcade/orbit.ts`) until 1 Nov 2026, when **orbitRev 14** (the fuel meter, below) took over on the same parts. Its play is orbitRev 12's exactly: the same
@@ -390,3 +483,71 @@ replay and speed part (decision for Joe). Expert "scored well" means 150+ (elite
 on 7): Expert courses to try (elite with human limits): bank #7 (bank seed 833130779; 172, 180 and 179 on three deals, the
 sun each time), #5 (bank seed −1004237067; 170, the sun), #11 (bank seed −1530903713; 165, the sun), and the hardest seen,
 #13 (bank seed 307522173; 135) and #22 (bank seed 1120914580; 147). A deal takes bank entry `seed mod 31`.
+
+## orbitRev 17: the lost flight (22 Nov 2026, D5 item H4)
+
+`docs/polish-plan-final/earlier-plan.md` row H4: on orbitRev 14–16 a missed flight burns the whole tank (about 160 ticks at
+Normal) with the camera following the rocket into empty space, then grace's 3 s hold: a slip costs about 5.7 s. Rooms,
+the Daily and every level now deal **orbitRev 17** (`ORBIT_REV_LOST`, `initLostFrom`): orbitRev 16 exactly (the same
+fuel bank `ORBIT_FUEL_BANK` and level banks, the bigger planets, the levels' tanks and checkpoint rules, catches, black
+holes, features, grace and the six parts, 200 in all), except that a free flight ends the moment it is **lost**
+(`orbitFlightLost` in `orbitRev3.ts`) and takes the slip's usual path: SET CHECKPOINT's respawn if it is armed (or Easy's
+automatic one), else grace's 180-tick hold at the planet the flight left. Nothing else changes, so a run whose flights are
+never lost plays orbitRev 16 tick for tick; `lost`, `lostTick` and `lostFlights` stay outside the checkpoint checksum, and
+the stored extra adds `lostFlights` on orbitRev 17 only.
+
+**Lost, from the sim's own geometry.** A free flight is a straight line: each tick the rocket moves by exactly (vx, vy),
+which only a slingshot (leaving a moon's ring) or a black hole can change, and it moves at most `fuel` more times. So the
+rest of the flight is a known segment, and the flight is lost when, on that segment:
+
+- no planet but the one it left can catch it (every planet's capture reach, the disc round its whole capture region,
+  misses the segment) and no live black hole is on it;
+- nothing can still score: no stardust mote not yet taken, no asteroid field not yet threaded, no moon's slingshot ring
+  (and the rocket isn't inside one now), and the partial credit toward the next planet (`reach`, sixteenths) would not grow
+  by the segment's end;
+- and the rocket is **120 px** (`ORBIT_LOST_MARGIN`) past the orbit it left and past every planet ahead (their capture
+  reach), so the player sees it fly clear.
+
+Every reach is padded by 4 px (`ORBIT_LOST_PAD`) against integer rounding, so the rule can end a flight later than it
+might but never one that could still be caught or still earn a point: ending a lost flight early costs nothing but the
+tank it would have burned. Integer maths only.
+
+**Proved** (orbit-lost-check): over every free-flight tick of the 144 recorded runs and of synthetic releases (a release
+every 17 ticks from the recorded average and elite runs' orbits; `CHECKS_FULL=1` every 3 ticks from all 144), played on
+orbitRev 16's rules, wherever the rule holds the rest of the flight catches nothing and earns nothing: 10,587 flights at
+the default depth, 125,071 at full depth, no exception. It ends 94 % of the flights that would run dry (96 % at full
+depth) and saves 53–56 % of their flight time: a missed flight now flies about 75 ticks on average instead of 161, so a
+slip costs about 4.3 s instead of 5.7 s (the hold is unchanged). What keeps the rest flying: the 120 px margin near a
+planet, and flights still drifting along the hop toward the next planet (their partial credit still growing); dropping the
+partial-credit test would save 68 % instead of 57 % of the time, at the cost of those sixteenths (not done: the rule never
+takes a point). Every bank witness (Normal's 96 and every level's bank) plays on orbitRev 17 exactly as on 16, is never
+lost and scores exactly 200 through the server replay, so the banks' proofs carry over unchanged.
+
+**Measured** (`bun scripts/d5-ladder.ts orbit --deals=16 --bots=average,elite,proof`, real deals 0–15 at each level,
+graded by the server; orbitRev 16 → orbitRev 17; mean / median, best, share at 200; `fin` = the sun reached):
+
+| Level | Average | Elite (realistic) | Proof (flawless at the limits) |
+| --- | --- | --- | --- |
+| Easy | 115.9 / 118, best 133 → 118.3 / 118, best 148 | 186.1 / 186, fin 100 % → 186.1 / 186, fin 100 % | 189.9 / 190 → 189.9 / 190 |
+| Normal | 107.0 / 98, best 153 → 108.1 / 98, best 153 | 184.2 / 189, fin 94 % → 183.8 / 189, fin 94 % | 189.6 / 192 → 189.7 / 192 |
+| Hard | 78.8 / 75 → 79.0 / 75 | 171.8 / 176, fin 88 % → 171.8 / 176, fin 88 % | 180.0 / 178 → 180.0 / 178 |
+| Expert | 82.4 / 87 → 82.8 / 87 | 161.9 / 160, fin 44 % → 162.1 / 160, fin 44 % | 165.9 / 167 → 165.9 / 167 |
+
+No run reaches 200 on either stamp. The rule fires about 2.4 times a Normal run for the average player (3.4 on Expert)
+and almost never for the elite (0.13; 0.31 on Expert), who rarely misses: the elite's ceiling is its pace and its perfect
+orbits, not its slips, so the lost flight is a comfort for the players who miss (a second and a half back each time and
+no flight into empty space), not a score lever.
+
+Checks written for orbitRev 16 pin the era `orbitPreLost` (`pinOrbitPreLost`), which deals orbitRev 16 at every level as
+rooms did; `orbitPreBig` still deals orbitRev 15. Practice bests start fresh for Orbit (`PRACTICE_STAMPS`). The intro demo
+recorded on orbitRev 16 still plays on its own stamp; re-record it on orbitRev 17 (`bun scripts/action-demos-record.ts
+orbit`) with `ACTION_DEMO_REVS.orbit` and its stop rule once Joe approves. Display: nothing new is drawn yet; `lostTick`
+is there for an effect (a "LOST" moment) when the renderers' owner adds one. The level levers in the difficulty spec
+(belts) were folded into this same stamp on 23 Nov 2026 (the section at the top of this page).
+
+orbit-lost-check (~13 s; `CHECKS_FULL=1` ~50 s): the 144 orbitRev 16 runs recorded at every level before this stamp
+(`scripts/fixtures/orbit-lost-legacy.json.gz`, `scripts/orbit-lost-legacy-record.ts`) regrade exactly, and the 120
+orbitRev 12–15 runs (`orbit-big-legacy.json`); the deals at every level and under both pins; the sweep; the rule on the
+sim (a missed release from the first planet: lost after 83 ticks of flight instead of a 159-tick burn, then the hold, or
+SET CHECKPOINT's respawn); every bank witness; the recorded runs with no lost flight replaying exactly on 17; the live
+stamp, the view and the extra.

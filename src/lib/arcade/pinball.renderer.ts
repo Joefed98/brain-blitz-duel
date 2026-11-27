@@ -923,8 +923,10 @@ export function drawFlippers(ctx: Ctx, state: PinState): void {
     const a = (pinFlipAngle(side, state.flips[side] ?? 0) / 65536) * Math.PI * 2;
     const ux = Math.cos(a),
       uy = Math.sin(a);
-    const tx = pxp + ux * PIN_FLIP_LEN,
-      ty = pyp + uy * PIN_FLIP_LEN;
+    // pinRev 9's levels (D5's ladder): the bat drawn at the length the sim sweeps (its level's `flipLen`, else 56 px).
+    const len = (state as { lv?: { flipLen?: number } }).lv?.flipLen ?? PIN_FLIP_LEN;
+    const tx = pxp + ux * len,
+      ty = pyp + uy * len;
     const held = ((state.held >> side) & 1) === 1;
     // The side of the bar facing up the table (screen −y).
     let nx = -uy,

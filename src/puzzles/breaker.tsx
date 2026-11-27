@@ -37,7 +37,7 @@ import {
   BRK_TEAL,
   breakerWorldHFor,
   breakerWorldWFor,
-  BRK_REV_CLEAR,
+  BRK_REV_LADDER,
   brkWallSize,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -56,7 +56,7 @@ import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
  * stamp's own renderer a few seconds into a fixed seed's run, the ball just launched at the full wall.
  */
 function IntroExample() {
-  const game = breakerArtGameFor(BRK_REV_CLEAR);
+  const game = breakerArtGameFor(BRK_REV_LADDER);
   const start = game.init(7);
   return (
     <ArtStill
@@ -370,7 +370,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "breaker") return null;
-  const result = replayBreakerRun(puzzle.seed, myAnswer ?? "", puzzle.brkRev);
+  const result = replayBreakerRun(puzzle.seed, myAnswer ?? "", puzzle.brkRev, puzzleLevel(puzzle));
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -407,7 +407,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_CLEAR }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_LADDER }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

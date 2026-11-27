@@ -17,7 +17,7 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_BIG,
+  BURST_REV_SMALL,
   BURST_V8_GOLDENS,
   BURST_V10_GOLDENS,
   burstStdParts,
@@ -60,9 +60,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function IntroExample() {
   return (
     <ArtStill
-      game={burstArtGameFor(BURST_REV_BIG)}
+      game={burstArtGameFor(BURST_REV_SMALL)}
       worldW={BURST_WORLD_W}
-      worldH={burstWorldHFor(BURST_REV_BIG)}
+      worldH={burstWorldHFor(BURST_REV_SMALL)}
       ticks={150}
       input={null}
       caption="Fire straight up to split the atoms. Clear each wave quickly for a bonus; don't let one touch you."
@@ -206,7 +206,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_BIG }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_SMALL }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -44,6 +44,7 @@ import {
   BRK_REV_PHONE,
   BRK_REV_STD,
   BRK_REV_CLEAR,
+  BRK_REV_LADDER,
   brkAllDestroyed,
   brkGoldDealt,
   BRK_V9_SKILL_MAX,
@@ -73,6 +74,7 @@ import {
   retroScreen,
   retroText,
   retroTrail,
+  RETRO_RED,
   RETRO_WHITE,
 } from "./retro.renderer";
 import { addShatter, backdrop, clearPops, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
@@ -426,7 +428,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     ctx,
     brkWorldW(state),
     { text: brkHudBricks(state) },
-    [state.deep ? brkDeepHudItem(state) : null, fire > 0 ? { text: `FIREBALL ${Math.ceil(fire / 60)}`, colour: FIRE } : null],
+    // brkRev 13's levels with lives (D5's ladder): the balls left take the second side row while no Fireball burns.
+    [state.deep ? brkDeepHudItem(state) : null, fire > 0 ? { text: `FIREBALL ${Math.ceil(fire / 60)}`, colour: FIRE } : state.lives !== undefined ? brkLivesHudItem(state) : null],
     { wrapMain: (draw) => successHud(ctx, "breaker", state.tick, 12, 8, draw) },
   );
   // Stage 2: the relaunch counts down on the paddle (3, 2, 1).
@@ -493,6 +496,12 @@ function drawGoldBrick(ctx: CanvasRenderingContext2D, x: number, y: number, glin
 function brkHudBricks(state: BrkState): string {
   if (state.std) return `BRICKS ${brkAllDestroyed(state)}/${state.bricks.length}`;
   return `BRICKS ${brkDestroyed(state)}/${brkWallSize(state)}`;
+}
+
+/** brkRev 13 (D5's ladder): the balls a level with lives has left, the last one in red. */
+function brkLivesHudItem(state: BrkState): RetroHudItem {
+  const left = Math.max(0, state.lives ?? 0);
+  return { text: `BALLS ${left}`, colour: left <= 1 ? RETRO_RED : RETRO_WHITE };
 }
 
 /** The HUD's top-right count: brkRev 11's gold bricks broken, brkRev 9–10's skill points. */
@@ -593,8 +602,11 @@ const breakerArtGamePhone: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...
 const breakerArtGameStd: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STD), draw };
 /** brkRev 12 (the Retro overhaul): the 9-row wall, drawn by the same art. */
 const breakerArtGameClear: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_CLEAR), draw };
+/** brkRev 13 (D5's ladder): brkRev 12's wall at Normal, a level's own wall, drawn by the same art from the state. */
+const breakerArtGameLadder: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_LADDER), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_LADDER) return breakerArtGameLadder;
   if (rev === BRK_REV_CLEAR) return breakerArtGameClear;
   if (rev === BRK_REV_STD) return breakerArtGameStd;
   if (rev === BRK_REV_PHONE) return breakerArtGamePhone;
