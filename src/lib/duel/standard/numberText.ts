@@ -5,6 +5,7 @@
  */
 import { preLogic2Pinned, TRAIL_UNDO_COST } from "../logicOverhaul2";
 import { preSpeedOverhaulPinned } from "../speedOverhaul";
+import { preD3SpeedPinned } from "../d3Normal";
 import { operatorGapsDealt } from "../operatorGaps";
 import { partialCreditDealt } from "../partialCredit";
 import { pyramidPartialDealt } from "../pyramidPartial";
@@ -22,6 +23,9 @@ import {
   TD_STD_SPEED_POINTS,
   TD_STD_TARGET_POINTS,
   TD_STD_UNFINISHED_CAP,
+  TD_TARGETS,
+  TD_V7_FULL_BY_TICKS,
+  tdV7GoldFull,
 } from "../../arcade/tenDrop";
 import { EXACT_ELEGANT_TILES } from "../numberDepth";
 import { roundMaxFor } from "../roundMax";
@@ -142,8 +146,11 @@ export function standardNumberHelp(type: PuzzleType): string {
     case "tendrop":
       return scoreList([
         finish("hit all ten targets"),
-        { label: "Speed", how: `clear the last within ${TD_STD_FULL_BY_TICKS / 60} s for all of it, falling to 0 when the ${TD_RUN_TICKS / 60} s run ends`, max: TD_STD_SPEED_POINTS },
-        { label: "Gold tiles", how: `${TD_STD_GOLD_POINTS} for each target hit with a gold tile, finished or not`, max: TD_STD_GOLD_MAX },
+        // D3's tenRev 7 (d3Normal.ts): full by 70 s, gold in full at 3 gold tens on a finish; the stamps before unless pinned.
+        { label: "Speed", how: `clear the last within ${(preD3SpeedPinned() ? TD_STD_FULL_BY_TICKS : TD_V7_FULL_BY_TICKS) / 60} s for all of it, falling to 0 when the ${TD_RUN_TICKS / 60} s run ends`, max: TD_STD_SPEED_POINTS },
+        preD3SpeedPinned()
+          ? { label: "Gold tiles", how: `${TD_STD_GOLD_POINTS} for each target hit with a gold tile, finished or not`, max: TD_STD_GOLD_MAX }
+          : { label: "Gold tiles", how: `all of it for ${tdV7GoldFull(TD_TARGETS)} targets hit with a gold tile when you finish; ${TD_STD_GOLD_POINTS} for each when not`, max: TD_STD_GOLD_MAX },
         { label: "Not finished", how: `${TD_STD_TARGET_POINTS} for each target hit, more for hitting it early`, max: TD_STD_UNFINISHED_CAP },
       ], { penalties: [`After the first ${TD_REV3_FREE_RESETS} resets, each costs ${TD_REV3_RESET_COST}${preSpeedOverhaulPinned() ? "" : ", finished or not"}`], total: max });
     default:

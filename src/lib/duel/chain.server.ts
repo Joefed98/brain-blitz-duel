@@ -128,9 +128,12 @@ export function chainLongBoardFaces(cycle: ChainRuleItem[], random: () => number
   const isRule = (face: ChainRuleItem) => cycle.some((item) => sameItem(item, face));
   for (const item of cycle) {
     let face: ChainRuleItem;
+    // D3's seven-charm board: 7 rule charms and 13 near misses fill the 20 (the last colour twin is left out).
+    if (faces.length >= CHAIN_NODES) break;
     do face = { shape: item.shape, colour: pick(CHAIN_COLOURS.filter((c) => c !== item.colour), random) };
     while (isRule(face));
     faces.push(face);
+    if (faces.length >= CHAIN_NODES) break;
     do face = { shape: pick(CHAIN_SHAPES.filter((s) => s !== item.shape), random) as ChainShape, colour: item.colour };
     while (isRule(face));
     faces.push(face);
@@ -150,13 +153,16 @@ export function chainLongBoardFaces(cycle: ChainRuleItem[], random: () => number
  * twice, and neighbours (the last and first too) share neither shape nor colour.
  */
 function longCycle(random: () => number, previous: ChainRuleItem[] | undefined, length = CHAIN_CYCLE_LONG): ChainRuleItem[] {
+  // D3's Expert (a seven-charm cycle): three shapes can't each appear at most twice in seven, so a shape may appear
+  // three times there (neighbours still share neither shape nor colour). Every shorter cycle keeps the rule of two.
+  const perShape = length >= 7 ? 3 : 2;
   for (;;) {
     const cycle: ChainRuleItem[] = [];
     for (let tries = 0; tries < 200 && cycle.length < length; tries++) {
       const face = { shape: pick(CHAIN_SHAPES, random), colour: pick(CHAIN_COLOURS, random) } as ChainRuleItem;
       const last = cycle.at(-1);
       if (cycle.some((item) => sameItem(item, face))) continue;
-      if (cycle.filter((item) => item.shape === face.shape).length >= 2) continue;
+      if (cycle.filter((item) => item.shape === face.shape).length >= perShape) continue;
       if (cycle.filter((item) => item.colour === face.colour).length >= 2) continue;
       if (last && (last.shape === face.shape || last.colour === face.colour)) continue;
       if (cycle.length === length - 1 && (cycle[0]!.shape === face.shape || cycle[0]!.colour === face.colour)) continue;
@@ -210,7 +216,7 @@ export function chainBoardFaces(cycle: ChainRuleItem[], block: number, random = 
 function generateLongChain(seed: number, level?: ChainLevel): ChainPuzzleData {
   const random = seededRandom(seed);
   const cycles: ChainRuleItem[][] = [];
-  const boardCount = level ? Math.ceil(level.links / CHAIN_BLOCK) : CHAIN_BOARDS;
+  const boardCount = level ? Math.ceil(level.links / (level.block ?? CHAIN_BLOCK)) : CHAIN_BOARDS;
   const boards: ChainNode[][] = Array.from({ length: boardCount }, () => {
     const cycle = longCycle(random, cycles.at(-1), level?.cycle);
     cycles.push(cycle);
@@ -233,7 +239,14 @@ function generateLongChain(seed: number, level?: ChainLevel): ChainPuzzleData {
     boards,
     ...(level
       ? {
-          chainLevel: { links: level.links, bands: level.bands.map((band) => ({ ...band })), reverse: level.reverse.map(([from, to]) => [from, to] as [number, number]) },
+          chainLevel: {
+            links: level.links,
+            bands: level.bands.map((band) => ({ ...band })),
+            reverse: level.reverse.map(([from, to]) => [from, to] as [number, number]),
+            ...(level.block !== undefined ? { block: level.block } : {}),
+            ...(level.fullByS !== undefined ? { fullByS: level.fullByS } : {}),
+            ...(level.spare ? { spare: level.spare } : {}),
+          },
           timeLimitMs: level.timeLimitMs,
         }
       : {}),

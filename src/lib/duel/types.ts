@@ -265,6 +265,8 @@ export interface SpotPuzzleData {
    * (`scene`). Server-side only until the reveal, like `differences`; never counted in the twelve.
    */
   bonus?: SpotDifference;
+  /** D3 (levelRev 2's Expert): 1 = each picture's lower panel is drawn as the upper one's mirror image; absent: not. */
+  mirror?: 1;
 }
 
 export interface ReactionPuzzleData {
@@ -281,6 +283,21 @@ export interface ReactionPuzzleData {
   tapRev?: number;
   /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
   flashMs?: number;
+  /**
+   * D3's levels (22 Nov 2026, tapRev 8 level deals only): the per-flash curve the level scores on, as [ms, points]
+   * knots (depth/flash.ts flashCurveOf); absent = FLASH_REV8_CURVE (Normal) on tapRev 8.
+   */
+  flashCurve?: [number, number][];
+  /** D3's levels (tapRev 8 level deals only): how long each trap stays up, in ms; absent = REACTION_DECOY_MS. */
+  trapMs?: number;
+  /** D3's levels (tapRev 8 level deals only): false starts the level forgives (depth/flash.ts flashFreeOf). */
+  flashFree?: number;
+}
+
+/** How long a puzzle's traps stay up: a D3 level deal's own `trapMs`, else the 0.6 s every older round used. */
+export function flashTrapMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { trapMs?: unknown }).trapMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_DECOY_MS;
 }
 
 /** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
@@ -1568,6 +1585,8 @@ export interface MazePuzzleData {
   stars?: number[];
   /** A level's own clock (attentionLevels.data.ts); absent at Normal (60 s). */
   timeLimitMs?: number;
+  /** D3 (levelRev 2's Hard and Expert, mazeKeys.ts): gold keys to walk over before the exit opens; absent: none. */
+  keys?: number[];
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1865,7 +1884,17 @@ export interface ChainPuzzleData {
    * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
    * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
    */
-  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  chainLevel?: {
+    links: number;
+    bands: { upTo: number; ms: number }[];
+    reverse: [number, number][];
+    /** D3's levels (22 Nov 2026): links per board, a new board every cycle (chain.ts chainBlockOf); absent = 5. */
+    block?: number;
+    /** D3's levels: the finish's full-speed time, s (standard/attention.ts chainFullByS); absent = the stamp's. */
+    fullByS?: number;
+    /** D3's levels: wrong taps forgiven (chain.ts chainSpareOf; Easy's spare link); absent = none. */
+    spare?: number;
+  };
   timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;

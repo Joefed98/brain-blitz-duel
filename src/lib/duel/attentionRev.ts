@@ -18,7 +18,7 @@
  *                all four exact = finish.
  */
 import { finishParts, partialParts } from "./puzzleScoreRev";
-import { spotPerPicture } from "./attentionLevels";
+import { spotMissLimit, spotPerPicture } from "./attentionLevels";
 import { speedBonusCurve } from "./speedPar";
 import type {
   ArrowDir,
@@ -163,7 +163,7 @@ export function spotTwoResult(p: SpotPuzzleData, answer: string | null | undefin
     wrong.push(tapped.filter((c) => !cells.has(c)).length);
   }
   const finished =
-    found.every((n) => n >= spotPerPicture(p)) && wrong.every((n) => n <= SPOT_TWO_WRONG_LIMIT);
+    found.every((n) => n >= spotPerPicture(p)) && wrong.every((n) => n <= (spotMissLimit(p) ?? SPOT_TWO_WRONG_LIMIT));
   return { found, wrong, finished };
 }
 
