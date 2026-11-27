@@ -844,7 +844,7 @@ function LiveAnswerReveal({
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
-  const [switchState, setSwitchState] = useState<SwitchState | null>(null);
+  const [sharedSwitch, setSwitchState] = useState<SwitchState | null>(null);
   // Short phones (15 Nov 2026, Joe): practice's stars join the score lines on a puzzle reveal (see revealLines).
   const shortReveal = useShortReveal();
   const payoffInline = practice && shortReveal && !(ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type));
@@ -963,6 +963,8 @@ function LiveAnswerReveal({
   // A game's own views on the stage (useRevealViews, P2): the template draws their control; the shared Solution /
   // Yours switch steps aside while a game has them.
   const gameViews = useGameViewsHost();
+  // What the board shows: a game's own Solution / Yours view (A2, 27 Nov 2026: the heading follows it), else the shared switch.
+  const switchState = gameViewsHeading(gameViews.current) ?? sharedSwitch;
   // The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike.
   const payoff =
     practice && myScore !== null && answersReady && !payoffInline ? (
@@ -1012,7 +1014,7 @@ function LiveAnswerReveal({
             {/* The heading follows the board shown (15 Nov 2026, Joe): "Your answer", "The solution", or both. */}
             {!puzzleOwnsRevealLayout && !solutionLock ? (
               <span data-reveal-heading className="reveal-meta truncate">
-                {revealHeading(puzzle, myCorrect, gameViewsHeading(gameViews.current) ?? switchState)}
+                {revealHeading(puzzle, myCorrect, switchState)}
               </span>
             ) : null}
           </span>
