@@ -4,7 +4,7 @@
  * `retroScreen` with their world size and the same fit/stretch transform their
  * original draw used, then draw in world coordinates with the pixel helpers.
  */
-import { hudInWorld } from "./hudPlacement";
+import { hudInWorld, noteHud } from "./hudPlacement";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { RETRO_SCREEN_MIN_PX, retroTextFloorFor } from "./retroScale";
 import { reducedMotion } from "./art.renderer";
@@ -486,6 +486,8 @@ export function retroHud(
   opts: RetroHudOptions = {},
 ): void {
   // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
+  noteHud({ label: "", value: main.text, main: true });
+  for (const item of side) if (item) noteHud({ label: "", value: item.text });
   if (!hudInWorld()) return;
   const inset = opts.inset ?? 12;
   const top = opts.top ?? RETRO_HUD_TOP;
