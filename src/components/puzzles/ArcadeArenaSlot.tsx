@@ -36,7 +36,7 @@ const AMBIENT_AREA = 500_000;
  * Presentation only: games keep mapping pointers through the arena element's own
  * box, so world coordinates, input logs and replays are unchanged.
  */
-export function ArcadeArenaSlot({ width, height, centre = false, playCentre = false, scene, sceneKey, ambient, sceneUnderHeader = false, cropTop = 0, children }: {
+export function ArcadeArenaSlot({ width, height, centre = false, playCentre = false, scene, sceneKey, ambient, sceneUnderHeader = false, children }: {
   /** World (view) size the game draws, in world units. */
   width: number;
   height: number;
@@ -52,18 +52,17 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
   ambient?: ArenaAmbient | undefined;
   /** The scene runs on behind the play header too (Gemstone); otherwise the header row stays black. */
   sceneUnderHeader?: boolean | undefined;
-  /**
-   * The world's top band that holds only its canvas HUD (world units; P4, desktop size PR 1). On the arena, with the
-   * HUD's values in the panel (ARENA_HUD_IN_PANEL) and the panels showing, the world is sized as if the band were not
-   * there and drawn that much higher, the band outside the slot's clip, so the board grows; the world, its drawing and
-   * its pointer mapping (the arena element's own box) are unchanged. Everywhere else the whole world shows.
-   */
-  cropTop?: number | undefined;
   children: ReactNode;
 }) {
-  const arenaOn = useArenaMount().arena;
+  // The HUD band given back to the board (P4, desktop size PR 1; lib/gameFrame/hudBands.ts): on the arena's live round,
+  // with the HUD's values in the panel and the panels showing, the world is sized as if its game's HUD band (and
+  // Gemstone's goals panel at its foot) were not there and drawn that much higher, the band outside the slot's clip; the
+  // world, its drawing and its pointer mapping (the arena element's own box) are unchanged. Everywhere else, all of it.
+  const { arena: arenaOn, hudBand } = useArenaMount();
   const panelsHidden = useArenaPanelsHidden();
-  const crop = cropTop > 0 && arenaOn && ARENA_HUD_IN_PANEL && !panelsHidden ? Math.min(cropTop, height / 2) : 0;
+  const cropping = arenaOn && ARENA_HUD_IN_PANEL && !panelsHidden && hudBand !== undefined;
+  const crop = cropping ? Math.min(hudBand.top, height / 3) : 0;
+  const cropB = cropping ? Math.min(hudBand.bottom ?? 0, height / 3) : 0;
   const slot = useRef<HTMLDivElement | null>(null);
   // The desktop rotate mode (31 Oct 2026, presentation only): the world drawn turned 90° clockwise in a
   // rotor (desktopPresentation.ts); false on every phone and tablet and every other mode.
@@ -248,8 +247,8 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       data-arena-play-centred={playCentre ? "" : undefined}
       data-scene={scene ? "" : undefined}
       data-arena-rotate={rotate ? "" : undefined}
-      data-arena-crop={crop && !rotate ? "" : undefined}
-      style={{ "--arena-w": width, "--arena-h": height, ...(crop && !rotate ? { "--arena-crop": crop } : null) } as CSSProperties}
+      data-arena-crop={(crop || cropB) && !rotate ? "" : undefined}
+      style={{ "--arena-w": width, "--arena-h": height, ...((crop || cropB) && !rotate ? { "--arena-crop": crop, "--arena-crop-b": cropB } : null) } as CSSProperties}
     >
       {rotate ? <div data-arena-rotor="">{children}</div> : children}
       {host && scene

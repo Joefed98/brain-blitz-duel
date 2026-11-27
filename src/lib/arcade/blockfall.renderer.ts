@@ -22,6 +22,7 @@ import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import { fillAbove, fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
 import { retroHud, retroMix, retroTextFloor, RETRO_FONT, RETRO_WHITE, withRetroTextFloor } from "./retro.renderer";
+import { hudInWorld, noteHud } from "./hudPlacement";
 import {
   BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfCoreFullOf, bfPreviewsOf, bfGhostY, bfGravityFor, bfLevelFor,
   bfMultiPoints, blockfallGame, blockfallGameFor, type BfState,
@@ -453,11 +454,18 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   if (zone) {
     // The speed, under the next three (under the last preview where a level shows more, blockfallRev 3's Easy five).
     const sy = by + 44 + Math.max(BF_PREVIEW, bfPreviewsOf(state)) * 60;
+    const speed = `${level + 1}/${bfGravityFor(state.rev).length}`;
+    // On the arena with the HUD in the side panel (hudPlacement.ts; P4, desktop size PR 1) the panel lists the speed.
+    if (!hudInWorld()) {
+      noteHud({ label: "Speed", value: speed });
+      ctx.restore();
+      return;
+    }
     ctx.fillStyle = "rgba(160,236,248,0.85)";
     ctx.fillText("SPEED", L.nextX + L.sideW / 2, sy);
     ctx.font = `${Math.max(13, retroTextFloor())}px ${RETRO_FONT}`;
     ctx.fillStyle = "#E8FDFF";
-    ctx.fillText(`${level + 1}/${bfGravityFor(state.rev).length}`, L.nextX + L.sideW / 2, sy + 20);
+    ctx.fillText(speed, L.nextX + L.sideW / 2, sy + 20);
     ctx.restore();
     return;
   }

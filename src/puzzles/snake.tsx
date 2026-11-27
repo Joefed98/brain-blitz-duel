@@ -34,7 +34,6 @@ import {
   snakeWorldHForRev,
   snakeWorldWForRev,
   snakeV9Bonus,
-  SNAKE_HUD_H,
 } from "@/lib/arcade/snake";
 import { expansionSounds } from "@/lib/fx/expansionSounds";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -258,7 +257,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={snakeWorldWForRev(data.snakeRev)} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre cropTop={SNAKE_HUD_H}>
+    <ArcadeArenaSlot width={snakeWorldWForRev(data.snakeRev)} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

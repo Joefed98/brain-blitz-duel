@@ -335,7 +335,7 @@ function useLiveHud(on: boolean): readonly LiveHudItem[] {
 function HudRows({ items }: { items: readonly LiveHudItem[] }) {
   const ordered = [...items.filter((i) => i.main), ...items.filter((i) => !i.main)];
   return (
-    <ul data-arena-hud-list className="arena-hud">
+    <ul data-arena-hud-list data-many={ordered.length > 6 ? "" : undefined} className="arena-hud">
       {ordered.map((item, i) => (
         <li
           key={i}

@@ -24,6 +24,7 @@ import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { ArenaScreenTools } from "./ArenaScreenTools";
+import { hudBandFor } from "@/lib/gameFrame/hudBands";
 import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 import { createPortal } from "react-dom";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
@@ -566,8 +567,16 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const arenaLeft = cabinetWanted && cabinetRoom;
   const cabinetGroup = arenaLeft && gameType ? arcadeGroupOf(gameType) : null;
   const arenaValue = useMemo(
-    () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
-    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel],
+    () => ({
+      arena,
+      mount: arenaMountNode,
+      setMount: setArenaMountNode,
+      leftMount: arenaLeft ? arenaLeftNode : null,
+      setLeftMount: setArenaLeftNode,
+      roomPanel: Boolean(panel),
+      hudBand: arena && arcadePlay ? hudBandFor(gameType) : undefined,
+    }),
+    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel, arcadePlay, gameType],
   );
   /** Every game's live round (Polish 2): GameLayout's frame header replaces the app's top bar. */
   const framePlay = Boolean(gameScreen && play);

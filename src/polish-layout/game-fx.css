@@ -693,6 +693,28 @@
 .arena-hud-row[data-gold] .arena-hud-value {
   color: var(--jz-gold);
 }
+/* A long list (Gemstone's goals): two columns of smaller rows, so the card fits a 768 px tall screen. */
+.arena-hud[data-many] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--jz-space-16);
+}
+.arena-hud[data-many] .arena-hud-row {
+  padding: var(--jz-space-4) 0;
+}
+.arena-hud[data-many] .arena-hud-row:nth-child(2) {
+  border-top: 0;
+}
+.arena-hud[data-many] .arena-hud-row[data-main] {
+  grid-column: 1 / -1;
+}
+.arena-hud[data-many] .arena-hud-label {
+  font-size: 12px;
+}
+.arena-hud[data-many] .arena-hud-value {
+  font-size: 14px;
+  line-height: 18px;
+}
 .arena-game-challenges {
   display: flex;
   flex-direction: column;
@@ -1222,12 +1244,13 @@
    pointer mapping) is unchanged; only its place and scale on screen are. */
 [data-arena-slot][data-arena-crop] > [data-game-arena],
 [data-arcade-play] .game-column [data-arena-slot][data-arena-crop] > [data-game-arena] {
-  --crop-k: min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop))));
+  --crop-k: min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop) - var(--arena-crop-b, 0))));
   width: round(down, calc(var(--crop-k) * var(--arena-w)), 2px);
   height: round(down, calc(var(--crop-k) * var(--arena-h)), 1px);
   margin-top: round(up, calc(-1 * var(--crop-k) * var(--arena-crop)), 1px);
+  margin-bottom: round(up, calc(-1 * var(--crop-k) * var(--arena-crop-b, 0)), 1px);
 }
 [data-arena-slot][data-arena-crop]::after,
 [data-arena-slot][data-arena-crop][data-arena-centred]::before {
-  width: round(down, calc(min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop)))) * var(--arena-w)), 2px);
+  width: round(down, calc(min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop) - var(--arena-crop-b, 0)))) * var(--arena-w)), 2px);
 }
