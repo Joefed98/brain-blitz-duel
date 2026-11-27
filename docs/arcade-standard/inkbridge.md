@@ -421,3 +421,19 @@ Finished runs (all ten levels): good 8 / 30 and 5 / 30, great 24 / 30 and 26 / 3
 `scripts/fixtures/pending-replay-run-inkbridge.json` is one inkRev 13 run for `scripts/fixtures/replay-runs.json`
 (replay-check reports "no stored run on the revision rooms stamp today" until it is appended), and
 `practiceStamps.data.ts` needs `inkRev=13`. The intro demo stays stopped until one is recorded on inkRev 13.
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** inkRev 16 (inkRev 15's world at every level; Normal's ink par full at nine levels' worth, speed with 40 s left).
+- **The lever:** the pot's width: 110 / 64 (Normal) / 48 / 42 px (unchanged; a narrower Expert pot moved the average player by 2 points only).
+- **Average player, Easy / Normal / Hard / Expert:** 169.1 / 88.5 / 76.8 / 68.6.
+- **The elite at 200:** 88 / 35 / 29 / 23 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

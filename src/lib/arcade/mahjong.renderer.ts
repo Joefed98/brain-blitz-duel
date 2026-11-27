@@ -632,8 +632,10 @@ export { MAHJONG_TILES, MAHJONG_TILE_W, MAHJONG_TILE_H };
 /** One art game per level (a stage resets its run when its game object changes). */
 const LEVEL_ART = new Map<string, ArcadeGame<MahjongState, ArcadeInputEvent | null>>();
 function levelArtGame(rev: number | null | undefined, level: string): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
-  let g = LEVEL_ART.get(level);
-  if (!g) LEVEL_ART.set(level, (g = { ...mahjongGameAt(rev, level), draw: drawMahjong }));
+  // Keyed by revision too (D6: a mahjongRev 3 level deal plays other rules than a rev 2 one).
+  const key = `${level}:${(rev ?? 0) >= 3 ? 3 : 2}`;
+  let g = LEVEL_ART.get(key);
+  if (!g) LEVEL_ART.set(key, (g = { ...mahjongGameAt(rev, level), draw: drawMahjong }));
   return g;
 }
 

@@ -12,8 +12,6 @@ import {
   rallyTargetLeft,
   rallyTotalHits,
   RALLY_BALL_R,
-  RALLY_BUMPER_FROM,
-  RALLY_BUMPER2_FROM,
   RALLY_BUMPER_R,
   RALLY_GOLD_POINTS,
   RALLY_HUD_H,
@@ -36,7 +34,7 @@ import {
   rallyBonusNow,
   rallyWorldW,
   RALLY_V11_EXP,
-  type RallyState, rallyPaddleWOf } from "./rally";
+  type RallyState, rallyBumperFromTick, rallyPaddleWOf } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import type { BandFields } from "./scoreBands";
 import {
@@ -326,9 +324,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
       lightUp(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, PAD, 46 + 24 * p, 0.75 * (1 - p));
       retroBurst(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, p, PAD, 22);
     }
-    // The first bumper from 30 s; rallyRev 5's second from 45 s. Only the one the latest bounce came off flashes.
+    // The first bumper from 30 s; rallyRev 5's second from 45 s (a level's own times, as the sim reads them:
+    // rallyBumperFromTick). Only the one the latest bounce came off flashes.
     const bounced = retroEventAge(key, "rally-bumper", false);
-    const posts: [{ x: number; y: number } | undefined, number][] = [[state.bumper, RALLY_BUMPER_FROM], [state.bumper2, RALLY_BUMPER2_FROM]];
+    const posts: [{ x: number; y: number } | undefined, number][] = [[state.bumper, rallyBumperFromTick(state, 0)], [state.bumper2, rallyBumperFromTick(state, 1)]];
     posts.forEach(([bumper, from], i) => {
       if (!bumper) return;
       const until = from - state.tick;

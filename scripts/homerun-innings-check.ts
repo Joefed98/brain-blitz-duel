@@ -18,6 +18,7 @@
  *     Easy at every skill from good up.
  */
 import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
+import { pinPreD6Levels } from "../src/lib/duel/d6Normal";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { readFileSync } from "node:fs";
@@ -50,6 +51,9 @@ import { oracleRunV5, playLogV5 } from "./homerun-oracle";
 import { storedScoreV5 } from "./homerun-innings-deal";
 import { Human, HUMAN_LIMITS, type SkillLevel } from "./arcade-skill-bands/human";
 import { botV5, randomBotV5 } from "./arcade-skill-bands/bots/homerun";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6's levels): this check was written for homerunRev 5's levels, so it deals them (d6PreLevels); d6-sports-levels-check proves homerunRev 6's.
+pinPreD6Levels(true);
 
 const FULL = process.env["CHECKS_FULL"] === "1";
 let failures = 0;
@@ -269,7 +273,8 @@ function script(seed: number, level: HrLevel, act: (t: number, inn: NonNullable<
   ok(JSON.stringify(levelsOf("homerun")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `homerun offers every level (${levelsOf("homerun").join(", ")})`);
   for (const level of ["easy", "hard", "expert"] as const) {
     const mirror = gameLevelSettings<Record<string, unknown>>("homerun", level)!;
-    const own = HR_LEVEL_SETTINGS[level] as unknown as Record<string, unknown>;
+    // Changed with Joe's approval, 23 Nov 2026 (D6's levels): the registry mirrors the levels dealt today (homerunRev 6's keys).
+    const own = HR_LEVEL_SETTINGS[`${level}6`] as unknown as Record<string, unknown>;
     for (const key of Object.keys(mirror)) ok(JSON.stringify(mirror[key]) === JSON.stringify(own[key]), `homerun ${level}: the registry's ${key} matches the sim's`);
   }
   ok(gameLevelSettings("homerun", "normal") === null, "homerun Normal has no registry settings (today's game)");

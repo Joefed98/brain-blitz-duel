@@ -53,7 +53,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V13 } from "../src/lib/arcade/beat";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
@@ -80,6 +80,7 @@ import {
   TILT_REV_BAND,
   TILT_REV_EXPAND,
   TILT_REV_BIG,
+  TILT_REV_THREE,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -186,14 +187,16 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Six goals and six treasures (Nov 2026) moved it on to matchupRev 12; gemstone-rev12-check covers it.
     // Two-hit ice and levels (the Strategy overhaul stage 3, 15 Nov 2026) moved it on to matchupRev 13; gemstone-levels-check
     // covers it. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul).
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 7],
+    // Changed with Joe's approval, 27 Nov 2026 (D6): matchupRev 14.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 8],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
     // to swingRev 15 (swing-rework-check).
     // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 11],
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 12],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -217,7 +220,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The arcade scoring standard (29 Oct 2026) then moved it on to tiltRev 10 (a fourth maze, straight-line parts); tilt-standard-check covers it.
     // tiltRev 11 (3 Nov 2026) then took the gold stars away and added par times and a clean run; tilt-rev11-check covers it.
     // tiltRev 12 (3 Nov 2026) then made the marbles and keys bigger (its own play); tilt-rev12-check covers it.
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_BIG],
+    // Changed with Joe's approval, 27 Nov 2026 (D6's Normal scoring stamp): tiltRev 13, three mazes; d6-normal-stamps-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_THREE],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
     // sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) plays on its own (bigger hit sizes), so it is not lifted to 10.
@@ -282,7 +286,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
   // Text pass (4 Nov 2026): the help is a list of parts ("A good run (100 points)" was internal wording, now gone).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Tempo's help reads beatRev 12's spec.
-  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V12)), "the \"?\" help states the parts rooms deal");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's beatRev 13): Tempo's help reads beatRev 13's spec.
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V13)), "the \"?\" help states the parts rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

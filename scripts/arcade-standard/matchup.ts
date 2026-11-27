@@ -9,18 +9,20 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
-import { matchupStdParts, MATCHUP_REV_ICE2, MATCHUP_V12_BIG_MAX, MATCHUP_V12_CORE_MAX, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURE_MAX, type MatchupState } from "../../src/lib/arcade/matchup";
+import { matchupStdParts, MATCHUP_REV_D6, MATCHUP_REV_ICE2, MATCHUP_V12_BIG_MAX, MATCHUP_V12_CORE_MAX, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURE_MAX, type MatchupState } from "../../src/lib/arcade/matchup";
 import { replayMatchupRun } from "../../src/lib/duel/matchup";
 import type { StdEntry, StdRun } from "./entry";
 
-const FIXTURE = fileURLToPath(new URL("../fixtures/gemstone-levels-runs.json", import.meta.url));
+/** Changed with Joe's approval, 27 Nov 2026 (D6): matchupRev 14's flawless Normal run (scripts/d6-gemstone-perfect-record.ts); matchupRev 13's witness (scripts/fixtures/gemstone-levels-runs.json) is
+ * flagged on matchupRev 14, whose checkpoints carry its own marker. */
+const FIXTURE_D6 = fileURLToPath(new URL("../fixtures/d6-gemstone-perfect.json", import.meta.url));
 
 export const entry: StdEntry = {
   type: "matchup",
   field: "matchupRev",
-  rev: MATCHUP_REV_ICE2,
-  /** matchupRev 12 was dealt before it. */
-  before: 12,
+  rev: MATCHUP_REV_D6, // Changed with Joe's approval, 27 Nov 2026 (D6: rooms deal matchupRev 14, matchupRev 13's play at Normal on its own full-at figures)
+  /** matchupRev 13 was dealt before it. */
+  before: 13,
   parts: [
     { key: "core", label: "Gems cleared", max: MATCHUP_V12_CORE_MAX },
     { key: "treasure", label: "Treasure brought down", max: MATCHUP_V12_TREASURE_MAX },
@@ -30,10 +32,8 @@ export const entry: StdEntry = {
   ],
   /** A flawless bot run, replayed by the server: its score and per-part points. */
   perfect(): StdRun[] {
-    const { witness } = JSON.parse(readFileSync(FIXTURE, "utf8")) as { witness: { level: string; skill: string; seed: number; raw: string }[] };
-    const perfect = witness.find((w) => w.level === "normal" && w.skill === "perfect");
-    if (!perfect) throw new Error("no recorded Normal flawless run");
-    const run = replayMatchupRun(perfect.seed, gunzipSync(Buffer.from(perfect.raw, "base64")).toString(), MATCHUP_REV_ICE2);
+    const perfect = JSON.parse(readFileSync(FIXTURE_D6, "utf8")) as { seed: number; raw: string }; // Changed with Joe's approval, 27 Nov 2026 (D6)
+    const run = replayMatchupRun(perfect.seed, gunzipSync(Buffer.from(perfect.raw, "base64")).toString(), MATCHUP_REV_D6); // Changed with Joe's approval, 27 Nov 2026 (D6)
     if (run.flagged) throw new Error("the recorded perfect run is flagged by the server replay");
     return [{ label: "the stored flawless bot run, server replay", score: run.score, parts: { ...matchupStdParts(run.state as MatchupState) } }];
   },

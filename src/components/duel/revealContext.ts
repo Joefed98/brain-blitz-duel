@@ -64,6 +64,15 @@ export function useRevealViews(
   return current && views.some((v) => v.id === current) ? current : opens;
 }
 
+/**
+ * Whether a game's Reveal is inside the reveal template (AnswerReveal), which draws its views control (A2, 27 Nov 2026).
+ * Outside it (the results screen's replays, a check's bare render) there is no control, so a game draws every view, as
+ * it did before the template: a replay shows the player's own board beside the solution.
+ */
+export function useRevealHosted(): boolean {
+  return useContext(GameViewsContext) !== null;
+}
+
 /** For the reveal that holds a game's Reveal (AnswerReveal): the host the hook registers with, and its controls. */
 export function useGameViewsHost(): {
   host: GameViewsHost;

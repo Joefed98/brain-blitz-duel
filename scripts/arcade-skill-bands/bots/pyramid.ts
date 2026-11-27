@@ -6,7 +6,7 @@
  * chances for the waste's next card), searched 0 (weak: the pair it spots first) to 5 removals deep (elite), blurred by
  * the level's judgement. It draws only when nothing pairs, or on a slip.
  */
-import { PY_CARDS, PY_INPUT_TAP, PY_STOCK_PILE, PY_WASTE_PILE, pyApply, pyCanDraw, pyDeal, pyFree, pyMoves, type PyState, pyGlows } from "../../../src/lib/arcade/cards/pyramid";
+import { PY_INPUT_TAP, pyApply, pyCanDraw, pyCardsOf, pyDealOfState, pyFree, pyMoves, pyStockPileOf, pyWastePileOf, type PyState, pyGlows } from "../../../src/lib/arcade/cards/pyramid";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
@@ -23,7 +23,9 @@ const DEPTH: Record<SkillLevel, number> = { weak: 0, average: 1, good: 2, great:
 
 function freeCount(s: PyState): number {
   let n = 0;
-  for (let i = 0; i < PY_CARDS; i++) if (pyFree(s, i)) n++;
+  // D6 (23 Nov 2026): the state's own pyramid (pyramidRev 4's level deals have 21, 36 or 45 cards; 28 before).
+  const cards = pyCardsOf(s);
+  for (let i = 0; i < cards; i++) if (pyFree(s, i)) n++;
   return n;
 }
 
@@ -51,7 +53,9 @@ function look(s: PyState, depth: number): number {
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const init = game.init(seed) as PyState;
-  const plan: number[] | null = level === "perfect" ? pyDeal(seed).witness.slice() : null;
+  const plan: number[] | null = level === "perfect" ? pyDealOfState(init).witness.slice() : null;
+  const STOCK = pyStockPileOf(init);
+  const WASTE = pyWastePileOf(init);
   const depth = DEPTH[level];
   const queue: number[] = [];
   let nextAt = human.thinkTicks(THINK_MS * 1.5);
@@ -62,11 +66,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     else if (plan) tap = plan.length ? plan.shift()! : -1;
     else {
       const moves = pyMoves(s);
-      if (moves.length === 0 || (pyCanDraw(s) && human.slip(0.4))) tap = pyCanDraw(s) ? PY_STOCK_PILE : -1;
+      if (moves.length === 0 || (pyCanDraw(s) && human.slip(0.4))) tap = pyCanDraw(s) ? STOCK : -1;
       else {
         const values = moves.map((m) => {
           const next = after(s, m);
-          return depth === 0 ? 0 : m.length + (next ? look(next, depth - 1) : 0) + (m.includes(PY_WASTE_PILE) ? 0.5 : 0);
+          return depth === 0 ? 0 : m.length + (next ? look(next, depth - 1) : 0) + (m.includes(WASTE) ? 0.5 : 0);
         });
         const m = moves[depth === 0 ? 0 : human.pick(values)]!;
         tap = m[0]!;
@@ -77,7 +81,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // The difficulty levels (15 Nov 2026): without the partner glow (Hard, Expert) a player spots pairs adding to 13
     // by reading the ranks, NO_GLOW_SCAN times as long (human limits, not the rules: the sim never sees the glow).
     const scan = pyGlows(s) ? 1 : NO_GLOW_SCAN;
-    nextAt = t + human.thinkTicks((queue.length ? SECOND_MS : tap === PY_STOCK_PILE ? DRAW_MS : THINK_MS) * scan);
+    nextAt = t + human.thinkTicks((queue.length ? SECOND_MS : tap === STOCK ? DRAW_MS : THINK_MS) * scan);
     return { k: PY_INPUT_TAP, a: tap, b: 0, c: 0, d: 0 };
   }, init);
   return { events };

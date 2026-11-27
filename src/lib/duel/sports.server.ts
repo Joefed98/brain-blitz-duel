@@ -7,8 +7,8 @@
  * on its first revision, on the arcade scoring standard.
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
-import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
-import { RACING_REV_3, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
+import { FREEKICK_REV_DEALT, FREEKICK_REV_7 } from "@/lib/arcade/freekick";
+import { RACING_REV_3, RACING_REV_4, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
 import { checkOverride } from "@/lib/checkOverride";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, type Level } from "@/lib/levels/levels";
@@ -19,15 +19,20 @@ import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { dealPinned } from "./dealEra";
 import { freekickDealSeedV6 } from "./freekickDealV6.server";
-import { hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { freekickDealSeedV7 } from "./freekickDealV7.server";
+import { HOMERUN_REV_6, hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { homerunDealSeedV6 } from "./homerunDealV6.server";
 import { fkLevelOf } from "@/lib/arcade/freekick";
 import { racingDealSeedV4 } from "./racingDealV4.server";
 import { racingDealSeedV4Easy } from "./racingDealV4Easy.server";
 import { racingDealSeedV4Hard } from "./racingDealV4Hard.server";
 import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
-import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
+import { racingDealSeedV5Easy } from "./racingDealV5Easy.server";
+import { racingDealSeedV5Hard } from "./racingDealV5Hard.server";
+import { racingDealSeedV5Expert } from "./racingDealV5Expert.server";
+import { MINIGOLF_REV, MINIGOLF_REV_COURSE, MINIGOLF_REV_D6, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
 import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
-import { POOL_REV } from "@/lib/arcade/pool";
+import { POOL_REV, POOL_REV_V4 } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
 import { CURLING_LEVEL_BANKS } from "./curlingLevelBanks.server";
@@ -45,6 +50,10 @@ export function generateHomerun(level?: string | null): HomerunPuzzleData {
   // A check's era pin (dealEra.ts): rooms' deal before the overhaul, homerunRev 4 from its own proved deal.
   if (dealPinned("sportsPreOverhaul")) return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: 4 };
   const l = hrLevelOf(level);
+  // D6 (23 Nov 2026): level deals stamp homerunRev 6 and play D6's levels (HR_LEVEL_SETTINGS' "easy6" … keys) from their
+  // own proved deal (homerunDealV6.server.ts); Normal stays homerunRev 5. Checks written for the levels before pin
+  // d6PreLevels.
+  if (l !== "normal" && !dealPinned("d6PreLevels")) return { type: "homerun", seed: homerunDealSeedV6(arcadeSeed(), l), homerunRev: HOMERUN_REV_6, level: l } as HomerunPuzzleData;
   return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
@@ -52,6 +61,9 @@ export function generateHomerun(level?: string | null): HomerunPuzzleData {
 export function generateFreekick(level?: string | null): FreekickPuzzleData {
   if (dealPinned("sportsPreOverhaul")) return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: 4 };
   const l = fkLevelOf(level);
+  // D6 (23 Nov 2026): a level deals freekickRev 7 (the wall's players the lever, FK_LEVEL_SETTINGS_V7) from its own proved
+  // deal (scripts/freekick-d6-deal.ts); Normal keeps freekickRev 6. Checks written for the levels before pin d6PreLevels.
+  if (l !== "normal" && !dealPinned("d6PreLevels")) return { type: "freekick", seed: freekickDealSeedV7(arcadeSeed(), l), freekickRev: FREEKICK_REV_7, level: l };
   return { type: "freekick", seed: freekickDealSeedV6(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
@@ -63,10 +75,15 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
   if (checkOverride<boolean>("__DUELZ_RACING_PRE_CIRCUITS__") === true) return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_3 };
   // Difficulty levels (stage 3, 16 Nov 2026): Easy, Hard and Expert deal from their own proved deals and stamp the
   // level's settings (racingLevel) for the sim; Normal deals exactly as before (no field, the same draw).
+  // racingRev 5 (D6, 23 Nov 2026): racingRev 4's play, pace and clean sectors within the realistic elite's reach; the
+  // same proved deal (each circuit's oracle reaches rev 4's par, past rev 5's). Checks written for rev 4 pin
+  // racingPreFive; the levels before D6 (rev 4 and their own settings) d6PreLevels.
+  const racingRev = dealPinned("racingPreFive") ? RACING_REV_4 : RACING_REV_DEALT;
   const settings = level === NORMAL ? null : gameLevelSettings<RacingLevelSettings>("racing", level);
-  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
-  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
-  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_DEALT, racingLevel: {
+  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev };
+  if (dealPinned("d6PreLevels") || racingRev === RACING_REV_4) return racingLevelDealBeforeD6(level as "easy" | "hard" | "expert");
+  const deal = level === "easy" ? racingDealSeedV5Easy : level === "hard" ? racingDealSeedV5Hard : racingDealSeedV5Expert;
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev, racingLevel: {
       keep: settings.keep,
       road: settings.road,
       kerb: settings.kerb,
@@ -76,8 +93,23 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
       aids: settings.aids,
       ...(settings.pace ? { pace: [...settings.pace] } : {}),
       ...(settings.spread ? { spread: settings.spread } : {}),
+      ...(settings.cleanFull ? { cleanFull: settings.cleanFull } : {}),
     },
   };
+}
+
+/** The level deals before D6 (main 7e25a4d0): racingRev 4, its own proved deals and the settings it stamped then. */
+type RacingLevelStamp = NonNullable<RacingPuzzleData["racingLevel"]>;
+export const RACING_LEVELS_BEFORE_D6: Readonly<Record<"easy" | "hard" | "expert", RacingLevelStamp>> = {
+  easy: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] },
+  hard: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 },
+  expert: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 },
+};
+function racingLevelDealBeforeD6(level: "easy" | "hard" | "expert"): RacingPuzzleData {
+  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
+  const lv = RACING_LEVELS_BEFORE_D6[level];
+  const racingLevel: RacingLevelStamp = { ...lv, ...(lv.tightBy ? { tightBy: [...lv.tightBy] } : {}), ...(lv.pace ? { pace: [...lv.pace] } : {}) };
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_4, racingLevel };
 }
 
 /**
@@ -111,7 +143,9 @@ export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData 
   return {
     type: "minigolf",
     seed,
-    golfRev: MINIGOLF_REV_COURSE,
+    // golfRev 4 (D6, 27 Nov 2026): golfRev 3's holes and play, each part on the level's own figures (MG_D6_FIGURES).
+    // Checks written for golfRev 3 pin minigolfPreD6; the levels before D6, d6PreLevels.
+    golfRev: dealPinned("minigolfPreD6") || (lv !== "normal" && dealPinned("d6PreLevels")) ? MINIGOLF_REV_COURSE : MINIGOLF_REV_D6,
     holes: picks.map((e) => e.id),
     pars: picks.map((e) => e.pars[at]!),
     ...(lv === "normal" ? {} : { level: lv }),
@@ -121,7 +155,9 @@ export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData 
 export function generatePool(): PoolPuzzleData {
   // poolRev 4 (3 Nov 2026) deals from poolRev 3's proved bank, every layout re-proved at 200 on poolRev 4
   // (pool-bank.ts --rev=4, pool-check); poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
-  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
+  // poolRev 5 (D6, 22 Nov 2026: Speed from the fifth pot) deals the same bank, every layout re-proved at 200 on it
+  // (pool-bank.ts --rev=5). Checks written for poolRev 4 pin poolPreFifth.
+  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: dealPinned("poolPreFifth") ? POOL_REV_V4 : POOL_REV };
 }
 
 export function generateCurling(level?: string | null): CurlingPuzzleData {

@@ -3,7 +3,7 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
-import { useRevealViews } from "@/components/duel/revealContext";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -445,6 +445,8 @@ const FLOW_REVEAL_VIEWS = [
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   // Solution and Yours on the template's views control (G4, 27 Nov 2026), one board at a time, each at the stage's size.
   const shown = useRevealViews(FLOW_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
   const colRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const fitGrid = puzzle.type === "flow" ? flowGrid(puzzle) : { cols: 1, rows: 1 };
@@ -474,18 +476,18 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   return (
     <div className="flow-reveal flex w-full min-h-0 flex-col items-center gap-2" data-flow-reveal="">
       <div className="flow-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
-        <div ref={shown === "solution" ? colRef : undefined} hidden={shown !== "solution"} className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-solution="">
+        <div ref={shown === "solution" ? colRef : undefined} hidden={hosted && shown !== "solution"} className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-solution="">
           <div ref={shown === "solution" ? boardRef : undefined} className={`flow-reveal-board ${boardBox}`.trim()} style={boardStyle}>
             <FlowBoard pairs={puzzle.pairs} paths={solution} walls={walls} cols={grid.cols} cells={grid.cols * grid.rows} />
           </div>
-          <span className="flow-reveal-label sr-only">Solution</span>
+          <span className={`flow-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
           <span className="flow-reveal-caption">The one way to join all {total} pairs and fill every square</span>
         </div>
-        <div ref={shown === "yours" ? colRef : undefined} hidden={shown !== "yours"} className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-yours="">
+        <div ref={shown === "yours" ? colRef : undefined} hidden={hosted && shown !== "yours"} className="flow-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-flow-yours="">
           <div ref={shown === "yours" ? boardRef : undefined} className={`flow-reveal-board flow-reveal-board-yours ${boardBox}`.trim()} style={boardStyle}>
             <FlowBoard pairs={puzzle.pairs} paths={view.paths} walls={walls} cols={grid.cols} cells={grid.cols * grid.rows} marks={myCorrect ? null : view.marks} />
           </div>
-          <span className="flow-reveal-label sr-only">Yours</span>
+          <span className={`flow-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
           <span className="flow-reveal-caption" data-flow-result="">{result}</span>
           {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
           <HudPills

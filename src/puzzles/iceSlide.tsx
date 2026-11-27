@@ -33,7 +33,7 @@ import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceArt, IceBoard as Board, IceFallingBall, IceTrail, useIceSlideFx, type IceBallFx } from "@/components/puzzles/pattern/iceSlideBoard";
-import { useRevealViews } from "@/components/duel/revealContext";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 
@@ -391,6 +391,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: 
   }, [won]);
   // Solution and Yours on the template's views control (G4), one board at a time at the stage's size.
   const view = useRevealViews(ICE_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
   const boardRef = useRef<HTMLDivElement>(null);
   const fitDims = puzzle.type === "iceslide" ? slideDims(puzzle) : { cols: 1, rows: 1 };
   const fitAspect = fitDims.cols / fitDims.rows;
@@ -453,17 +455,17 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: 
     <div ref={revealRef} className="ice-reveal flex w-full flex-col items-center gap-3">
       <div className="ice-reveal-space">
         <div className="ice-reveal-pair">
-          <div hidden={view !== "solution"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">
+          <div hidden={hosted && view !== "solution"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">
             {rink({ route, ball: puzzle.start, shown: view === "solution" })}
-            <span className="ice-reveal-label sr-only">Solution</span>
+            <span className={`ice-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
             <p className="ice-reveal-caption" data-solution-caption="">
               Shortest route · {par} slide{par === 1 ? "" : "s"}
             </p>
             <SlideChips dirs={best} label="Par route" view="solution" />
           </div>
-          <div hidden={view !== "yours"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-yours="">
+          <div hidden={hosted && view !== "yours"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-yours="">
             {rink({ route: [puzzle.start, ...mine.standing.flat()], ball: mine.cell, broken: mine.mask, fallen: mine.fellAt, shown: view === "yours" })}
-            <span className="ice-reveal-label sr-only">Yours</span>
+            <span className={`ice-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
             <HudPills testId="iceslide-reveal" items={items} className="ice-reveal-pills" />
             <div className="ice-chips-pair">
               <SlideChips dirs={mine.standingDirs} label="You" view="yours" />

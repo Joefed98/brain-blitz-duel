@@ -69,7 +69,8 @@ import { tpSolve } from "./cards/tripeaksSolver";
 import { shuffledDeck } from "../src/lib/arcade/cards/cards";
 import { TP_STOCK_PARS } from "../src/lib/arcade/cards/tripeaksStockPar.data";
 import { TP_V2_PAR_MAX, tpCheckpoint, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
-import { FH_INPUT_PICK, FH_STD_SPEC, fhColumn, fhPicking } from "../src/lib/arcade/cards/fiveHands";
+import { FH_INPUT_PICK, FH_STD_SPEC_V3, fhColumn, fhPicking } from "../src/lib/arcade/cards/fiveHands";
+import { withDealOptions } from "../src/lib/duel/dealEra";
 import { stdSpeed as stdSpeedOf } from "../src/lib/arcade/arcadeStandard";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -514,7 +515,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   ok(same === nov3.runs.length && nov3.runs.length === 70, `nov 3: all ${nov3.runs.length} Free Cell rev-3, Five Hands rev-2 and Summit rev-1 runs recorded on main replay to the same score and final state`);
 
   // Free Cell rev 4: the 40-card deal, every rev-4 bank deal's par line at 200, the re-fitted parts.
-  ok(FC_REV === 5 && (generatePuzzle("freecell") as { freecellRev: number }).freecellRev === 5, "freecell: rooms deal freecellRev 5");
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
+  ok(FC_REV === 6 && (generatePuzzle("freecell") as { freecellRev: number }).freecellRev === 6, "freecell: rooms deal freecellRev 6");
   let all4 = true;
   let deal40 = true;
   for (let i = 0; i < FC_DEALS_V4.length; i++) {
@@ -543,7 +545,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   }
 
   // Summit rev 2: the stock par from the bank's pars, every par line clearing with a run of ten at par and 200.
-  ok(TP_REV === 3 && (generatePuzzle("tripeaks") as { tripeaksRev: number }).tripeaksRev === 3, "tripeaks: rooms deal tripeaksRev 3");
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
+  ok(TP_REV === 4 && (generatePuzzle("tripeaks") as { tripeaksRev: number }).tripeaksRev === 4, "tripeaks: rooms deal tripeaksRev 4");
   ok(TP_STOCK_PARS.length === TP_DEALS.length && TP_STOCK_PARS.every((p) => Number.isInteger(p) && p >= 0 && p <= 23), `tripeaks rev 2: a stock par for each of the ${TP_DEALS.length} bank deals (0–23)`);
   let tp2 = true;
   for (let i = 0; i < TP_DEALS.length; i++) {
@@ -577,7 +580,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   }
 
   // Five Hands rev 3: the flat table, the hand points summed and capped at 200, the first shuffle as dealt.
-  ok(FH_REV === 3 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 3, "fivehands: rooms deal fiveHandsRev 3");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): rooms deal fiveHandsRev 4; fiveHandsRev 3 under its era pin.
+  ok(FH_REV === 4 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 4 && withDealOptions({ pins: ["fivehandsPre128"] }, () => (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev) === 3, "fivehands: rooms deal fiveHandsRev 4 (fiveHandsRev 3 under its era pin)");
   const flat: [number[], number][] = [
     [[cardOf(0, 1), cardOf(1, 5), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 0],
     [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 15],
@@ -591,7 +595,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
     [[cardOf(0, 4), cardOf(1, 4)], 15],
   ];
   for (const [row, want] of flat) ok(fhRowHand(row, 3).points === want, `fivehands rev 3: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 3).points})`);
-  ok(FH_STD_SPEC.rev === 3 && FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200, "fivehands rev 3: one part, the hand points summed to 200");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): rev 3's spec is FH_STD_SPEC_V3 (FH_STD_SPEC is rev 4's).
+  ok(FH_STD_SPEC_V3.rev === 3 && FH_STD_SPEC_V3.parts.length === 1 && FH_STD_SPEC_V3.parts[0]!.max === 200, "fivehands rev 3: one part, the hand points summed to 200");
   let firstShuffle = 0;
   let fh3 = true;
   const bests: number[] = [];

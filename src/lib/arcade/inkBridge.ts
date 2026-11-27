@@ -147,6 +147,8 @@ export const INK_REV_BIG = 14;
  * every level is still drawable within its ink, its bonus line proved and its ink par above its proved line.
  */
 export const INK_REV_HILLS = 15;
+/** inkRev 16 (D6, 27 Nov 2026): inkRev 15's world at every level, each part on the level's own figures (INK_D6_FIGURES, below). */
+export const INK_REV_D6 = 16;
 /**
  * inkRev 15's birds: fewer and bigger (Joe's review: the rows of small birds cluttered the sky): each bird box 14 px
  * thick (inkRev 14: 10) and no inkRev 13 extra birds, every level still proved drawable with them.
@@ -251,11 +253,11 @@ export const INK_V14_SHAMROCK_R = 12;
 export const INK_V14_BIRD_H_FP = 10 * 256;
 /** inkRev 10, 11, 12, 13 and 14: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS || rev === INK_REV_D6;
 }
 /** inkRev 13 and 14: clovers, ink par, more birds, failed drops that never end the run, the standard's parts (INK_V13_STD). */
 export function inkClover(rev?: number | null): boolean {
-  return rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
+  return rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS || rev === INK_REV_D6;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -3226,6 +3228,8 @@ export function inkReferenceCheck(seed: number, rev?: number): {
 /* ================================ State ================================ */
 
 export interface InkState extends BandFields {
+  /** inkRev 16 (D6): 1 on a run scored on its level's D6 figures (INK_D6_FIGURES; outside the checksum, its world is inkRev 15's). */
+  d6?: number;
   tick: number;
   rng: number;
   list: InkLevel[];
@@ -3873,6 +3877,8 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null, level?: unknown): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  // D6: inkRev 16 plays inkRev 15's world at every level, scored on the level's D6 figures.
+  if (rev === INK_REV_D6) return inkBridgeD6Game(isInkDiff(level) ? level : null);
   // Stage 3: a level other than Normal on inkRev 15 (the stored puzzle's `level`); anything else is Normal.
   if (rev === INK_REV_HILLS && isInkDiff(level)) return inkBridgeLevelGame(level);
   if (rev === INK_REV_HILLS) return inkBridgeHillsGame;
@@ -4141,6 +4147,20 @@ export function inkV13Score(state: InkState): StdBreakdown {
   const part = (key: string) => stdSpecPart(INK_V13_STD, key);
   const set = state.diff ? INK_LEVEL_SETS[state.diff] : null;
   const fullAt = (p: StdSpecPart, got: number, at?: number) => (at ? stdLine(p.max, got, at) : stdPartLine(p, got));
+  // inkRev 16 (D6): every part on the level's own figures (INK_D6_FIGURES; Normal's too).
+  if (state.d6) {
+    const f = INK_D6_FIGURES[state.diff ?? "normal"];
+    return {
+      core: stdPartLine(stdCore(INK_V13_STD), levels),
+      features: {
+        par: stdLine(INK_V13_PAR_MAX, clampInt(state.inkPar ?? 0, 0, 1000 * INK_LEVELS), f.parFull),
+        tricks: stdLine(INK_V13_TRICK_MAX, state.tricks ?? 0, f.tricksFull),
+        clovers: stdLine(INK_V13_CLOVER_MAX, state.shamrocks ?? 0, f.cloversFull),
+        speed: levels >= INK_LEVELS ? stdSpeed(INK_V13_SPEED_MAX, left, f.speedFullLeftS * TICKS_PER_SECOND, 0) : 0,
+      },
+      penalty: 0,
+    };
+  }
   return {
     core: stdPartLine(stdCore(INK_V13_STD), levels),
     features: {
@@ -4180,7 +4200,7 @@ export const INK_V14_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_BIG };
 export const INK_V15_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_HILLS };
 /** The standard spec a clover revision (13 or 14) scores on. */
 export function inkStdSpecFor(rev?: number | null): StdSpec {
-  return rev === INK_REV_HILLS ? INK_V15_STD : rev === INK_REV_BIG ? INK_V14_STD : INK_V13_STD;
+  return rev === INK_REV_D6 ? INK_V16_STD : rev === INK_REV_HILLS ? INK_V15_STD : rev === INK_REV_BIG ? INK_V14_STD : INK_V13_STD;
 }
 
 /** inkRev 14: inkRev 13's rules and parts with the bigger coin, clovers and birds (INK_V14_*). */
@@ -4202,6 +4222,47 @@ export function inkBridgeLevelGame(diff: InkDiff): ArcadeGame<InkState, ArcadeIn
   if (!g) {
     g = { ...inkBridgeHillsGame, init: (seed) => ({ ...initWith(seed, INK_REV_HILLS, diff), band: BAND_STRICT_MARK, acted: 0, std: 1 }) };
     levelGames.set(diff, g);
+  }
+  return g;
+}
+
+/* ================= inkRev 16 (D6, 27 Nov 2026): each part full where the realistic elite fills it ================= */
+
+/**
+ * inkRev 16 (D6; the polish plan's difficulty spec and Joe's Decision 1 A): inkRev 15's world, pot, birds, ink and live
+ * levels at every level exactly (the run's state keeps rev 15; `d6` marks it, outside the checksum), each part a straight
+ * line full at the level's own figure. The lever is the pot's width, seen at once: 110 / 64 (Normal) / 48 / 42 px
+ * (INK_LEVEL_SETS, unchanged). Easy keeps its stage-3 figures; Normal's ink par and speed move to where the realistic
+ * elite fills them (Decision 1 A); Hard and Expert are set from the skill-band bots under HUMAN_LIMITS. Measured on 96 room
+ * deals a level (scripts/d6-ladder.ts): the average player 169.1 / 88.5 (Normal) / 76.8 / 68.6, the elite at 200
+ * 88 / 35 / 29 / 23 %. A narrower Expert pot was tried and moved the average player by 2 points only (32 px: 62.4
+ * against 64.4 at 42 px on the stage-3 figures), so the worlds stay as they are.
+ */
+/** A level's D6 figures: ink par full at this per-mille total, trick shots and clovers at these counts, speed full with this many seconds left. */
+export interface InkD6Figures {
+  parFull: number;
+  tricksFull: number;
+  cloversFull: number;
+  speedFullLeftS: number;
+}
+export const INK_D6_FIGURES: Readonly<Record<InkDiff | "normal", InkD6Figures>> = {
+  easy: { parFull: 1000 * INK_LEVELS, tricksFull: 2, cloversFull: 1, speedFullLeftS: 10 },
+  normal: { parFull: 9000, tricksFull: 4, cloversFull: 2, speedFullLeftS: 40 },
+  hard: { parFull: 7500, tricksFull: 3, cloversFull: 1, speedFullLeftS: 45 },
+  expert: { parFull: 7500, tricksFull: 3, cloversFull: 1, speedFullLeftS: 30 },
+};
+/** inkRev 16's standard: inkRev 15's parts exactly. */
+export const INK_V16_STD: StdSpec = { ...INK_V13_STD, rev: INK_REV_D6 };
+
+const d6Games = new Map<InkDiff | "normal", ArcadeGame<InkState, ArcadeInputEvent | null>>();
+/** inkRev 16's game at a level (null: Normal): inkRev 15's, its state marked to score on the D6 figures. */
+export function inkBridgeD6Game(diff: InkDiff | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  const key = diff ?? "normal";
+  let g = d6Games.get(key);
+  if (!g) {
+    const base = diff ? inkBridgeLevelGame(diff) : inkBridgeHillsGame;
+    g = { ...base, init: (seed) => ({ ...base.init(seed), d6: 1 }) };
+    d6Games.set(key, g);
   }
   return g;
 }

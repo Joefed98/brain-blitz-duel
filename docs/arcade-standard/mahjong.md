@@ -113,3 +113,19 @@ board's layout is told by its length (56, 72 or 88 places), on the same 6 × 7 f
 | Normal | 72 (today) | 4 | 6 | −5 | none | 65 s |
 | Hard | 72 | 4 | 10 | −8 | −5 each | 25 s |
 | Expert | 88 | 5 | 12 | −10 | one | 30 s |
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** none (Normal unchanged).
+- **The lever:** tiles and layers: 48 in 2 / Normal / 104 in 4 / 136 in 4.
+- **Average player, Easy / Normal / Hard / Expert:** 170 / 136 / 85 / 74.
+- **The elite at 200:** 97 / 85 / 34 / 22 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

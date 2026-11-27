@@ -37,7 +37,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
 import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
-import { BEAT_LEVELS, BLOCKFALL_LEVELS, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
+import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS_SMALL, CROSS_LEVELS_V14, HOVER_LEVELS_V12, PINBALL_LEVELS, RALLY_LEVELS_V14, SNAKE_LEVELS_V16, WAVEFRONT_LEVELS_WIDE } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -569,62 +569,94 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   },
   // The Retro overhaul, stage 3 (16 Nov 2026): the Retro games' levels, plain data from retroLevels.ts.
   breaker: retroGameLevels(BREAKER_LEVELS),
-  hover: retroGameLevels(HOVER_LEVELS),
+  // D5 (23 Nov 2026): the tables rooms deal, hoverRev 12 and crossRev 14 (retroLevels.ts keeps the older ones for replay).
+  hover: retroGameLevels(HOVER_LEVELS_V12),
   pinball: retroGameLevels(PINBALL_LEVELS),
-  wavefront: retroGameLevels(WAVEFRONT_LEVELS),
-  cross: retroGameLevels(CROSS_LEVELS),
-  snake: retroGameLevels(SNAKE_LEVELS),
-  blockfall: retroGameLevels(BLOCKFALL_LEVELS),
-  beat: retroGameLevels(BEAT_LEVELS),
-  burst: retroGameLevels(BURST_LEVELS),
-  rally: retroGameLevels(RALLY_LEVELS),
-  // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
+  wavefront: retroGameLevels(WAVEFRONT_LEVELS_WIDE),
+  cross: retroGameLevels(CROSS_LEVELS_V14),
+  // snakeRev 16 (D5's ladder, 23 Nov 2026): the table dealt today.
+  snake: retroGameLevels(SNAKE_LEVELS_V16),
+  // blockfallRev 3 (D5's ladder, 23 Nov 2026): the levels' own table (blockfallRev 2 rounds replay on BLOCKFALL_LEVELS).
+  blockfall: retroGameLevels(BLOCKFALL_LEVELS_V3),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the lanes and each level's own full lines (beatRev 12 rounds replay on BEAT_LEVELS).
+  beat: retroGameLevels(BEAT_LEVELS_V13),
+  burst: retroGameLevels(BURST_LEVELS_SMALL),
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): the table dealt today.
+  rally: retroGameLevels(RALLY_LEVELS_V14),
+  // Roofbound (D5, 23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): flipRev 14's running-speed
+  // ladder, the sim's FLIP_V14_LEVEL_RULES, mirrored (flip-ladder-check); speeds in 1/256 px a tick, moversFrom in ticks
+  // (null = none), crashCost and coreFull in half seconds, then each part's full line.
   flip: {
     levels: {
-      easy: { settings: { speedStart: 1024, speedStep: 90, stepTicks: 240, speedCap: 2048, moversFrom: null, sweetTicks: 6, sweetSpots: 8, crashCost: 10, sweetsFull: 5 } },
-      hard: { settings: { speedStart: 1280, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 480, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 7 } },
-      expert: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 300, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 9 } },
+      easy: { settings: { speedStart: 768, speedStep: 90, stepTicks: 240, speedCap: 1792, moversFrom: null, sweetTicks: 10, sweetSpots: 8, crashCost: 10, sweetsFull: 3, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      hard: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 240, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      expert: { settings: { speedStart: 1600, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 120, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
     },
   },
-  // High Rise (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the sim's SKYLINE_LEVEL_RULES, mirrored (skyline-levels-check).
+  // High Rise (D5, 23 Nov 2026, docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): skylineRev 12's block-width
+  // ladder, the sim's SKYLINE_V12_LEVEL_RULES, mirrored (skyline-ladder-check); startW in 1/256 px (260, 110 and 50 px),
+  // windFrom null = no wind, lines = each part's full line (floors, perfect drops, perfect streak, gold blocks).
   skyline: {
     levels: {
-      easy: { settings: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1280, windFrom: 30, lives: 3 } },
-      hard: { settings: { speedStart: 896, speedStep: 30, speedMax: 1792, tol: 768, windFrom: 15, lives: 3 } },
-      expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 3 } },
+      easy: { settings: { startW: 66560, speedStart: 320, speedStep: 10, speedMax: 640, tol: 1280, windFrom: null, trimRun: 3, lives: 3, lines: { floors: 40, perfects: 40, streak: 20, gold: 3 } } },
+      hard: { settings: { startW: 28160, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 8, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 6, gold: 2 } } },
+      expert: { settings: { startW: 12800, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 0, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 5, gold: 2 } } },
     },
   },
-  // Iron Wall (15 Nov 2026, docs/arcade-standard/bastion.md "bastionRev 4: levels"; Joe's approved exception: today's game
-  // became Expert, and Normal, Easy and Hard are bastionRev 4's gentler game, its numbers per level BT4_LEVELS in the sim).
-  bastion: { levels: { easy: { settings: { bastionRev: 4 } }, hard: { settings: { bastionRev: 4 } }, expert: { settings: { bastionRev: 3 } } } },
+  // Iron Wall (D5's ladder, 23 Nov 2026, docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level deals
+  // bastionRev 5, the lever the tanks in each wave (a fourth lane from Hard). The sim reads the stored level (BT5_LEVELS
+  // in bastionTank.ts, frozen under the stamp); these are the same numbers, for display (bastion-ladder-check mirrors them).
+  // Before the ladder (15 Nov 2026) Easy and Hard dealt bastionRev 4 and Expert bastionRev 3.
+  bastion: {
+    levels: {
+      easy: { settings: { bastionRev: 5, lanes: 3, tanksAWave: 4, tanks: 20, heavies: 1, pace: [32, 36, 41, 56, 74], zoneMs: 320, weakPct: 260, base: 5 } },
+      hard: { settings: { bastionRev: 5, lanes: 4, tanksAWave: 8, tanks: 40, heavies: 10, pace: [40, 46, 51, 66, 84], zoneMs: 120, weakPct: 120, base: 3 } },
+      expert: { settings: { bastionRev: 5, lanes: 4, tanksAWave: 9, tanks: 45, heavies: 12, pace: [56, 56, 56, 70, 88], zoneMs: 90, weakPct: 100, base: 3 } },
+    },
+  },
   // Grappler (the Action overhaul, 15 Nov 2026; docs/arcade-standard/swing.md "Levels"): each level deals a course from
   // its own proved deal (swingLevelDeal.server.ts) and the sim reads the stored level (swing.ts SWING_LEVELS, the values
   // its courses are built, proved and played with); these are the same, for display. vineSwing (16 Nov 2026, Joe: levers
   // that test human timing): the held vine's gravity, per cent, so Hard and Expert swing faster.
+  // swingRev 19 (D5, 23 Nov 2026, the ladder; swing.ts SWING_V19_LEVELS, mirrored, swing-ladder-check): the lever is the
+  // pterodactyl (chase: where it starts, chasePx its pace a tick), each stretch's par moved parLaterTicks and counted up
+  // to parCapTicks under it, the pars part full at parFullTicks in all, the course part full at courseFullPct, the gates part at gatesFull gates, the streak part at
+  // streakFull runs of eight clean grabs, and on Easy a miss keeps the clean-swing streak.
   swing: {
     levels: {
-      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100 } },
-      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125 } },
-      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145 } },
+      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100, chase: "none", chasePx: 0, parLaterTicks: 120, courseFullPct: 35, gatesFull: 3, streakFull: 18, parCapTicks: 30, parFullTicks: 900, missKeepsStreak: true } },
+      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125, chase: "first vine", chasePx: 3.7, parLaterTicks: 6, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4400, missKeepsStreak: false } },
+      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145, chase: "first vine", chasePx: 4.1, parLaterTicks: 0, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4100, missKeepsStreak: false } },
     },
   },
   // Moon Climb (the Action overhaul, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels"): the sim reads the stored
-  // level (ricochetNinja.ts MOON_LEVELS, the values its towers are built and proved with); these are the same, for display.
+  // level (ricochetNinja.ts MOON_MID_LEVELS on ricoRev 5, the values its towers are built and proved with and its parts
+  // are scored on; ricoRev 4's MOON_LEVELS kept for its own rounds); these are the live ones, for display. D5 (23 Nov
+  // 2026, the ladder): the lever is the blades on the walls (`blades`, × Normal's; `ice`, the share of the patches that
+  // are ice, Normal 0.4); Hard's knock-down 3.5 m; `fullM` the height part's full line (Normal 220 m) and `flowFull`,
+  // `ridesFull`, `scrollsFull` the other parts' (Normal 4 Flow steps, 3 rides, 2 scrolls).
   ricochet: {
     levels: {
-      easy: { settings: { blades: 0.5, knockM: 2, lanterns: 6, fullM: 200 } },
-      hard: { settings: { blades: 1.3, knockM: 3, lanterns: 6, fullM: 245 } },
-      expert: { settings: { blades: 1.6, knockM: 4, lanterns: 4, fullM: 260 } },
+      easy: { settings: { blades: 0.5, ice: 0.3, knockM: 2, lanterns: 6, fullM: 220, flowFull: 4, ridesFull: 3, scrollsFull: 2 } },
+      hard: { settings: { blades: 1.3, ice: 0.65, knockM: 3.5, lanterns: 6, fullM: 190, flowFull: 3, ridesFull: 2, scrollsFull: 2 } },
+      expert: { settings: { blades: 1.6, ice: 0.88, knockM: 4, lanterns: 4, fullM: 160, flowFull: 2, ridesFull: 1, scrollsFull: 2 } },
     },
   },
   // Orbit (docs/arcade-standard/orbit.md "Levels"): each level deals from its own proved bank
   // (scripts/orbit-fuel-bank.ts --level=…, built from these course settings); the sim reads tank and checkpoints from
   // the stored level (ORBIT_LEVEL_RULES in orbitRev3.ts, which orbit-levels-check holds equal to these).
+  // D5 (23 Nov 2026, orbitRev 17's ladder; docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and levels"): the
+  // lever is the asteroid belts round the planets. `belts` and `minWindow` are orbitRev 17's courses (its ladder banks,
+  // scripts/orbit-ladder-bank.ts from scripts/orbit-ladder-lib.ts LADDER_COURSES, which orbit-ladder-check holds equal to
+  // these): Easy none, Hard a belt round every fourth planet from the second, Expert round every third from the first;
+  // `window` and `beltsFrom` stay the orbitRev 16 banks' (scripts/orbit-fuel-bank.ts rebuilds those from them). `lines`
+  // are the parts' full lines at the level (ORBIT_V17_LEVEL_LINES in orbitRev3.ts): speed full with `speedFullLeft` ticks
+  // left, stardust at `dustFull` motes, slingshots at `slingsFull`, asteroid fields at `fieldsFull`, perfect orbits at `perfectFull`.
   orbit: {
     levels: {
-      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25 } },
-      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25 } },
-      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21 } },
+      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25, belts: "none", minWindow: 4, lines: { speedFullLeft: 2025, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 16 } } },
+      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25, belts: { from: 2, every: 4 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 2, perfectFull: 5 } } },
+      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21, belts: { from: 1, every: 3 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 6 } } },
     },
   },
   // The Cards & Board overhaul, stage 3 (15 Nov 2026; docs/arcade-standard/<game>.md "Levels"). Each game's sim holds the
@@ -633,37 +665,44 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // level's deals are proved clearable by cards-levels-check (banks re-solved, built deals proved by their witnesses).
   freecell: {
     levels: {
-      easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { cards: 52, cells: 4, undo: "a move", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { cards: 52, cells: 3, undo: "3", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, freecellRev 6's levels, FC_LEVEL_RULES_V6): the lever is free cells 5 / 4 (Normal) / 3 / 2.
+      easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free", parFull: "par + 1/8", speedFullS: 60 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { cards: 40, cells: 3, undo: "a move", hints: "none", parFull: "par + 1/8", speedFullS: 33 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { cards: 48, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 40, parMax: 38 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   mahjong: {
     levels: {
-      easy: { settings: { tiles: 56, layers: 3, quads: 2, shuffleCost: 2, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { tiles: 72, layers: 4, quads: 10, shuffleCost: 8, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { tiles: 88, layers: 5, quads: 12, shuffleCost: 10, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, mahjongRev 3's levels, MAHJONG_LEVEL_RULES_V3): the lever is tiles in the stack 48 / 72 (Normal) / 104 / 136.
+      easy: { settings: { tiles: 48, layers: 2, quads: 2, shuffleCost: 2, hints: "free", speedFullS: 70, seconds: 120 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { tiles: 104, layers: 4, quads: 18, shuffleCost: 10, hints: "none", speedFullS: 79, seconds: 120 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { tiles: 136, layers: 4, quads: 34, shuffleCost: 15, hints: "none", speedFullS: 100, seconds: 110 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   tripeaks: {
     levels: {
-      easy: { settings: { glow: true, wrap: true, undos: 3, speedFullS: 25, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 16, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, tripeaksRev 4's levels, TP_LEVEL_RULES_V4): the lever is seconds on the clock 90 / 60 (Normal) / 45 / 32.
+      easy: { settings: { seconds: 90, stockTurns: 23, glow: true, wrap: true, undos: 3, speedFullS: 30, hints: "free" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { seconds: 45, stockTurns: 18, glow: false, wrap: true, undos: 0, speedFullS: 31, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { seconds: 32, stockTurns: 14, glow: false, wrap: true, undos: 0, speedFullS: 27, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   fivehands: {
     levels: {
-      easy: { settings: { multiplier: 1.6, seconds: 75, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { multiplier: 1.4, seconds: 50, preview: 0, columnValues: false, pair: 10, twoPair: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { multiplier: 1.3, seconds: 45, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, fiveHandsRev 4's levels, FH_LEVEL_RULES_V4): the lever is seconds a card; 200 at the level's own
+      // hand points; decks from a proved list (fiveHandsLevelDecks.server.ts: the best arrangement at a human pace scores 200).
+      easy: { settings: { fullAt: 94, seconds: 90, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { fullAt: 100, seconds: 42, preview: 0, columnValues: false, pair: 10, twoPair: 20, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { fullAt: 104, seconds: 30, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
+  // Thirteen (D6, 23 Nov 2026): pyramidRev 4's rows, a mirror of PY_LEVEL_RULES_V4 in src/lib/arcade/cards/pyramid.ts
+  // (d6-cards-levels-check proves the two the same).
   pyramid: {
     levels: {
-      easy: { settings: { passes: 3, glow: true, kings: "3–4", deals: "any proved", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { passes: 1, glow: false, kings: "2–3", deals: "harder", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { passes: 1, glow: false, kings: "3", deals: "hardest", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      easy: { settings: { rows: 6, cards: 21, stock: 31, passes: 3, glow: true, kings: "1 or 3", deals: "any proved", hints: "free", speedFullS: 20, pairsFull: 9 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { rows: 8, cards: 36, stock: 16, passes: 1, glow: false, kings: "2 or 4", deals: "harder", hints: "none", speedFullS: 35, pairsFull: 16 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { rows: 9, cards: 45, stock: 7, passes: 1, glow: false, kings: "3", deals: "hardest", hints: "none", speedFullS: 42, pairsFull: 21 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   // Coral Pop (the Strategy overhaul, stage 3): colours, reef bubbles (chests included), shots between descents and
@@ -676,34 +715,34 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 } },
     },
   },
-  // Ball Tracker (Strategy overhaul stage 3, 15 Nov 2026; docs/arcade-standard/balltrack.md "Levels"): Normal is
-  // btRev 8 today (36 marbles every 84 ticks, 1.4 s; the cups move twice: a re-lay and a colour shuffle; 6 gold, 3
-  // boosters). Each level deals a course from its own proved list (src/lib/duel/ballTrackDeal<Level>.server.ts, built
-  // by scripts/balltrack-level-deal.ts from these settings): marbles, release ticks, cup moves, gold marbles, boosters;
-  // Easy also fills the combos part at 10 combo landings (`comboFull`, stored on its courses as `combo`; 16 Nov 2026).
+  // Ball Tracker (D6, 27 Nov 2026): btRev 9's levels, a mirror of BT_D6_LEVELS in src/lib/arcade/ballTrack.ts, which the
+  // builder reads (scripts/balltrack-d6-deal.ts; d6-strategy-levels-check proves the two the same). The lever is the marble
+  // colours and their cups: 3 / 4 (Normal) / 5 (a purple star joins) / 5 with a faster release and more cup moves (the
+  // board holds five cups at most). Each part is full at the level's own figure (homeFull, goldFull, comboFull, boostFull).
   balltrack: {
     levels: {
-      easy: { settings: { balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, comboFull: 10 } },
-      hard: { settings: { balls: 42, dropTicks: 72, moves: 8, golds: 7, boosts: 3 } },
-      expert: { settings: { balls: 42, dropTicks: 66, moves: 12, golds: 7, boosts: 2 } },
+      easy: { settings: { colours: 3, balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, homeFull: 14, goldFull: 6, comboFull: 10, boostFull: 14 } },
+      hard: { settings: { colours: 5, balls: 40, dropTicks: 78, moves: 4, golds: 6, boosts: 3, homeFull: 33, goldFull: 5, comboFull: 20, boostFull: 33 } },
+      expert: { settings: { colours: 5, balls: 42, dropTicks: 72, moves: 6, golds: 6, boosts: 2, homeFull: 37, goldFull: 4, comboFull: 20, boostFull: 37 } },
     },
   },
-  // Gemstone, matchupRev 13 (the Strategy overhaul stage 3): a copy of the sim's MATCHUP_V13_LEVELS (arcade/matchup.ts,
-  // which the sim reads; gemstone-levels-check proves the two agree). Normal: 6 colours, 10 ice cells, the hint at 5 s.
+  // Gemstone (D6, 23 Nov 2026): matchupRev 14's levels, a copy of MATCHUP_V14_LEVELS (d6-strategy-levels-check proves the two the
+  // same). The lever is the colours on the board: 5 / 6 (Normal) / 7 (the cyan heart) / 8 (a white pearl too).
   matchup: {
     levels: {
       easy: { settings: { colours: 5, goals: [12, 18, 24, 30, 36], ice: 5, hintS: 3 } },
-      hard: { settings: { colours: 6, goals: [28, 38, 48, 58, 68, 78], ice: 14, hintS: 8 } },
-      expert: { settings: { colours: 7, goals: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0 } },
+      hard: { settings: { colours: 7, goals: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0 } },
+      expert: { settings: { colours: 8, goals: [30, 38, 46, 54, 62, 70, 80, 90], ice: 18, hintS: 0 } },
     },
   },
-  // Tilt (the Strategy overhaul, stage 3; docs/arcade-standard/tilt.md "Levels (stage 3)"): a mirror of TILT_LEVELS in
-  // src/lib/arcade/tilt.ts, which the sim reads (tilt-levels-check proves the two the same).
+  // Tilt (D6, 23 Nov 2026): tiltRev 13's levels, a mirror of TILT_LEVELS_V13 in src/lib/arcade/tilt.ts, which the sim
+  // reads (d6-strategy-levels-check proves the two the same). The lever is the marbles you steer at once: one / one
+  // (amber on maze 3, Normal) / two on mazes 1–3 / two on every maze.
   tilt: {
     levels: {
-      easy: { settings: { mazes: 3, sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoOf: [3], twoCount: [1, 1], parScale: 240, speedFullS: 60 } },
-      hard: { settings: { mazes: 4, sizes: [15, 15, 17, 19], routes: [54, 56, 52, 58], pits: [3, 4, 4, 4], ice: [3, 3, 4, 4], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 2], parScale: 135, speedFullS: 58 } },
-      expert: { settings: { mazes: 4, sizes: [15, 17, 19, 19], routes: [56, 62, 58, 60], pits: [4, 4, 4, 4], ice: [5, 5, 5, 5], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 3], parScale: 115, speedFullS: 70 } },
+      easy: { settings: { mazes: 3, sizes: [11, 11, 13], routes: [28, 28, 34], pits: [0, 0, 0], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 300, speedFullS: 70 } },
+      hard: { settings: { mazes: 4, sizes: [11, 13, 13, 15], routes: [28, 34, 34, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 230, speedFullS: 85 } },
+      expert: { settings: { mazes: 4, sizes: [15, 15, 15, 17], routes: [54, 54, 54, 54], pits: [4, 4, 4, 4], ice: [4, 4, 4, 4], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 2, parScale: 200, speedFullS: 90, cleanFull: 2 } },
     },
   },
   // Rainbow Bridge (the Strategy overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/inkbridge.md "Levels (stage 3)"):
@@ -727,19 +766,21 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // proves the two match). Each level deals from its own proved deal (homerunDealV5.server.ts).
   homerun: {
     levels: {
-      easy: { settings: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800, ballOff: [14, 34] } },
-      hard: { settings: { flight: { 0: [28, 31], 1: [40, 44], 3: [54, 59] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100, ballOff: [8, 24] } },
-      expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200, ballOff: [5, 17] } },
+      // D6 (23 Nov 2026, homerunRev 6's levels: HR_LEVEL_SETTINGS' "easy6", "hard6" and "expert6"): the lever is pitch speed.
+      easy: { settings: { flight: { 0: [52, 58], 1: [64, 70], 3: [76, 84] }, balls: 3, winContact: 9, winPower: 6, perfect: 2, bend: 300, reach: 600, ballOff: [14, 34], outs: 5, runsFull: 12, homersFull: 10, streakFull: 10, eyeFull: 2 } },
+      hard: { settings: { flight: { 0: [31, 34], 1: [42, 46], 3: [56, 61] }, balls: 8, winContact: 4, winPower: 3, perfect: 1, bend: 1300, reach: 1350, ballOff: [8, 24], runsFull: 18, homersFull: 10, streakFull: 16, eyeFull: 5 } },
+      expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 1, bend: 1600, reach: 1650, ballOff: [5, 17], runsFull: 10, homersFull: 10, streakFull: 6, eyeFull: 5 } },
     },
   },
-  // Top Bins (freekickRev 6 since 16 Nov 2026; rev 5 kept its own table): the power bar's gold zone, the keeper's reaction and speed, the wall, the wind, the corner
-  // hoop's last size and the jumping-wall kicks. A mirror of FK_LEVEL_SETTINGS_V6 in src/lib/arcade/freekick.ts
-  // (freekick-layered-check proves the two match). Each level deals from its own proved deal (freekickDealV5.server.ts).
+  // Top Bins (D6, 23 Nov 2026: freekickRev 7 on level deals, Normal keeps freekickRev 6): the players in the wall the
+  // lever, with the keeper's reaction and speed, the wind, the corner hoop's last size, the jumping-wall kicks and each
+  // level's Targets and Skill-shot figures. A mirror of FK_LEVEL_SETTINGS_V7 and FK_V7_FULL in src/lib/arcade/freekick.ts
+  // (d6-sports-levels-check proves the two match). Each level deals from its own proved deal (freekickDealV7.server.ts).
   freekick: {
     levels: {
-      easy: { settings: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 } },
-      hard: { settings: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 } },
-      expert: { settings: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 } },
+      easy: { settings: { zoneLo: 660, zoneHi: 840, react: 18, speed: 700, wall: [2, 2], wind: 0, hoopLast: 850, jumps: 0, targetsFull: 3, skillFull: 8 } },
+      hard: { settings: { zoneLo: 720, zoneHi: 800, react: 10, speed: 1050, wall: [5, 5], wind: 4, hoopLast: 800, jumps: 5, targetsFull: 4, skillFull: 9 } },
+      expert: { settings: { zoneLo: 720, zoneHi: 800, react: 5, speed: 1400, wall: [7, 7], wind: 8, hoopLast: 800, jumps: 8, targetsFull: 2, skillFull: 9 } },
     },
   },
   // Cue Ball (the Sports overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/pool.md "Levels"): the same layouts and
@@ -761,9 +802,13 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // only; pace: the full pace per circuit (tenths of a km/h), the oracle's on Expert's tighter hairpins.
   racing: {
     levels: {
-      easy: { settings: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] } },
-      hard: { settings: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 } },
-      expert: { settings: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 } },
+      // D6 (23 Nov 2026, racingRev 5's levels; the deal stamps this copy as racingLevel): the lever is road width, 130 % /
+      // 100 % (Normal, 65,536) / 85 % / 72 %, the kerb (the clean edge) and the wall moving with it.
+      // Each level's par pace (pace, per circuit), spread and clean sectors for the full part set from 96 room deals
+      // (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS: the elite keeps 7 / 4 / 3 / 1 sectors clean).
+      easy: { settings: { keep: 80, road: 85197, kerb: 93389, wall: 150733, tight: 0, aids: 2, pace: [2116, 2288, 1888], spread: 900, cleanFull: 4 } },
+      hard: { settings: { keep: 50, road: 55700, kerb: 63892, wall: 98298, tight: 0, aids: 1, pace: [2054, 2227, 1857], spread: 350, cleanFull: 3 } },
+      expert: { settings: { keep: 35, road: 47200, kerb: 55392, wall: 89798, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [1945, 2102, 1823], spread: 200, cleanFull: 1 } },
     },
   },
   // Curl Champ (stage 3, 16 Nov 2026; docs/arcade-standard/curling.md "Levels"): the reds each end starts with and the aids. Plain data mirroring the

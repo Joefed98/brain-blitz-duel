@@ -130,7 +130,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 export function fiveHandsLine(r: { total: number; made: number; column?: number; columnPoints?: number }, rev?: number | null): string {
   if ((rev ?? 1) >= FH_REV_FLAT) {
     const col = r.column !== undefined && r.column >= 0 ? `column ${r.column + 1} +${r.columnPoints ?? 0}` : "no column picked";
-    return `${r.total} hand points (rows ${r.total - (r.columnPoints ?? 0)}, ${col}) × 1.4, capped at 200`;
+    // D6 (22 Nov 2026, display only): fiveHandsRev 4 scores 200 at 112 hand points (rev 3: × 1.4, capped at 200).
+    return `${r.total} hand points (rows ${r.total - (r.columnPoints ?? 0)}, ${col}) ${rev === 4 ? `of ${fhCoreFullFor(rev)}` : "× 1.4, capped at 200"}`;
   }
   if ((rev ?? 1) >= FH_REV_STEEP) return `${r.total} hand points (full at ${fhCoreFullFor(rev)}) · ${r.made} of ${FH_ROWS} rows with a hand`;
   return `${r.total} hand points (full at ${FH_CORE_FULL}) · ${r.made} of ${FH_ROWS} hands made`;

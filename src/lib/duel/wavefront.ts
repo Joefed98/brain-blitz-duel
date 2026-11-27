@@ -10,7 +10,7 @@ import {
   WAV_REV_SHAPES,
   WAV_REV_TUNEC,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE, WAV_REV_BIG,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE, WAV_REV_BIG, WAV_REV_WIDE,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -167,9 +167,21 @@ function runBigFor(level?: Level | null): typeof runCharge {
   return r;
 }
 
+/** wavRev 16 (the wider formation): one runner per level. */
+const runWideByLevel = new Map<string, typeof runCharge>();
+function runWideFor(level?: Level | null): typeof runCharge {
+  const key = level ?? "normal";
+  let r = runWideByLevel.get(key);
+  if (!r) {
+    r = makeArcadeRun<WavState, WavCheckpoint>({ tag: "wavefront", game: wavefrontGameFor(WAV_REV_WIDE, level), checkpoint: wavCheckpoint, keys: WAV_CHECKPOINT_KEYS, interval: WAV_CHECKPOINT_INTERVAL });
+    runWideByLevel.set(key, r);
+  }
+  return r;
+}
+
 /** The single place a Wavefront score is worked out. */
 export function replayWavefrontRun(seed: number, raw: string, rev?: number | null, level?: Level | null): WavefrontResult {
-  const result = (rev === WAV_REV_BIG ? runBigFor(level) : rev === WAV_REV_CHARGE ? runCharge : rev === WAV_REV_KEEP ? runKeep : rev === WAV_REV_STD ? runStd : rev === WAV_REV_PHONE ? runPhone : rev === WAV_REV_EXPAND ? runExpand : rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === WAV_REV_WIDE ? runWideFor(level) : rev === WAV_REV_BIG ? runBigFor(level) : rev === WAV_REV_CHARGE ? runCharge : rev === WAV_REV_KEEP ? runKeep : rev === WAV_REV_STD ? runStd : rev === WAV_REV_PHONE ? runPhone : rev === WAV_REV_EXPAND ? runExpand : rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

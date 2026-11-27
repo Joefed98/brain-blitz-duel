@@ -139,7 +139,7 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Wavefront | Power-up: a ring round the fighter and a chirp | done |
 | Wavefront | Enemy bolt near-miss (4 px): a streak and a zip | done |
 | Wavefront | A richer space scene with depth (nebula, planet, moon, drifting stars) | done (stage 2) |
-| Wavefront | Larger hit cells, a wider formation | larger hit cells done (wavRev 15, dealt only on seeds proved at 200 at every level); **the wider formation is a follow-up after the trains** (Joe, 16 Nov 2026) |
+| Wavefront | Larger hit cells, a wider formation | larger hit cells done (wavRev 15, dealt only on seeds proved at 200 at every level); the wider formation done in wavRev 16 (D5, 22 Nov 2026; docs/arcade-standard/wavefront.md "wavRev 16") |
 | Fission | Bigger atoms | done (burstRev 13) |
 | Fission | Kinder wave clears | done (burstRev 12) |
 | Fission | Split pop pitched by the atom's size | done |

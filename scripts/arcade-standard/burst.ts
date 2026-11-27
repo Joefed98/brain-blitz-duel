@@ -20,7 +20,7 @@ import {
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
   BURST_MOVE_SNAP,
-  BURST_REV_BIG,
+  BURST_REV_SMALL, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
   BURST_V10_PARTS,
   BURST_WORLD_W,
   type BurstState,
@@ -33,8 +33,8 @@ const FP = 256;
 // Rooms deal burstRev 11 since Nov 2026 (the scoring audit): burstRev 10's play and parts, the last life free, wasted beams cost.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 12, burstRev 11
 // with kinder wave clears, so the entry and its perfect run are on burstRev 12; then burstRev 13 (bigger atoms), so they
-// are on burstRev 13.
-const game = burstGameFor(BURST_REV_BIG);
+// are on burstRev 13. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14): the middle atoms, so on burstRev 14.
+const game = burstGameFor(BURST_REV_SMALL); // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
 /** How far ahead (ticks) the oracle looks for a shot's result, and the firing delays it tries. */
 const FLIGHT = 90;
 const DELAYS = [0, 3, 6, 10, 15, 20, 28, 36];
@@ -137,16 +137,18 @@ export function playOracle(seed: number): { events: ArcadeInputEvent[]; state: B
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 13's bigger atoms change
 // the play, and the oracle scores 194 on burstRev 12's seed (1453580015), so the seed was found again by scanning on
 // burstRev 13 (the parts' rules and the oracle are unchanged).
-export const PERFECT_SEED = 489736026;
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14, the middle atoms): the oracle scores
+// 194 on burstRev 13's seed, so the seed was found again on burstRev 14 (level-tune's deal 64; `bun scripts/burst-small-oracle.ts --dealt`).
+export const PERFECT_SEED = 330123215; // Changed with Joe's approval, 23 Nov 2026 (was 489736026)
 
 export const entry: StdEntry = {
   type: "burst",
   field: "burstRev",
-  rev: BURST_REV_BIG,
+  rev: BURST_REV_SMALL, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
   parts: [
     { key: "core", label: "Atoms popped (every split piece counts), 140 × popped ÷ 87", max: BURST_V10_PARTS.core },
-    { key: "clear", label: "Wave clears: up to 7 a wave × 5, full within the quick time, 0 at three times it (burstRev 12 and 13; twice it on 10 and 11)", max: BURST_V10_PARTS.clear },
-    { key: "gold", label: "Golden atoms: 5 each × 5", max: BURST_V10_PARTS.gold },
+    { key: "clear", label: "Wave clears: up to 7 a wave × 5, full within the quick time, 0 at three times it (burstRev 12 to 14; twice it on 10 and 11); full at 19 of 35 on burstRev 14", max: BURST_V10_PARTS.clear }, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14): the label (Changed with Joe's approval, 26 Nov 2026: the label's last clause.)
+    { key: "gold", label: "Golden atoms: 12 for one, full at 2 of 5 (burstRev 14)", max: BURST_V10_PARTS.gold }, // Changed with Joe's approval, 26 Nov 2026 (labels only: D5's burstRev 14)
   ],
   /** The oracle's run on PERFECT_SEED, encoded as the phone does and scored by the server's replay. */
   perfect(): StdRun[] {
@@ -159,7 +161,7 @@ export const entry: StdEntry = {
       if (s.tick % BURST_CHECKPOINT_INTERVAL === 0) checkpoints.push(burstCheckpoint(s));
     }
     const raw = encodeBurstRun({ seed: PERFECT_SEED, claimedScore: game.score(state), events, endTick: state.tick, checkpoints } as never);
-    const replay = replayBurstRun(PERFECT_SEED, raw, BURST_REV_BIG);
+    const replay = replayBurstRun(PERFECT_SEED, raw, BURST_REV_SMALL); // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
     const p = burstStdParts(replay.state);
     return [{ label: "an oracle run, server replay", score: replay.score, parts: { core: p.core, clear: p.clear, gold: p.gold } }];
   },

@@ -363,18 +363,18 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   }
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
-  if (type === "hover") return generateHover();
+  if (type === "hover") return generateHover(context.level);
   if (type === "swerve") return generateSwerve();
   if (type === "skyline") return generateSkyline(context.level);
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
-  if (type === "matchup") return generateMatchup();
-  if (type === "snake") return generateSnake();
-  if (type === "cross") return generateCross();
+  if (type === "matchup") return generateMatchup(context.level);
+  if (type === "snake") return generateSnake(context.level);
+  if (type === "cross") return generateCross(context.level);
   if (type === "dual") return generateDual();
   if (type === "ricochet") return generateRicochet();
-  if (type === "breaker") return generateBreaker();
-  if (type === "pinball") return generatePinball();
+  if (type === "breaker") return generateBreaker(context.level);
+  if (type === "pinball") return generatePinball(context.level);
   if (type === "minesweeper") return generateMinesweeper(context.level);
   if (type === "mahjong") return generateMahjong(context.level);
   if (type === "homerun") return generateHomerun(context.level);
@@ -384,7 +384,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tripeaks") return generateTripeaks(context.level);
   if (type === "pokersquares") return generatePokerSquares();
   if (type === "fivehands") return generateFiveHands(context.level);
-  if (type === "pyramid") return generatePyramid();
+  if (type === "pyramid") return generatePyramid(context.level);
   if (type === "golfsol") return generateGolfSol();
   if (type === "muggins") return generateMuggins();
   // golfRev 3 reads the level the deal asks for (the difficulty framework's context.level; absent on main: Normal).
@@ -392,24 +392,24 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "pool") return generatePool();
   // Curl Champ's levels (the Sports overhaul): Easy, Hard and Expert deal from their own proved banks; Normal as before.
   if (type === "curling") return generateCurling(context.level);
-  if (type === "blockfall") return generateBlockfall();
+  if (type === "blockfall") return generateBlockfall(context.level);
   if (type === "alleyroll") return generateAlleyRoll();
-  if (type === "rally") return generateRally();
+  if (type === "rally") return generateRally(context.level);
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();
   if (type === "bubble") return generateBubble();
-  if (type === "beat") return generateBeat();
+  if (type === "beat") return generateBeat(context.level);
   if (type === "whack") return generateWhack();
   if (type === "tendrop") return generateTenDrop();
   if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
-  if (type === "wavefront") return generateWavefront();
+  if (type === "wavefront") return generateWavefront(context.level);
   if (type === "bastion") return generateBastion(context.level);
   if (type === "rooftop") return generateRooftop();
   if (type === "flip") return generateFlip(context.level);
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge(context.level);
-  if (type === "burst") return generateBurst();
+  if (type === "burst") return generateBurst(context.level);
   if (type === "orbit") return generateOrbit(context.level);
   if (type === "swing") return generateSwing(context.level);
   if (type === "snip") return generateSnip();

@@ -330,6 +330,22 @@ export const MINIGOLF_STD_SPEC_V3: StdSpec = {
   ),
 };
 
+/**
+ * golfRev 4's parts (D6): golfRev 3's four, the text naming Normal's own figures (MG_D6_FIGURES.normal: under par full at
+ * four holes, the speed by 55 s).
+ */
+export const MINIGOLF_STD_SPEC_V4: StdSpec = {
+  ...MINIGOLF_STD_SPEC_V3,
+  rev: 4,
+  parts: MINIGOLF_STD_SPEC_V3.parts.map((p) =>
+    p.key === "speed"
+      ? { ...p, how: `hole all five within 55 s for all of it, falling to 0 at the buzzer` }
+      : p.key === "under"
+        ? { ...p, how: `${(MG_UNDER_PTS * 5) / 4} for each hole under par, up to four` }
+        : p,
+  ),
+};
+
 /* ================================= Course ================================= */
 
 export interface MgCircle {
@@ -1122,6 +1138,8 @@ export function mgSails(m: MgWindmill, tick: number): MgSailFoot[] {
 export interface MinigolfState {
   tick: number;
   rev: number;
+  /** golfRev 4 (D6): 1 on a run scored on its level's D6 figures (MG_D6_FIGURES; outside the checksum, its world is golfRev 3's). */
+  d6?: number;
   seed: number;
   /** The holes (dealt at init; never changed). */
   course: MgHole[];
@@ -1656,7 +1674,9 @@ export function minigolfStdParts(s: MinigolfState): StdPart[] | null {
       const strokes = s.taken[i]!;
       const p = s.pars[i]!;
       const limit = mgStrokeLimit(s.rev, p, s.level);
-      const pp = strokes <= p ? MG_PAR_PTS : stdLine(MG_PAR_PTS, limit - strokes, limit - p);
+      // golfRev 4 (D6): the par points full within the level's slack of par (Hard and Expert: par is the best route).
+      const pFull = s.d6 ? Math.min(limit, p + MG_D6_FIGURES[s.level].parSlack) : p;
+      const pp = strokes <= pFull ? MG_PAR_PTS : stdLine(MG_PAR_PTS, limit - strokes, limit - pFull);
       par += pp;
       if (strokes <= p) pars++;
       // golfRev 3's Hard and Expert: par is the best route itself, so holing in par earns the under-par bonus.
@@ -1667,8 +1687,11 @@ export function minigolfStdParts(s: MinigolfState): StdPart[] | null {
     } else core += s.close[i]!;
   }
   core = Math.min(120, core);
+  // golfRev 4 (D6): the under-par part full at the level's count of holes (a straight line), the speed at its own time.
+  if (s.d6) under = stdLine(MG_UNDER_PTS * MINIGOLF_HOLES, unders, MG_D6_FIGURES[s.level].underFull);
   const done = holedN === MINIGOLF_HOLES && s.finishTick > 0;
-  const speed = done ? stdSpeed(MG_SPEED_PTS, s.finishTick, minigolfFullByS(s.rev, s.level) * 60, minigolfRunTicksFor(s.rev)) : 0;
+  const fullBy = s.d6 ? MG_D6_FIGURES[s.level].fullByS : minigolfFullByS(s.rev, s.level);
+  const speed = done ? stdSpeed(MG_SPEED_PTS, s.finishTick, fullBy * 60, minigolfRunTicksFor(s.rev)) : 0;
   const spec = s.rev >= MINIGOLF_REV_COURSE ? MINIGOLF_STD_SPEC_V3 : MINIGOLF_STD_SPEC;
   return [
     stdPart(spec, "core", core, `${holedN} of ${MINIGOLF_HOLES} holed`),
@@ -1712,10 +1735,15 @@ export function minigolfGameFor(
   // golfRev 3 needs its five hole ids; a golfRev 3 stamp without them (never dealt) plays as golfRev 2.
   const v3 = rev >= MINIGOLF_REV_COURSE && (course.holes?.length ?? 0) === MINIGOLF_HOLES;
   const r = v3 ? MINIGOLF_REV_COURSE : rev >= MINIGOLF_REV ? MINIGOLF_REV : MINIGOLF_REV_CLASSIC;
+  // golfRev 4 (D6): golfRev 3's world and play exactly, the state marked to score on the level's D6 figures.
+  const d6 = v3 && rev === MINIGOLF_REV_D6;
   return {
     key: "minigolf",
     runTicks: minigolfRunTicksFor(r),
-    init: (seed) => initState(seed, pars, r, course.holes ?? [], v3 ? (course.level ?? "normal") : "normal"),
+    init: (seed) => {
+      const s = initState(seed, pars, r, course.holes ?? [], v3 ? (course.level ?? "normal") : "normal");
+      return d6 ? { ...s, d6: 1 } : s;
+    },
     step: stepState,
     isOver: (s) => s.over === 1,
     score: minigolfScore,
@@ -1730,3 +1758,26 @@ export function mgDist(ax: number, ay: number, bx: number, by: number): number {
 }
 
 export { STD_MAX as MINIGOLF_MAX };
+
+/* ================= golfRev 4 (D6, 27 Nov 2026): each part full where the realistic elite fills it ================= */
+
+/**
+ * golfRev 4 (D6; the polish plan's difficulty spec and Joe's Decision 1 A): golfRev 3's holes, hazards, sails, slopes,
+ * aim lines and stroke limits at every level exactly (the state keeps rev 3; `d6` marks it, outside the checksum), each
+ * part on the level's own figures: par points full within `parSlack` strokes of par (Hard and Expert, where par is the
+ * best route itself), the under-par part a straight line full at `underFull` holes, the speed part full by `fullByS`.
+ * The deal's holes are picked as golfRev 3's (MG_LEVELS' own times). Set from the skill-band bots under HUMAN_LIMITS
+ * (scripts/d6-ladder.ts).
+ */
+export const MINIGOLF_REV_D6 = 4;
+export interface MgD6Figures {
+  parSlack: number;
+  underFull: number;
+  fullByS: number;
+}
+export const MG_D6_FIGURES: Readonly<Record<MgLevel, MgD6Figures>> = {
+  easy: { parSlack: 0, underFull: 2, fullByS: 60 },
+  normal: { parSlack: 0, underFull: 4, fullByS: 55 },
+  hard: { parSlack: 2, underFull: 2, fullByS: 50 },
+  expert: { parSlack: 2, underFull: 1, fullByS: 40 },
+};

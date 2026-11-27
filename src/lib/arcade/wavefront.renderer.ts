@@ -49,7 +49,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE, WAV_REV_BIG,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE, WAV_REV_BIG, WAV_REV_WIDE,
   wavBossW,
   wavCannonX,
   wavCoreOpen,
@@ -1354,7 +1354,19 @@ const wavefrontArtGameKeep = { ...wavefrontGameFor(WAV_REV_KEEP), draw: drawWave
 const wavefrontArtGameCharge = { ...wavefrontGameFor(WAV_REV_CHARGE), draw: drawWavefrontArt };
 /** wavRev 15 (the Retro overhaul, stage 3): the larger hit cells; one object per level. */
 const wavefrontArtGameBig = new Map<string, typeof wavefrontArtGame>();
+/** wavRev 16 (the wider formation); one object per level. */
+const wavefrontArtGameWide = new Map<string, typeof wavefrontArtGame>();
 export function wavefrontArtGameFor(rev?: number | null, level?: Level | null): typeof wavefrontArtGame {
+  // wavRev 16 (the wider formation): drawn by the same art (every ship from the state's own boxes).
+  if (rev === WAV_REV_WIDE) {
+    const key = level ?? "normal";
+    let game = wavefrontArtGameWide.get(key);
+    if (!game) {
+      game = { ...wavefrontGameFor(WAV_REV_WIDE, level), draw: drawWavefrontArt };
+      wavefrontArtGameWide.set(key, game);
+    }
+    return game;
+  }
   if (rev === WAV_REV_BIG) {
     const key = level ?? "normal";
     let game = wavefrontArtGameBig.get(key);

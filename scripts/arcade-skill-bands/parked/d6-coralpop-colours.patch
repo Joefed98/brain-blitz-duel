@@ -1,0 +1,259 @@
+D6's Coral Pop colours lever, parked (Joe, 27 Nov 2026: option A, left out of the D6 PR; today's levels and Normal unchanged).
+
+bubbleRev 13 (BUB_REV_D6): Easy 3 colours (75 bubbles), Normal 5 (bubbleRev 12's deal, its Bank shots and Speed
+figures eased), Hard 6 (an orange seahorse, 100 bubbles), Expert 7 (a pink octopus with a diamond symbol, BUB_SEVENTH,
+110 bubbles), each a descent every 8 shots. Measured on 48 room deals a level (scripts/d6-ladder.ts, the skill-band
+bots under HUMAN_LIMITS): the average player 154.1 / 58.0 / 41.3 / 19.7, the elite at 200 10 / 0 / 0 / 0 %; the elite
+clears the reef 44 / 20 / 3 / 0 times of 48 and fills Chests 41 / 32 / 24 / 3 times. A 200 needs the whole reef, every
+chest and every combo, so even Normal cannot reach the 20 % Expert floor (at most 18.8 % with Speed and Bank shots full
+on every clear). The deal code (generateBubble, the era pin, the registry rows) was not kept; this patch holds the sim,
+renderer and stage parts as written on the D6 branch (23 Nov 2026); it applies to this tree with git apply --3way.
+
+diff --git a/src/lib/arcade/bubble.renderer.ts b/src/lib/arcade/bubble.renderer.ts
+index d24ee018..dafdebea 100644
+--- a/src/lib/arcade/bubble.renderer.ts
++++ b/src/lib/arcade/bubble.renderer.ts
+@@ -37,6 +37,7 @@ import {
+   bubDangerLine,
+   bubRowsOf,
+   BUB_V8_CHESTS,
++  BUB_SEVENTH,
+   BUB_SIXTH,
+   BUB_SHORT_TRAIL_PX,
+   type BubState,
+@@ -64,12 +65,14 @@ import {
+   SEA_TEXT,
+ } from "./seas.renderer";
+ 
+-export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell" | "seahorse";
++export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell" | "seahorse" | "octopus";
+ /** Colour value 1…5 → creature, one-to-one. */
+ export const BUB_CREATURES: readonly BubCreature[] = ["crab", "starfish", "fish", "jellyfish", "shell"];
+ export function bubCreature(value: number): BubCreature {
+   // The sixth colour (Expert only): a seahorse, a shape no other creature shares (drawn in code, as all five are).
+   if (value === BUB_SIXTH) return "seahorse";
++  // D6's seventh colour (bubbleRev 13's Expert only): an octopus, drawn in code.
++  if (value === BUB_SEVENTH) return "octopus";
+   return BUB_CREATURES[(value - 1) % BUB_CREATURES.length] ?? "fish";
+ }
+ 
+@@ -82,7 +85,7 @@ function creatureArtReady(): boolean {
+ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx: number, cy: number, r: number): void {
+   // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound),
+   // only once all five are ready so art and drawn symbols never mix.
+-  if (kind !== "seahorse" && creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
++  if (kind !== "seahorse" && kind !== "octopus" && creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
+   c.save();
+   c.fillStyle = "rgba(8,20,36,0.82)";
+   c.strokeStyle = "rgba(8,20,36,0.82)";
+@@ -185,6 +188,25 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
+       c.arc(cx + r * 0.08, cy - r * 0.46, r * 0.07, 0, Math.PI * 2);
+       c.fill();
+       break;
++    case "octopus":
++      // D6's seventh colour: a round head and four curling arms beneath (no other creature has arms).
++      c.beginPath();
++      c.ellipse(cx, cy - r * 0.18, r * 0.42, r * 0.36, 0, 0, Math.PI * 2);
++      c.fill();
++      c.lineWidth = Math.max(1.2, r * 0.16);
++      c.beginPath();
++      for (const dx of [-0.36, -0.12, 0.12, 0.36]) {
++        c.moveTo(cx + dx * r, cy + r * 0.1);
++        c.quadraticCurveTo(cx + (dx * 1.6) * r, cy + r * 0.42, cx + dx * 1.1 * r, cy + r * 0.62);
++      }
++      c.stroke();
++      c.fillStyle = "rgba(255,255,255,0.9)";
++      for (const dx of [-0.15, 0.15]) {
++        c.beginPath();
++        c.arc(cx + dx * r, cy - r * 0.22, r * 0.07, 0, Math.PI * 2);
++        c.fill();
++      }
++      break;
+   }
+   c.restore();
+ }
+diff --git a/src/lib/arcade/bubble.ts b/src/lib/arcade/bubble.ts
+index 08bf4527..8b1bd995 100644
+--- a/src/lib/arcade/bubble.ts
++++ b/src/lib/arcade/bubble.ts
+@@ -64,15 +64,17 @@ export const BUB_COLOUR_COUNT = 5;
+  * sixth colour is 10. Every other reef holds colours 1…5 only.
+  */
+ export const BUB_SIXTH = 10;
+-/** Every colour value, in order (the sixth last). */
+-export const BUB_ALL_COLOURS: readonly number[] = [1, 2, 3, 4, 5, BUB_SIXTH];
+-/** The colour value for colour index i (0…5): 1…5, then BUB_SIXTH. */
++/** D6's seventh colour (bubbleRev 13's Expert only, 23 Nov 2026): the next free value. */
++export const BUB_SEVENTH = 11;
++/** Every colour value, in order (the sixth, then the seventh, last). */
++export const BUB_ALL_COLOURS: readonly number[] = [1, 2, 3, 4, 5, BUB_SIXTH, BUB_SEVENTH];
++/** The colour value for colour index i (0…6): 1…5, then BUB_SIXTH, then BUB_SEVENTH. */
+ export function bubColourValue(i: number): number {
+-  return i < BUB_COLOUR_COUNT ? i + 1 : BUB_SIXTH;
++  return i < BUB_COLOUR_COUNT ? i + 1 : i === BUB_COLOUR_COUNT ? BUB_SIXTH : BUB_SEVENTH;
+ }
+ /** Whether a grid or queue value is a colour (not empty, a special or a chest). */
+ export function bubIsColour(v: number): boolean {
+-  return (v >= 1 && v <= BUB_COLOUR_COUNT) || v === BUB_SIXTH;
++  return (v >= 1 && v <= BUB_COLOUR_COUNT) || v === BUB_SIXTH || v === BUB_SEVENTH;
+ }
+ /** A level's reef (bubbleRev 12, stage 3): its colour count and exact bubble count (chests included). */
+ export interface BubReefLook {
+@@ -228,6 +230,8 @@ export interface BubState extends BandFields {
+    */
+   lv?: number;
+   every?: number;
++  /** bubbleRev 13 (D6, 23 Nov 2026): 1 on every bubbleRev 13 state (its figures ride on the state); in the checksum. */
++  d6?: number;
+   colours?: number;
+   trail?: number;
+   /** A level's bank shots for the full bank-shot part (scoring only; Normal: 30, BUB_V11_BANK_PER × BUB_V11_BANK_MAX). */
+@@ -878,6 +882,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
+   if (state.fast) extra.push(state.fast, state.boost ?? 0);
+   // bubbleRev 12's levels (stage 3): the level, its descent cadence and its colour count, last (Normal carries none).
+   if (state.lv) extra.push(state.lv, state.every ?? 0, state.colours ?? 0);
++  // bubbleRev 13 (D6): its mark and the figures it scores on, last.
++  if (state.d6) extra.push(1300 + state.d6, state.banksFull ?? 0, state.coreFull ?? 0, state.speedFullLeft ?? 0);
+   for (const value of [...Object.values(snapshot), ...extra]) {
+     checksum ^= value | 0;
+     checksum = Math.imul(checksum, 0x01000193) >>> 0;
+@@ -897,6 +903,11 @@ export const BUB_SYMBOLS = ["dot", "ring", "square", "triangle", "star"] as cons
+  * and symbol (a cross). Kept out of BUB_PALETTE, so every five-colour drawing (the Joker's rim) is unchanged.
+  */
+ export const BUB_SIXTH_COLOUR = "#FF9A3C";
++/**
++ * D6's seventh colour (bubbleRev 13's Expert only): a pink, told apart without colour by its own creature (an octopus;
++ * the spec's starfish already belongs to the second colour) and symbol (a diamond).
++ */
++export const BUB_SEVENTH_COLOUR = "#FF6FB5";
+ 
+ export function bubColour(value: number): string {
+   // bubbleRev 2 specials: pearl Joker, black Bomb, teal Torpedo.
+@@ -904,11 +915,13 @@ export function bubColour(value: number): string {
+   if (value === BUB_BOMB) return "#1C1F26";
+   if (value === BUB_LINE) return "#1FB5C9";
+   if (value === BUB_SIXTH) return BUB_SIXTH_COLOUR;
++  if (value === BUB_SEVENTH) return BUB_SEVENTH_COLOUR;
+   return BUB_PALETTE[(value - 1) % BUB_PALETTE.length] ?? BUB_GOLD;
+ }
+ 
+-export function bubSymbol(value: number): (typeof BUB_SYMBOLS)[number] | "cross" {
++export function bubSymbol(value: number): (typeof BUB_SYMBOLS)[number] | "cross" | "diamond" {
+   if (value === BUB_SIXTH) return "cross";
++  if (value === BUB_SEVENTH) return "diamond";
+   return BUB_SYMBOLS[(value - 1) % BUB_SYMBOLS.length] ?? "dot";
+ }
+ 
+@@ -965,6 +978,15 @@ export function bubDrawSymbol(
+       ctx.fillRect(cx - r * 0.8, cy - r * 0.25, r * 1.6, r * 0.5);
+       ctx.fillRect(cx - r * 0.25, cy - r * 0.8, r * 0.5, r * 1.6);
+       break;
++    case "diamond":
++      ctx.beginPath();
++      ctx.moveTo(cx, cy - r);
++      ctx.lineTo(cx + r * 0.7, cy);
++      ctx.lineTo(cx, cy + r);
++      ctx.lineTo(cx - r * 0.7, cy);
++      ctx.closePath();
++      ctx.fill();
++      break;
+   }
+   ctx.restore();
+ }
+@@ -1073,6 +1095,8 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
+ 
+ /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
+ export function bubbleGameFor(rev?: number | null, level?: unknown): ArcadeGame<BubState, ArcadeInputEvent | null> {
++  // bubbleRev 13 (D6): Normal's figures and BUB_LEVELS_V13 at a level.
++  if (rev === BUB_REV_D6) return isBubLevel(level) ? bubbleLevelGameV13(level) : bubbleD6Game;
+   // Levels (stage 3) exist on bubbleRev 12 only; Normal, a missing level and every older stamp play as before.
+   if (rev === BUB_REV_FAST) return isBubLevel(level) ? bubbleLevelGame(level) : bubbleFastGame;
+   if (rev === BUB_REV_STD) return bubbleStdGame;
+@@ -1196,7 +1220,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+ 
+ /** The tank height (px) a stored round's bubbleRev plays in. */
+ export function bubbleWorldHFor(rev?: number | null): number {
+-  return rev === BUB_REV_STD + 1 /* bubbleRev 12 (BUB_REV_FAST) */ || rev === BUB_REV_STD || rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
++  return rev === BUB_REV_STD + 2 /* bubbleRev 13 (BUB_REV_D6) */ || rev === BUB_REV_STD + 1 /* bubbleRev 12 (BUB_REV_FAST) */ || rev === BUB_REV_STD || rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
+ }
+ 
+ /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
+@@ -1566,7 +1590,8 @@ export const BUB_INPUT_RANGES_V12: readonly InputRange[] = [
+ 
+ /** The input ranges a stored round's bubbleRev replays with (only bubbleRev 12 reads `c`). */
+ export function bubbleInputRangesFor(rev?: number | null): readonly InputRange[] {
+-  return rev === BUB_REV_FAST ? BUB_INPUT_RANGES_V12 : BUB_INPUT_RANGES;
++  // bubbleRev 13 (D6) keeps bubbleRev 12's fast shot.
++  return rev === BUB_REV_FAST || rev === BUB_REV_D6 ? BUB_INPUT_RANGES_V12 : BUB_INPUT_RANGES;
+ }
+ 
+ /** The fast-shot level for a drag of `dragPx` world px (the phone's mapping; the sim only reads the level sent). */
+@@ -1688,3 +1713,54 @@ export function bubColoursOf(state: { colours?: number }): number[] {
+   const n = state.colours ?? BUB_COLOUR_COUNT;
+   return Array.from({ length: n }, (_, i) => bubColourValue(i));
+ }
++
++/* ================= bubbleRev 13 (D6, 23 Nov 2026): colours in the reef ================= */
++
++/**
++ * bubbleRev 13 (D6; the polish plan's difficulty spec and Joe's Decision 1 A): bubbleRev 12's game (the fast shot, the
++ * reef, the six parts to 200) with the figures it scores on carried on the state and folded into the checksum (`d6`):
++ *
++ *   Normal  bubbleRev 12's deal (5 colours, the 86-bubble reef, a descent every 8 shots); Bank shots and Speed full where
++ *           the realistic elite fills them (BUB_V13_NORMAL).
++ *   Easy    bubbleRev 12's Easy: 3 colours, 75 bubbles, a descent every 10 shots, the two-bounce trail.
++ *   Hard    6 colours (the orange seahorse joins), 100 bubbles, a descent every 8 shots as Normal, the one-bounce trail.
++ *   Expert  7 colours (a pink octopus joins too, BUB_SEVENTH), 110 bubbles, a descent every 8 shots, the short trail.
++ *
++ * The lever is the colours in the reef, seen at once. Each level's "full at" figures are set from the skill-band bots
++ * under HUMAN_LIMITS (scripts/d6-ladder.ts). bubbleRev 12 and every older stamp play and score as before.
++ */
++export const BUB_REV_D6 = 13;
++/** Normal's figures on bubbleRev 13. */
++export const BUB_V13_NORMAL: Readonly<Pick<BubLevelSettings, "banksFull" | "speedFullLeft">> = { banksFull: 30, speedFullLeft: 2700 };
++export const BUB_LEVELS_V13: Readonly<Record<BubLevel, BubLevelSettings>> = {
++  easy: { ...BUB_LEVELS.easy },
++  hard: { colours: 6, reef: 100, every: 8, trail: 1, banksFull: 18, coreFull: 100, speedFullLeft: 1200 },
++  expert: { colours: 7, reef: 110, every: 8, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 600 },
++};
++
++/** bubbleRev 13's Normal game: bubbleRev 12's, its figures on the state. */
++export const bubbleD6Game: ArcadeGame<BubState, ArcadeInputEvent | null> = {
++  ...bubbleFastGame,
++  init: (seed) => ({ ...bubbleFastGame.init(seed), d6: 1, banksFull: BUB_V13_NORMAL.banksFull, speedFullLeft: BUB_V13_NORMAL.speedFullLeft }),
++};
++
++const levelGamesV13 = new Map<BubLevel, ArcadeGame<BubState, ArcadeInputEvent | null>>();
++/** bubbleRev 13 at a level. */
++export function bubbleLevelGameV13(level: BubLevel): ArcadeGame<BubState, ArcadeInputEvent | null> {
++  let game = levelGamesV13.get(level);
++  if (!game) {
++    const set = BUB_LEVELS_V13[level];
++    game = {
++      ...bubbleFastGame,
++      init: (seed) => {
++        const base = initReef(seed, bubReefRows(set.reef), { colours: set.colours, count: set.reef });
++        return {
++          ...base, credit: 1, minePops: BUB_V11_MINE_POPS, std: 1, fast: 1, boost: 0, lv: BUB_LEVEL_CODE[level], every: set.every, colours: set.colours,
++          trail: set.trail, banksFull: set.banksFull, coreFull: set.coreFull, speedFullLeft: set.speedFullLeft, d6: 1,
++        };
++      },
++    };
++    levelGamesV13.set(level, game);
++  }
++  return game;
++}
+diff --git a/src/puzzles/bubble.tsx b/src/puzzles/bubble.tsx
+index 3fe0a094..9533aa60 100644
+--- a/src/puzzles/bubble.tsx
++++ b/src/puzzles/bubble.tsx
+@@ -76,7 +76,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+   const anchor = useRef<{ x: number; y: number } | null>(null);
+   const aim = useRef<{ vx: number; vy: number; fast?: number } | null>(null);
+   // bubbleRev 12: dragging further down the aim line shoots faster (the same path, only quicker).
+-  const fastShots = data?.bubbleRev === BUB_REV_FAST;
++  // bubbleRev 12's fast shot, kept on bubbleRev 13 (D6).
++  const fastShots = (data?.bubbleRev ?? 0) >= BUB_REV_FAST;
+   const submitted = useRef(false);
+   const deadAt = useRef<number | null>(null);
+   const [, forceRedraw] = useState(0);

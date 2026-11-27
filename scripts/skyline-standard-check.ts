@@ -122,7 +122,8 @@ ok(scores.every((s) => s >= 1 && s <= 200), "every played rev-9 run scores 1…2
 const dealt = generatePuzzle("skyline") as { skylineRev?: number; seed: number };
 // The scoring audit (Nov 2026): rooms deal skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal skylineRev 11 (lives).
-ok(dealt.skylineRev === SKYLINE_REV_STD + 2, `rooms deal skylineRev 11, skylineRev 9's play with lives (${dealt.skylineRev})`);
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12).
+ok(dealt.skylineRev === SKYLINE_REV_STD + 3, `rooms deal skylineRev 12, skylineRev 9's play with lives (${dealt.skylineRev})`);
 ok((skylineGameFor(SKYLINE_REV_STD).init(dealt.seed).kinds ?? []).filter((k) => k === SKYLINE_KIND_GOLD).length === 5, "a dealt run has exactly five gold blocks");
 
 if (failures.length) {

@@ -69,6 +69,14 @@ export const FREEKICK_REV_5 = 5;
  * skill-shot window (FK_V6_EASE). Hard and Expert score as rev 5; rev 5 rounds replay and grade exactly as before.
  */
 export const FREEKICK_REV_6 = 6;
+/**
+ * freekickRev 7 (D6, 23 Nov 2026; level deals only, Normal stays freekickRev 6): the levels' headline lever is the
+ * players in the wall, seen before the kick (FK_LEVEL_SETTINGS_V7): Easy 2 that never jump, Hard 5 or 6 jumping on 6 of
+ * the 10 kicks, Expert 7 jumping on 8; the keeper, wind and jumps scale with them. The gold zone, the hoop, the scoring
+ * ease and the Goals line (full at 800) are Normal's at every level. Each level deals from its own proved deal
+ * (freekickDealV7.server.ts, scripts/freekick-d6-deal.ts).
+ */
+export const FREEKICK_REV_7 = 7;
 export const FREEKICK_REV_DEALT = FREEKICK_REV_6;
 
 /** The four levels (the difficulty framework's ids). */
@@ -110,9 +118,37 @@ export const FK_LEVEL_SETTINGS_V6: Readonly<Record<FkLevel, FkLevelSettings>> = 
   hard: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 },
   expert: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 },
 };
-/** A stamp's level settings: rev 6's table from rev 6, else rev 5's. */
+/** freekickRev 7's level table (D6): the wall's players the lever; Normal's row is rev 6's (Normal never deals rev 7). */
+export const FK_LEVEL_SETTINGS_V7: Readonly<Record<FkLevel, FkLevelSettings>> = {
+  easy: { zoneLo: 660, zoneHi: 840, react: 18, speed: 700, wall: [2, 2], wind: 0, hoopLast: 850, jumps: 0 },
+  normal: FK_LEVEL_SETTINGS.normal,
+  hard: { zoneLo: 720, zoneHi: 800, react: 10, speed: 1050, wall: [5, 5], wind: 4, hoopLast: 800, jumps: 5 },
+  expert: { zoneLo: 720, zoneHi: 800, react: 5, speed: 1400, wall: [7, 7], wind: 8, hoopLast: 800, jumps: 8 },
+};
+/**
+ * freekickRev 7's Targets and Skill shots figures by level (D6): the part is full at this many targets hit and skill
+ * shots made (a straight line from 0; rev 5 and 6: 10 a target to 4, 3 a skill shot to 10). Set from 96 room deals a
+ * level (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS): the average player 153 / 85 (Normal) / 59 / 47,
+ * the elite at 200 83 / 38 / 29 / 23 %. (The spec's Hard, a 5–6 man wall and an 8-tick keeper at 115 %, left the
+ * average player no more than 6 above Expert; Hard's keeper and wind are eased a little, its wall five.)
+ */
+export const FK_V7_FULL: Readonly<Record<FkLevel, { targets: number; skill: number }>> = {
+  easy: { targets: 3, skill: 8 },
+  normal: { targets: 4, skill: 10 },
+  hard: { targets: 4, skill: 9 },
+  expert: { targets: 2, skill: 9 },
+};
+/** A stamp's level settings: rev 7's table from rev 7, rev 6's from rev 6, else rev 5's. */
 export function fkLevelSettings(rev: number, level?: string | null): FkLevelSettings {
-  return (rev >= FREEKICK_REV_6 ? FK_LEVEL_SETTINGS_V6 : FK_LEVEL_SETTINGS)[fkLevelOf(level)];
+  return (rev >= FREEKICK_REV_7 ? FK_LEVEL_SETTINGS_V7 : rev >= FREEKICK_REV_6 ? FK_LEVEL_SETTINGS_V6 : FK_LEVEL_SETTINGS)[fkLevelOf(level)];
+}
+/** The stamp a level game plays under (5, 6 or 7). */
+function fkRevOf(rev: number): number {
+  return rev >= FREEKICK_REV_7 ? FREEKICK_REV_7 : rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5;
+}
+/** A stamp's scoring ease at a level: rev 7 Normal's at every level (D6), rev 6 the level's own, rev 5 none. */
+function fkEaseFor(rev: number, level?: string | null): { hoopPermille: number; openCm: number } | null {
+  return rev >= FREEKICK_REV_7 ? FK_V6_EASE.normal : rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
 }
 /**
  * freekickRev 6's Goals line by level: the units at which Goals is full (rev 5: FREEKICK_V5_CORE_FULL for every level).
@@ -408,6 +444,8 @@ export const FREEKICK_V5_STD_SPEC: StdSpec = {
 };
 /** freekickRev 6's parts: rev 5's exactly (the ease is in what counts as a target and a skill shot). */
 export const FREEKICK_V6_STD_SPEC: StdSpec = { ...FREEKICK_V5_STD_SPEC, rev: FREEKICK_REV_6 };
+/** freekickRev 7's spec (level deals): rev 5's parts and Goals line. */
+export const FREEKICK_V7_STD_SPEC: StdSpec = { ...FREEKICK_V5_STD_SPEC, rev: FREEKICK_REV_7 };
 export const FREEKICK_V5_BAND_CURVE = bandCurve([0, FREEKICK_V5_CORE_FULL], [0, FREEKICK_V5_CORE_MAX]);
 
 /** A corner hoop's radius (world units) on kick `k` (0…9): rev 1–3 the full FK_HOOP_R; rev 4 down to 70 % by the last. */
@@ -417,7 +455,7 @@ export function fkHoopRFor(rev: number, k: number, level?: string | null): numbe
   const last = rev >= FREEKICK_REV_5 ? fkLevelSettings(rev, level).hoopLast : FK_V4_HOOP_LAST_PERMILLE;
   const permille = 1000 - Math.trunc(((1000 - last) * kk) / (FREEKICK_KICKS - 1));
   // freekickRev 6: Easy's and Normal's hoop starts larger (FK_V6_EASE), shrinking by the same share.
-  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const ease = fkEaseFor(rev, level);
   const first = ease ? Math.trunc((FK_HOOP_R * ease.hoopPermille) / 1000) : FK_HOOP_R;
   return Math.trunc((first * permille) / 1000);
 }
@@ -553,7 +591,7 @@ const planCache = new Map<number, FkPlan>();
 
 /** The run's schedule from the seed (and the revision): identical for every player and the server. */
 export function fkSeedPlan(seed: number, rev: number = FREEKICK_REV_STD, level?: string | null): FkPlan {
-  if (rev >= FREEKICK_REV_5) return fkSeedPlanV5(seed, fkLevelOf(level), rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5);
+  if (rev >= FREEKICK_REV_5) return fkSeedPlanV5(seed, fkLevelOf(level), fkRevOf(rev));
   if (rev >= FREEKICK_REV_2) return fkSeedPlanV2(seed);
   const key = seed | 0;
   const hit = planCache.get(key);
@@ -632,7 +670,8 @@ export function fkSeedPlanV5(seed: number, level: FkLevel = "normal", rev: numbe
     if (kk.side < 0) kk.wallR = kk.wallL + n * FK_WALL_SPACING;
     else kk.wallL = kk.wallR - n * FK_WALL_SPACING;
     kk.wallN = n;
-    const strength = L.wind <= 1 ? draw(rng, 2) : 1 + draw(rng, L.wind);
+    // freekickRev 7's Easy (D6): no wind at all (a wind of 0, which no earlier table holds; the draw is kept).
+    const strength = L.wind === 0 ? (draw(rng, 2), 0) : L.wind <= 1 ? draw(rng, 2) : 1 + draw(rng, L.wind);
     kk.wind = (draw(rng, 2) ? 1 : -1) * strength;
     const lean = draw(rng, 2) ? 1 : -1;
     kk.keeperX = clampInt(kk.keeperX + lean * FK_V5_LEAN, -FK_V2_KEEPER_START_MAX, FK_V2_KEEPER_START_MAX);
@@ -1089,7 +1128,7 @@ export function fkV5Launch(k: FkKick, xCm: number, yCm: number, b: number, st: n
 export function fkV5Skill(k: FkKick, f: FkFlight, curled: boolean, rev: number = FREEKICK_REV_5, level?: string | null): boolean {
   if (!k.v5 || f.out !== FK_OUT_GOAL) return false;
   // freekickRev 6: Easy's and Normal's open side counts from nearer the middle (FK_V6_EASE).
-  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const ease = fkEaseFor(rev, level);
   const openSide = Math.sign(f.crossX) === -k.v5.lean && Math.abs(f.crossX) > m((ease?.openCm ?? FK_V5_OPEN_CM) / 100);
   return f.under === 1 || (f.st === FK_STRIKE_DIP && f.wallSide === 2) || curled || openSide;
 }
@@ -1308,13 +1347,14 @@ function isOver(state: FreekickState): boolean {
  */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
   const r = state.freekickRev;
-  if (r === FREEKICK_REV_5 || r === FREEKICK_REV_6) {
+  if (r === FREEKICK_REV_5 || r === FREEKICK_REV_6 || r === FREEKICK_REV_7) {
     const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
-    const spec = r === FREEKICK_REV_6 ? FREEKICK_V6_STD_SPEC : FREEKICK_V5_STD_SPEC;
+    const spec = r === FREEKICK_REV_7 ? FREEKICK_V7_STD_SPEC : r === FREEKICK_REV_6 ? FREEKICK_V6_STD_SPEC : FREEKICK_V5_STD_SPEC;
     return [
       stdPart(spec, "core", stdLine(FREEKICK_V5_CORE_MAX, state.units, r === FREEKICK_REV_6 ? FK_V6_CORE_FULL[fkLevelOf(state.level)] : FREEKICK_V5_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
-      stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
-      stdPart(spec, "skill", stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
+      // freekickRev 7 (D6): each level's own figures (FK_V7_FULL).
+      stdPart(spec, "targets", r === FREEKICK_REV_7 ? stdLine(FREEKICK_TARGETS_MAX, state.targets, FK_V7_FULL[fkLevelOf(state.level)].targets) : stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+      stdPart(spec, "skill", r === FREEKICK_REV_7 ? stdLine(FREEKICK_V5_SKILL_MAX, state.skill ?? 0, FK_V7_FULL[fkLevelOf(state.level)].skill) : stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
       stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
     ];
   }
@@ -1405,7 +1445,7 @@ const gamesV5 = new Map<string, ArcadeGame<FreekickState, ArcadeInputEvent | nul
 /** freekickRev 5's game at a level (or rev 6's, the same game scored with the ease). */
 export function freekickGameV5(level?: string | null, rev: number = FREEKICK_REV_5): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
   const l = fkLevelOf(level);
-  const r = rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5;
+  const r = fkRevOf(rev);
   const key = `${r}:${l}`;
   let g = gamesV5.get(key);
   if (!g) {

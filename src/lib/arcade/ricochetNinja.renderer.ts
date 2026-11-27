@@ -45,7 +45,6 @@ import {
   moonRideHang,
   ninjaBodyFor,
   isMoonState,
-  MOON_BIG_REV,
   ninjaClimbedPx,
   ninjaMetres,
   SCROLL_R,
@@ -65,7 +64,6 @@ import {
   moonFullM,
   moonGameFor,
   moonKnockPx,
-  moonLevelOf,
   moonSkyCount,
   type MoonLevel,
   type MoonState,
@@ -1254,7 +1252,7 @@ const ninjaPoseMemo = heroPose();
 /**
  * The ninja's drawing scale for a stamp: 1 up to ricoRev 3 (its 26 × 52 body box), MOON_BIG_HW ÷ NINJA_HW on ricoRev 4
  * (the bigger ninja, 15 Nov 2026), the same figure grown to fill its 34 × 68 box (art-check holds each pose's extent to
- * main's figure × this scale).
+ * main's figure × this scale); MOON_MID_HW ÷ NINJA_HW = 15 / 13 on ricoRev 5 (the 30 × 60 ninja, 22 Nov 2026).
  */
 export function ninjaArtScale(rev: number | null | undefined): number {
   return ninjaBodyFor(rev).hw / NINJA_HW;
@@ -1934,16 +1932,17 @@ export const ninjaArtGame = { ...ninjaGame, draw: drawNinjaFrame };
 export const moonArtGame = { ...moonGame, draw: drawNinjaFrame };
 /** Moon Climb's bigger ninja (ricoRev 4) with its art. */
 export const moonBigArtGame = { ...moonBigGame, draw: drawNinjaFrame };
-const moonLevelArtGames = new Map<string, typeof moonBigArtGame>();
-/** Moon Climb's art game for a stamp (rev 3 or 4) and, on rev 4, the puzzle's stored level (absent: Normal). */
+/** Each of the sim's Moon Climb games (moonGameFor: a stamp and a level) with its art; Normal's rev 3 and 4 the two above. */
+const moonArtGames = new Map<object, typeof moonBigArtGame>([[moonGame, moonArtGame], [moonBigGame, moonBigArtGame]]);
+/**
+ * Moon Climb's art game for a stamp (rev 3, 4 or 5) and, on rev 4 and 5, the puzzle's stored level (absent: Normal):
+ * the sim's own game for them (moonGameFor) with the art, so the stage plays exactly the game the server replays.
+ */
 export function moonArtGameFor(rev: number | null | undefined, level?: unknown) {
-  const lvl = moonLevelOf(rev, level);
-  if (lvl) {
-    let g = moonLevelArtGames.get(lvl);
-    if (!g) moonLevelArtGames.set(lvl, (g = { ...moonGameFor(rev, lvl), draw: drawNinjaFrame } as typeof moonBigArtGame));
-    return g;
-  }
-  return (rev ?? 0) >= MOON_BIG_REV ? moonBigArtGame : moonArtGame;
+  const game = moonGameFor(rev, level);
+  let g = moonArtGames.get(game);
+  if (!g) moonArtGames.set(game, (g = { ...game, draw: drawNinjaFrame } as typeof moonBigArtGame));
+  return g;
 }
 /** The art game for a stamp (and its stored level). */
 export function ninjaArtGameFor(rev: number | null | undefined, level?: unknown) {

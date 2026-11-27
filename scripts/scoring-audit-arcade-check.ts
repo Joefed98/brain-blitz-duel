@@ -33,7 +33,7 @@ import {
   burstV11Charged,
   BURST_LIVES,
   BURST_REV_AIM,
-  BURST_REV_BIG,
+  BURST_REV_SMALL, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
   BURST_REV_STD,
   BURST_V10_LIFE_COST,
   BURST_V11_FREE_MISSES,
@@ -52,7 +52,8 @@ pinPreRetro(true);
 /** The Retro overhaul's live stamps for the audit games it moved on (the help reads these exactly). */
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): stage 3 deals Wavefront wavRev 15
 // and Spacewalk crossRev 13 (one above the stamps named here).
-const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE + 1, burst: BURST_REV_BIG, cross: CROSS_REV_KEEP + 1 };
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16 and burstRev 14): Wavefront two above, Fission burstRev 14.
+const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE + 2, burst: BURST_REV_SMALL, cross: CROSS_REV_KEEP + 1 };
 
 let checks = 0;
 const failures: string[] = [];
@@ -69,7 +70,8 @@ section("1. rooms deal the new stamps; each keeps the previous stamp's play");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): High Rise moved on to skylineRev 11
 // (lives, skyline-overhaul-check), so rooms and LIVE_BANDS now carry the stamp after the audit's; the audit's stamp still
 // replays and scores as proved below.
-const LATER_DEALT: Partial<Record<string, number>> = { skyline: 11 };
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12): High Rise deals skylineRev 12.
+const LATER_DEALT: Partial<Record<string, number>> = { skyline: 12 };
 for (const g of AUDIT_GAMES) {
   const want = LATER_DEALT[g.type] ?? g.rev;
   for (let k = 0; k < 5; k++) {
@@ -242,7 +244,9 @@ for (const r of newRuns) {
   ok(/losing the last just ends the run/.test(help("wavefront").score) && /half your ships, hits and waves points/.test(help("wavefront").score), "Wavefront's help: the last life is free; lives take at most half");
   ok(/before your last costs/.test(help("burst").score) && /Wasted shots beyond one for each atom popped/.test(help("burst").score) && /half your atom points/.test(help("burst").score) && /wasted/.test(all("burst")), "Fission's help: the last life is free, wasted shots, the half cap");
   ok(/wasted shots/.test(INTRO_SCORE.burst) && INTRO_SCORE.burst.length <= 90, `Fission's intro names wasted shots: ${INTRO_SCORE.burst}`);
-  ok(/every perfect drop counts the same, all of it at 61 perfect drops/.test(help("skyline").score) && !/share of your drops/.test(help("skyline").score), "High Rise's help: perfect drops counted, not a share");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12): the help states 30 perfect drops.
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's skylineRev 12 refit of 27 Nov 2026): the help states 24 perfect drops.
+  ok(/every perfect drop counts the same, all of it at 24 perfect drops/.test(help("skyline").score) && !/share of your drops/.test(help("skyline").score), "High Rise's help: perfect drops counted, not a share");
   ok(!/first half of it scores nothing/.test(all("slice")) && !/Past the first/.test(all("slice")) && /every piece counts the same/.test(help("slice").score), "Slice's help: every piece and every combo food counts from the first");
 }
 

@@ -43,9 +43,11 @@ export const BT_TURN_TICKS = 8;
 /** Side bits. */
 export const N = 1, E = 2, S = 4, W = 8;
 
-/** Game palette: RED, BLUE, GREEN, YELLOW. */
-export const BT_PALETTE = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#FFE600"] as const;
-export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Yellow"] as const;
+/** Game palette: RED, BLUE, GREEN, YELLOW, and (D6's Hard and Expert, btRev 9 level courses only) PURPLE. */
+export const BT_PALETTE = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#FFE600", "#B26BFF"] as const;
+export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Yellow", "Purple"] as const;
+/** The fifth colour's index (a purple star: its symbol is drawn by ballTrackColours.renderer.ts). */
+export const BT_COLOUR_FIVE = 4;
 
 /* ================================ Track ================================= */
 
@@ -154,6 +156,19 @@ export interface BtCourse {
    * 14). Absent on every other course, which keeps BT_V8_COMBOS_FULL (20).
    */
   combo?: number;
+  /**
+   * D6's level courses only (btRev 9, 27 Nov 2026): the counts at which each part is full (marbles home, gold marbles,
+   * combo landings, boosted marbles home). Absent on every other course; a btRev 9 Normal round uses BT_D6_NORMAL_FULL.
+   */
+  full?: BtD6Full;
+}
+
+/** D6's part figures (btRev 9): each part full at this many. */
+export interface BtD6Full {
+  home: number;
+  gold: number;
+  combo: number;
+  boost: number;
 }
 
 /** A tick no run reaches: Easy's stand-in `relay` / `shuffle` (its cups never move). */
@@ -295,6 +310,8 @@ export interface BtState extends BandFields {
   ng?: number;
   /** Level courses that carry `combo` only (Easy): the combo landings that fill the combos part; absent = 20. */
   nc?: number;
+  /** btRev 9 (D6): the part figures this run is scored on (outside the checksum; the server takes them from the stored course). */
+  d6?: BtD6Full;
 }
 
 export function btInit(course: BtCourse): BtState {
@@ -683,6 +700,9 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
       if (rev === BT_REV_RUSH) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), ...counts };
       // btRev 8 (the arcade scoring standard): btRev 7's play exactly, scored on BT_STD (`std` stays out of the checksum).
       if (rev === BT_REV_STD) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1, ...counts };
+      // btRev 9 (D6, 27 Nov 2026): btRev 8's play exactly, each part full at the course's own figure (a level course's
+      // `full`, else Normal's BT_D6_NORMAL_FULL); the figures stay outside the checksum, as btRev 8's counts.
+      if (rev === BT_REV_D6) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1, ...counts, d6: course.full ?? BT_D6_NORMAL_FULL };
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
@@ -907,7 +927,7 @@ export const BT_V8_BAND_CURVE = bandCurve([0, BT_V7_BALLS], [0, 140]);
 
 /** True for the revisions that play btRev 7's rules on its 13-row board (7, and 8 scored on the standard). */
 export function btIsV7Play(rev?: number | null): boolean {
-  return rev === BT_REV_RUSH || rev === BT_REV_STD;
+  return rev === BT_REV_RUSH || rev === BT_REV_STD || rev === BT_REV_D6;
 }
 
 /**
@@ -915,7 +935,8 @@ export function btIsV7Play(rev?: number | null): boolean {
  * parts and maximums shared over that course's marbles and gold marbles (the core and the boosted part over its `nb`
  * marbles, the gold part over its `ng` gold marbles; combos full at 20, or at the course's own `combo` on Easy, `nc`).
  */
-export function btStdSpecOf(state: { nb?: number; ng?: number; nc?: number }): StdSpec {
+export function btStdSpecOf(state: { nb?: number; ng?: number; nc?: number; d6?: BtD6Full }): StdSpec {
+  if (state.d6) return btD6SpecOf(state.d6);
   if (state.nb === undefined) return BT_STD;
   const nb = state.nb, ng = state.ng ?? BT_V7_GOLDS, nc = state.nc ?? BT_V8_COMBOS_FULL;
   const key = `${nb}|${ng}|${nc}`;
@@ -959,4 +980,59 @@ export function btStdParts(state: BtState): BandParts {
 
 function btStdTotal(state: BtState): number {
   return stdTotal(btStdScore(state), Boolean(state.acted));
+}
+
+/* ================= btRev 9 (D6, 27 Nov 2026): the colours lever, each part full where the realistic elite fills it ================= */
+
+/**
+ * btRev 9 (D6; the polish plan's difficulty spec and Joe's Decision 1 A): btRev 8's play and parts (core 140, gold 25,
+ * combos 20, boosted 15 = 200), each part a straight line full at its own figure. The lever is the marble colours and
+ * their cups, seen before the first drop (D6's level courses, scripts/balltrack-d6-deal.ts):
+ *
+ *   Easy    3 colours and cups; 16 marbles, one every 190 ticks; the cups never move; 7 gold, 4 boosters.
+ *   Normal  btRev 8's bank courses (4 colours, 36 marbles every 84 ticks, 2 cup moves), full at 28 home, 5 gold,
+ *           18 combos and 28 boosted marbles home (Decision 1 A: where the realistic elite fills them).
+ *   Hard    5 colours (a purple star joins); 40 marbles every 78 ticks; 4 cup moves; 6 gold, 3 boosters.
+ *   Expert  5 colours (the board holds five cups at most: no route reaches column 0, and column 6 none while column 5 has
+ *           a cup); 42 marbles every 72 ticks; 6 cup moves, each a colour shuffle or a re-lay; 6 gold, 2 boosters.
+ *
+ * Each level course carries its figures (`full`); every older round keeps its own scoring.
+ */
+export const BT_REV_D6 = 9;
+/** btRev 9 Normal's figures (bank courses carry none). */
+export const BT_D6_NORMAL_FULL: BtD6Full = { home: 28, gold: 5, combo: 18, boost: 28 };
+/** btRev 9 Normal's core line (LIVE_BANDS, the "?" help): marbles home of 28 → 0…140, straight. */
+export const BT_V9_BAND_CURVE = bandCurve([0, BT_D6_NORMAL_FULL.home], [0, 140]);
+
+/** A D6 level's course settings (scripts/balltrack-d6-deal.ts builds its courses from them) and its part figures. */
+export interface BtD6LevelSettings {
+  colours: number;
+  balls: number;
+  dropTicks: number;
+  moves: number;
+  golds: number;
+  boosts: number;
+  full: BtD6Full;
+}
+/**
+ * D6's levels (mirrored as plain data in src/lib/levels/gameLevels.ts; d6-strategy-levels-check proves the two the
+ * same). Measured on 96 deals a level of the proved lists (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS):
+ * the average player 178.8 / 110.5 (Normal) / 78.8 / 58.2, the elite at 200 58 / 40 / 33 / 28 %.
+ */
+export const BT_D6_LEVELS: Readonly<Record<"easy" | "hard" | "expert", BtD6LevelSettings>> = {
+  easy: { colours: 3, balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, full: { home: 14, gold: 6, combo: 10, boost: 14 } },
+  hard: { colours: 5, balls: 40, dropTicks: 78, moves: 4, golds: 6, boosts: 3, full: { home: 33, gold: 5, combo: 20, boost: 33 } },
+  expert: { colours: 5, balls: 42, dropTicks: 72, moves: 6, golds: 6, boosts: 2, full: { home: 37, gold: 4, combo: 20, boost: 37 } },
+};
+
+const d6SpecCache = new Map<string, StdSpec>();
+/** btRev 9's parts on a run's figures: BT_STD's four, each full at its own count. */
+export function btD6SpecOf(full: BtD6Full): StdSpec {
+  const key = `${full.home}|${full.gold}|${full.combo}|${full.boost}`;
+  const cached = d6SpecCache.get(key);
+  if (cached) return cached;
+  const of: Record<string, number> = { core: full.home, gold: full.gold, combo: full.combo, boost: full.boost };
+  const spec: StdSpec = { ...BT_STD, rev: BT_REV_D6, parts: BT_STD.parts.map((p) => (of[p.key] !== undefined ? { ...p, of: of[p.key]! } : p)) };
+  d6SpecCache.set(key, spec);
+  return spec;
 }

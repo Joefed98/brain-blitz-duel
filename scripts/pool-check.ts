@@ -55,6 +55,7 @@ import {
   POOL_POCKETS,
   POOL_REV,
   POOL_REV_V1,
+  POOL_REV_V4,
   POOL_SPIN2_CENTRE,
   POOL_SPIN2_MAX,
   POOL_SPIN_SAFE,
@@ -77,7 +78,8 @@ const witnessV2 = JSON.parse(readFileSync(new URL("./fixtures/pool-witness-v2.js
 const witnessV3 = JSON.parse(readFileSync(new URL("./fixtures/pool-witness-v3.json", import.meta.url), "utf8")) as Record<string, string>;
 const witnessV4 = JSON.parse(readFileSync(new URL("./fixtures/pool-witness-v4.json", import.meta.url), "utf8")) as Record<string, string>;
 
-ok(POOL_REV === 4 && POOL_REV_V1 === 1, `rooms deal poolRev 4 (${POOL_REV})`);
+// Changed with Joe's approval, 23 Nov 2026 (D6): rooms deal poolRev 5; poolRev 4 kept.
+ok(POOL_REV === 5 && POOL_REV_V4 === 4 && POOL_REV_V1 === 1, `rooms deal poolRev 5 (${POOL_REV}); poolRev 4 kept for stored rounds`);
 
 /* The bank (poolRev 1, stored rounds). */
 ok(POOL_BANK.length >= 40 && new Set(POOL_BANK).size === POOL_BANK.length, `at least 40 unique bank layouts (${POOL_BANK.length})`);

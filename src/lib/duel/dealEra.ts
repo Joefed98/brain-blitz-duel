@@ -134,6 +134,63 @@ export const DEAL_PINS = {
   preD3Maze: { texts: true },
   /** wordStar.ts: Nucleus wordsmithRev 5, Forage wordHuntRev 4 and Roundabout wheelRev 5, before the D1 refit (21 Nov 2026). */
   preWordStar: { texts: true },
+  /** arcade.server.ts: Moon Climb ricoRev 4 (the 34 × 68 ninja), before the 30 × 60 one (D5, 22 Nov 2026). */
+  ricoPreMid: { texts: false },
+  /** arcade.server.ts: Fission burstRev 13 (bigger atoms), before burstRev 14's middle atoms (D5, 22 Nov 2026). */
+  burstPreSmall: { texts: false },
+  /** arcade.server.ts: Wavefront wavRev 15 from its own deal, before the wider formation (D5, 22 Nov 2026). */
+  wavPreWide: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 11, before skylineRev 12's lower full lines (D5 item I5, 22 Nov 2026). */
+  skylinePreCount: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
+  orbitPreLost: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 4 (Easy, Normal, Hard) and 3 (Expert), before the ladder (D5, 23 Nov 2026). */
+  bastionPreLadder: { texts: false },
+  /** arcade.server.ts: Tempo beatRev 12 (any seed, every level), before beatRev 13's lanes and lower full lines (D5's ladder, 23 Nov 2026). */
+  beatPreLanes: { texts: false },
+  /** arcade.server.ts: Blockzone's levels on blockfallRev 2 from Normal's deal, before blockfallRev 3's level deals (D5's ladder, 23 Nov 2026). */
+  blockfallPreLevels: { texts: false },
+  /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
+  hoverPreFit: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 18 at every level, before the ladder (swingRev 19, D5, 23 Nov 2026). */
+  swingPreLadder: { texts: false },
+  /** arcade.server.ts: Meteor snakeRev 15 at every level, before D5's ladder (snakeRev 16's lines and rocks, 23 Nov 2026). */
+  snakePreLadder: { texts: false },
+  /** arcade.server.ts: Rally rallyRev 13 at every level, before D5's ladder (rallyRev 14's paddles and lines, 23 Nov 2026). */
+  rallyPreLadder: { texts: false },
+  /** arcade.server.ts: Breaker brkRev 12 at every level, before brkRev 13's ladder (D5, 23 Nov 2026). */
+  breakerPreLadder: { texts: false },
+  /** arcade.server.ts: Pinball pinRev 8 at every level, before pinRev 9's ladder (D5, 23 Nov 2026). */
+  pinballPreLadder: { texts: false },
+  /** arcade.server.ts: Roofbound flipRev 13 at Easy, Hard and Expert, before the running-speed ladder (D5, 23 Nov 2026). */
+  flipPreLadder: { texts: false },
+  /** arcade.server.ts: Five Hands fiveHandsRev 3, before D6's Normal scoring stamp (200 at 128 hand points, 22 Nov 2026). */
+  fivehandsPre128: { texts: true },
+  /** sports.server.ts: Cue Ball poolRev 4, before D6's Normal scoring stamp (Speed from the fifth pot, 22 Nov 2026). */
+  poolPreFifth: { texts: false },
+  /** arcade.server.ts: Tilt tiltRev 12 (four mazes), before D6's Normal scoring stamp (three mazes, 22 Nov 2026). */
+  tiltPreThree: { texts: true },
+  /** arcade.server.ts: Free Cell freecellRev 5, before D6's Normal scoring stamp (par full within an eighth over par). */
+  freecellPrePar98: { texts: true },
+  /** arcade.server.ts: Summit tripeaksRev 3, before D6's Normal scoring stamp (run, stock par and speed within reach). */
+  tripeaksPreEase: { texts: true },
+  /** sports.server.ts: Apex racingRev 4, before D6's Normal scoring stamp (pace and clean sectors within reach). */
+  racingPreFive: { texts: true },
+  /** arcade.server.ts: Thirteen pyramidRev 3, before D6's Normal scoring stamp (Speed full by 22 s, 23 Nov 2026). */
+  pyramidPreSpeed22: { texts: false },
+  /** arcade.server.ts: Gemstone matchupRev 13, before D6's matchupRev 14 (Normal's parts, the colours lever, 23 Nov 2026). */
+  matchupPreD6: { texts: false },
+  /** ballTrack.server.ts: Ball Tracker btRev 8, before D6's btRev 9 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  balltrackPreD6: { texts: true },
+  /** arcade.server.ts: Rainbow Bridge inkRev 15, before D6's inkRev 16 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  inkPreD6: { texts: true },
+  /** sports.server.ts: Crazy Golf golfRev 3, before D6's golfRev 4 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  minigolfPreD6: { texts: true },
+  /**
+   * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
+   * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.
+   */
+  d6PreLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

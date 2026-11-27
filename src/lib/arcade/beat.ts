@@ -7,7 +7,7 @@
  * server always agree on the accuracy.
  */
 
-import { retroLevelSettings, type BeatLv } from "./retroLevels";
+import { BEAT_LEVELS, BEAT_LEVELS_V13, type BeatLv, type BeatLv13 } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -227,6 +227,9 @@ export interface BeatState extends BandFields {
   std?: number;
   /** beatRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = a missed note scores 0 rather than −2 (outside the checksum). */
   floor?: number;
+  /** beatRev 13 only (D5's ladder, 23 Nov 2026): 1 = the golden-note and streak parts on their lower full lines (and a
+   * level's own, from `lv`), outside the checksum: beatRev 12's play exactly at Normal. */
+  fit?: number;
   /** Fever: the meter (half steps, to BEAT_FEVER_FULL), ticks of fever left, fevers had, quarters earned in fever. */
   meter?: number;
   fever?: number;
@@ -333,8 +336,8 @@ export function beatJudge(distance: number, w: BeatWindows = BEAT_WINDOWS): numb
 
 function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   if (isOver(state)) return state;
-  // beatRev 9: five lanes in its later sections (every older round has four).
-  const LANES = state.exp ? BEAT_V9_LANES : BEAT_LANES;
+  // beatRev 9: five lanes in its later sections (every older round has four); beatRev 13's levels: their own lanes.
+  const LANES = state.lv?.lanes ?? (state.exp ? BEAT_V9_LANES : BEAT_LANES);
   // beatRev 10: wider windows (every older round judges on 3 / 7 / 12).
   const W = beatWindows(state);
   const tick = state.tick + 1;
@@ -741,6 +744,8 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  // D5's ladder (23 Nov 2026): beatRev 13, the lower full lines at Normal and the lanes at a level (BEAT_LEVELS_V13).
+  if (rev === BEAT_REV_LANES) return beatV13LevelGame(level);
   // Stage 3 of the Retro overhaul: beatRev 12 at a level (retroLevels.ts: the hit windows; the fall time is drawn).
   if (rev === BEAT_REV_FLOOR) return beatV12LevelGame(level);
   if (rev === BEAT_REV_STD) return beatV11Game;
@@ -906,7 +911,7 @@ export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's beatRev plays in. */
 export function beatWorldHFor(rev?: number | null): number {
-  return rev === BEAT_REV_FLOOR || rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
+  return rev === BEAT_REV_LANES || rev === BEAT_REV_FLOOR || rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
 }
 
 /* ================= Scoring targets (beatRev 7, 18 Oct 2026) ================= */
@@ -986,8 +991,9 @@ export const BEAT_V9_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BEAT_INPUT_SWIPE, [0, BEAT_V9_LANES - 1], [0, 1]),
 ];
 
-/** Lanes on screen at a tick: four, or five from BEAT_V9_FIVE_FROM on beatRev 9. */
-export function beatLanesAt(state: { exp?: number }, tick: number): number {
+/** Lanes on screen at a tick: four, or five from BEAT_V9_FIVE_FROM on beatRev 9; a beatRev 13 level's own, the whole song. */
+export function beatLanesAt(state: { exp?: number; lv?: BeatLv | undefined }, tick: number): number {
+  if (state.lv?.lanes) return state.lv.lanes;
   return state.exp && tick >= BEAT_V9_FIVE_FROM ? BEAT_V9_LANES : BEAT_LANES;
 }
 
@@ -1015,9 +1021,41 @@ interface BeatChartPlan {
   swipe: readonly [number, number];
   /** The OK window the chart's last note must be judged inside before the run ends. */
   ok: number;
+  /** beatRev 13's levels only: one lane count for the whole song (no fifth-lane switch, so no break before it). */
+  lanes?: number;
+  /** beatRev 13's levels only: a hold only where two thumbs can play round it (thumbsAllowHold). */
+  thumbs?: boolean;
 }
 
 const V9_PLAN: BeatChartPlan = { sections: V9_SECTIONS, double: [12, 12], hold: [15, 15], swipe: [22, 22], ok: BEAT_OK_TICKS };
+
+/**
+ * The two-thumb rule (beatRev 13's levels, D5's ladder, 23 Nov 2026; Joe's human limits): a thumb needs 0.15 s, 9 ticks,
+ * to reach a note in another lane once it has played one.
+ */
+export const BEAT_THUMB_TICKS = 9;
+
+/**
+ * Whether note `i` may grow a `len`-tick tail on a beatRev 13 level (the plan's `thumbs`): while one thumb holds it, and
+ * for BEAT_THUMB_TICKS either side (reaching it, leaving it), the other thumb must play every other note alone, so none
+ * of them is a hold, no two share a tick and any two in different lanes are at least BEAT_THUMB_TICKS apart. The notes
+ * are in tick order (then lane), as the builder sorts them before it grows any hold.
+ */
+function thumbsAllowHold(notes: readonly { tick: number; lane: number; hold: number }[], i: number, len: number): boolean {
+  const n = notes[i]!;
+  const from = n.tick - BEAT_THUMB_TICKS;
+  const to = n.tick + len + BEAT_THUMB_TICKS;
+  let last: { tick: number; lane: number } | null = null;
+  for (let j = 0; j < notes.length; j++) {
+    const m = notes[j]!;
+    if (m.tick > to) break;
+    if (j === i || m.tick + m.hold < from) continue;
+    if (m.hold > 0) return false;
+    if (last && (m.tick === last.tick || (m.lane !== last.lane && m.tick - last.tick < BEAT_THUMB_TICKS))) return false;
+    last = m;
+  }
+  return true;
+}
 
 /** beatRev 9's chart: sections, the fifth lane, holds, double taps, swipes and golden notes. */
 function buildChartV9(seed: number, plan: BeatChartPlan = V9_PLAN): { rng: number; chart: BeatChart } {
@@ -1029,11 +1067,13 @@ function buildChartV9(seed: number, plan: BeatChartPlan = V9_PLAN): { rng: numbe
   };
   type Note = { tick: number; lane: number; hold: number; swipe: number; gold: number; first: Note | null };
   const notes: Note[] = [];
-  const lastInLane = [-999, -999, -999, -999, -999];
+  const lastInLane = [-999, -999, -999, -999, -999, -999];
   const lastTick = BEAT_V9_RUN_TICKS - plan.ok - 2;
   const share = (pair: readonly [number, number], tick: number) => pair[tick >= BEAT_V9_FIVE_FROM ? 1 : 0];
-  const quiet = (tick: number) => tick > BEAT_V9_FIVE_FROM - BEAT_V9_BREAK && tick < BEAT_V9_FIVE_FROM + BEAT_EIGHTH_TICKS;
-  const lanesAt = (tick: number) => (tick >= BEAT_V9_FIVE_FROM ? BEAT_V9_LANES : BEAT_LANES);
+  // beatRev 13's levels: one lane count throughout, so no quiet break before a fifth lane.
+  const fixed = plan.lanes ?? 0;
+  const quiet = (tick: number) => !fixed && tick > BEAT_V9_FIVE_FROM - BEAT_V9_BREAK && tick < BEAT_V9_FIVE_FROM + BEAT_EIGHTH_TICKS;
+  const lanesAt = (tick: number) => fixed || (tick >= BEAT_V9_FIVE_FROM ? BEAT_V9_LANES : BEAT_LANES);
   const add = (tick: number, lane: number): Note | null => {
     if (tick < BEAT_FIRST_BEAT || tick > lastTick || quiet(tick)) return null;
     if (tick - lastInLane[lane]! < BEAT_LANE_GAP) return null;
@@ -1077,9 +1117,11 @@ function buildChartV9(seed: number, plan: BeatChartPlan = V9_PLAN): { rng: numbe
     // Holds from 20 s (about one plain note in seven), only when the lane stays clear for the tail.
     if (plain && n.tick >= BEAT_HOLD_FROM && draw(100) < share(plan.hold, n.tick)) {
       const len = BEAT_BEAT_TICKS + draw(3) * BEAT_EIGHTH_TICKS;
-      const crosses = n.tick < BEAT_V9_FIVE_FROM && n.tick + len + BEAT_LANE_GAP >= BEAT_V9_FIVE_FROM - BEAT_V9_BREAK;
+      const crosses = !fixed && n.tick < BEAT_V9_FIVE_FROM && n.tick + len + BEAT_LANE_GAP >= BEAT_V9_FIVE_FROM - BEAT_V9_BREAK;
       let clear = n.tick + len <= lastTick && !crosses;
       for (let j = i + 1; clear && j < notes.length && notes[j]!.tick <= n.tick + len + BEAT_LANE_GAP; j++) if (notes[j]!.lane === n.lane) clear = false;
+      // beatRev 13's levels: the other thumb alone must be able to play every note while this one is held.
+      if (clear && plan.thumbs) clear = thumbsAllowHold(notes, i, len);
       if (clear) n.hold = len;
     }
     // Swipes from 30 s: plain single notes alone on their tick.
@@ -1314,7 +1356,7 @@ export function beatFeatureCounts(state: BeatState): { golds: number; doubles: n
 /** beatRev 11's parts (core first), or null for a state not on the standard. */
 export function beatStdParts(state: BeatState): StdPart[] | null {
   if (!state.std) return null;
-  const spec = state.floor ? BEAT_STD_SPEC_V12 : BEAT_STD_SPEC;
+  const spec = state.fit ? BEAT_STD_SPEC_V13 : state.floor ? BEAT_STD_SPEC_V12 : BEAT_STD_SPEC;
   const acc = beatAccuracy(state);
   const { golds, doubles } = beatFeatureCounts(state);
   const notes = beatNoteCount(state);
@@ -1322,13 +1364,35 @@ export function beatStdParts(state: BeatState): StdPart[] | null {
   const goldsHit = state.goldsHit ?? 0;
   const done = state.doublesDone ?? 0;
   const streak = state.maxStreak ?? 0;
+  // beatRev 13: the lower full lines (a level's own where its row sets them); every older round the chart's whole count.
+  const full = beatFullLines(state);
   return [
-    stdPart(spec, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
-    stdPart(spec, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
-    stdPart(spec, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
+    stdPart(spec, "core", stdLine(BEAT_V11_MAX.core, acc, full.acc), `${acc} of 1,000`),
+    stdPart(spec, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, full.fevers), full.fevers), `${fevers} fever${fevers === 1 ? "" : "s"}`),
+    stdPart(spec, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, full.golds), `${goldsHit} of ${golds}`),
     stdPart(spec, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
-    stdPart(spec, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
+    stdPart(spec, "streak", stdLine(BEAT_V11_MAX.streak, streak, full.streak), `${streak} of ${notes} notes`),
   ];
+}
+
+/**
+ * Where a state's parts are full: on beatRev 13 the accuracy and fevers its level's row names (Normal's 1,000 and
+ * BEAT_V11_FEVERS_FULL), golden notes at BEAT_V13_GOLD_NINTHS in every nine the chart deals (rounded up) and the streak
+ * at BEAT_V13_STREAK_PCT of the notes (rounded up), each a level's own where its row sets it; before beatRev 13, an
+ * accuracy of 1,000, four fevers and every golden note and note the chart deals.
+ */
+export function beatFullLines(state: BeatState): { acc: number; fevers: number; golds: number; streak: number } {
+  const { golds } = beatFeatureCounts(state);
+  const notes = beatNoteCount(state);
+  if (!state.fit) return { acc: BEAT_V11_ACC_FULL, fevers: BEAT_V11_FEVERS_FULL, golds, streak: notes };
+  const ninths = state.lv?.goldNinths ?? BEAT_V13_GOLD_NINTHS;
+  const pct = state.lv?.streakPct ?? BEAT_V13_STREAK_PCT;
+  return {
+    acc: state.lv?.accFull ?? BEAT_V11_ACC_FULL,
+    fevers: state.lv?.feversFull ?? BEAT_V11_FEVERS_FULL,
+    golds: Math.ceil((golds * ninths) / 9),
+    streak: Math.ceil((notes * pct) / 100),
+  };
 }
 
 /** The features' points on beatRev 11 (what the HUD's "+n" shows); 0 off the standard. */
@@ -1395,15 +1459,91 @@ function beatLevelPlan(lv: BeatLv): BeatChartPlan {
 }
 
 const beatV12ByLevel = new Map<string, ArcadeGame<BeatState, ArcadeInputEvent | null>>();
-/** beatRev 12 at a level: the chart built on the level's plan, its windows and fall time on the state (`lv`). */
+/** beatRev 12 at a level: the chart built on the level's plan, its windows and fall time on the state (`lv`). Its own
+ * table (BEAT_LEVELS), whatever the live levels are: stored beatRev 12 level rounds replay on it. */
 function beatV12LevelGame(level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
-  const lv = retroLevelSettings("beat", level);
+  const lv = level && level !== "normal" ? BEAT_LEVELS[level] : null;
   if (!lv) return beatV12Game;
   let game = beatV12ByLevel.get(level!);
   if (!game) {
     const plan = beatLevelPlan(lv);
     game = { ...beatV12Game, init: (seed) => ({ ...initV9(seed, plan), ease: 1, std: 1, floor: 1, lv }) };
     beatV12ByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/* ================= D5's ladder: the lanes (beatRev 13, 23 Nov 2026) ================= */
+
+/**
+ * beatRev 13 (D5's ladder, docs/arcade-standard/beat.md "beatRev 13" and "Levels (D5, 23 Nov 2026)"; Joe's approval of
+ * 23 Nov 2026):
+ *  - Normal is beatRev 12's song, chart, windows, judging and features exactly (the same checkpoints), scored with two
+ *    lower full lines, set by the realistic elite's three runs in four: Golden notes full at 5 in every 9 the chart
+ *    deals (rounded up; was every one) and the Perfect streak at 70 % of the song's notes (rounded up; was all of them).
+ *    States add `fit: 1`, outside the checkpoint checksum.
+ *  - The levels' lever is the lanes (BEAT_LEVELS_V13): three for the whole song on Easy, five from the first note on Hard
+ *    and six on Expert, each with its windows, fall time and chart shares; the chart is built on the level's lanes with
+ *    no break before a fifth lane, and a hold grows only where two thumbs can play round it (thumbsAllowHold). The
+ *    level's row also carries its own full lines (the fevers, golden notes in nine, the streak's share).
+ * Accuracy is unchanged (130, full with every note Perfect); the parts still sum to 200.
+ */
+export const BEAT_REV_LANES = 13;
+/** beatRev 13: golden notes full at this many in every nine the chart deals. */
+export const BEAT_V13_GOLD_NINTHS = 5;
+/** beatRev 13: the Perfect streak full at this share of the song's notes, per cent. */
+export const BEAT_V13_STREAK_PCT = 70;
+/** beatRev 13's most lanes (Expert). */
+export const BEAT_V13_MAX_LANES = 6;
+
+export const BEAT_STD_SPEC_V13: StdSpec = {
+  ...BEAT_STD_SPEC_V12,
+  rev: BEAT_REV_LANES,
+  parts: BEAT_STD_SPEC_V12.parts.map((p) =>
+    p.key === "gold"
+      ? { ...p, how: `golden notes hit dead on, all of it for ${BEAT_V13_GOLD_NINTHS} in every 9 of them` }
+      : p.key === "streak"
+        ? { ...p, how: `your longest run of Perfects, all of it for a run of ${BEAT_V13_STREAK_PCT} % of the song’s notes` }
+        : p,
+  ),
+};
+
+/** beatRev 13's input ranges for a lane count (the fever meter, then taps, releases and swipes in its lanes). */
+export function beatInputRangesFor(lanes: number): readonly InputRange[] {
+  return [
+    inputRange(BEAT_INPUT_FEVER, [0, 0]),
+    inputRange(BEAT_INPUT_TAP, [0, lanes - 1]),
+    inputRange(BEAT_INPUT_RELEASE, [0, lanes - 1]),
+    inputRange(BEAT_INPUT_SWIPE, [0, lanes - 1], [0, 1]),
+  ];
+}
+
+/** beatRev 13 at Normal: beatRev 12's play, scored on the lower full lines. */
+export const beatV13Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatV12Game,
+  init: (seed) => ({ ...beatV12Game.init(seed), fit: 1 }),
+};
+
+/** beatRev 13's plan at a level: beatRev 12's level plan on the level's own lanes, its holds two-thumb playable. */
+function beatLevelPlanV13(lv: BeatLv13): BeatChartPlan {
+  return { ...beatLevelPlan(lv), lanes: lv.lanes, thumbs: true };
+}
+
+const beatV13ByLevel = new Map<string, ArcadeGame<BeatState, ArcadeInputEvent | null>>();
+/** beatRev 13 at a level: the chart on the level's lanes and plan, its row on the state (`lv`); Normal beatV13Game. */
+function beatV13LevelGame(level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  const lv = level && level !== "normal" ? BEAT_LEVELS_V13[level] : null;
+  if (!lv) return beatV13Game;
+  let game = beatV13ByLevel.get(level!);
+  if (!game) {
+    const plan = beatLevelPlanV13(lv);
+    const slots = Math.max(BEAT_V9_LANES, lv.lanes);
+    game = {
+      ...beatV13Game,
+      init: (seed) => ({ ...initV9(seed, plan), holding: new Array<number>(slots).fill(-1), holdStartErrors: new Array<number>(slots).fill(0), ease: 1, std: 1, floor: 1, fit: 1, lv }),
+      inputRanges: beatInputRangesFor(lv.lanes),
+    };
+    beatV13ByLevel.set(level!, game);
   }
   return game;
 }

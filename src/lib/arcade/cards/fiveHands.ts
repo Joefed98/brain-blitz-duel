@@ -37,6 +37,13 @@
  * "200 on every deal": the deck is rev 1's first shuffle with no reshuffle, so some decks can't reach 200 even with
  * perfect play (everyone in a room has the same deck, so rooms stay fair). The witness is still climbed (the checks use
  * it) but no longer has to reach anything. Rev 1 and rev 2 runs score as before.
+ *
+ * fiveHandsRev 4 (22 Nov 2026, the scoring review's I2, Joe's approval of 20 Nov; docs/arcade-standard/fivehands.md
+ * "fiveHandsRev 4"): rev 3's play, deck, flat table and bonus column exactly, with the score's full figure moved to the
+ * elite's level: 200 at FH_CORE_FULL_V4 = 112 hand points (rows plus the picked column), a straight line from 0, floor
+ * of points × 200 ÷ 112. The plan named 128 (the elite median without the human limits); tuned in place before the stamp
+ * went live (Joe, 23 Nov 2026: Decision 1, the realistic elite under HUMAN_LIMITS reaches 200 on 43 % of 96 Normal deals at
+ * 112, 16 % at 128). Capped at 200, at least 1 for a played run. Rev 1, 2 and 3 runs score as before.
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
@@ -44,8 +51,10 @@ import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, shuffledDeck } from "./cards";
 import { psHand } from "./pokerSquares";
 
-/** The dealt revision (rev 3: the flat table, the hand points summed to 200); rev 2 on fiveHandsGameV2, rev 1 on fiveHandsGameV1. */
-export const FH_REV = 3;
+/** The dealt revision (rev 4: rev 3's game, 200 at 112 hand points); rev 3 on fiveHandsGameV3, 2 on fiveHandsGameV2, 1 on fiveHandsGameV1. */
+export const FH_REV = 4;
+/** fiveHandsRev 4: rev 3's play with the full figure at the elite median (FH_CORE_FULL_V4). */
+export const FH_REV_128 = 4;
 export const FH_REV_STEEP = 2;
 export const FH_REV_FLAT = 3;
 export const FH_ROWS = 5;
@@ -150,14 +159,36 @@ export function fhScoreV3(total: number): number {
 /** The hand values as the help states them ("pair 15, two pair 20, …"). */
 export const FH_V3_TABLE_TEXT = [...FH_HANDS_V3].reverse().map(([name, p]) => `${name.toLowerCase()} ${p}`).join(", ");
 
-/** A revision's full figure (rev 1–2: the witness must reach it; rev 3: 143 hand points, ×1.4 = 200, which a deck need not allow). */
+/** fiveHandsRev 4's single part: the hand points (rows plus the picked column) on a straight line to 200, full at 112. */
+export const FH_CORE_FULL_V4 = 112;
+export const FH_V4_BAND_CURVE = bandCurve([0, FH_CORE_FULL_V4], [0, FH_CORE_MAX_V3]);
+
+/** Rev 4's points for a hand-point total: floor(total × 200 ÷ 112), capped at 200. */
+export function fhScoreV4(total: number): number {
+  return Math.min(FH_CORE_MAX_V3, Math.floor((Math.max(0, total) * FH_CORE_MAX_V3) / FH_CORE_FULL_V4));
+}
+
+/** A revision's full figure (rev 1–2: the witness must reach it; rev 3: 143 hand points, ×1.4 = 200; rev 4: 112; a deck need not allow either). */
 export function fhCoreFullFor(rev: number | null | undefined): number {
   const r = rev ?? 1;
+  if (r === FH_REV_128) return FH_CORE_FULL_V4;
   return r >= FH_REV_FLAT ? FH_CORE_FULL_V3 : r >= FH_REV_STEEP ? FH_CORE_FULL_V2 : FH_CORE_FULL;
 }
 
-/** fiveHandsRev 3's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
+/** fiveHandsRev 4's spec (the dealt one: the help, LIVE_BANDS, the reveal). */
 export const FH_STD_SPEC: StdSpec = {
+  field: "fiveHandsRev",
+  rev: FH_REV_128,
+  parts: [
+    {
+      key: "core", label: "Hand points", max: FH_CORE_MAX_V3, of: FH_CORE_FULL_V4, item: "hand point",
+      how: `your five rows’ hands plus the column you pick, 200 at ${FH_CORE_FULL_V4} hand points (${FH_V3_TABLE_TEXT})`,
+    },
+  ],
+};
+
+/** fiveHandsRev 3's spec (stored rounds). */
+export const FH_STD_SPEC_V3: StdSpec = {
   field: "fiveHandsRev",
   rev: FH_REV_FLAT,
   parts: [
@@ -433,11 +464,18 @@ export function fhTotalV3(state: FhState): number {
 export function fiveHandsStdParts(state: FhState): StdPart[] | null {
   if (!state || !state.std) return null;
   if (state.lv) return fhLevelParts(state);
+  if (state.rev === FH_REV_128) {
+    // Rev 4: rev 3's hand points on a straight line to 200, full at FH_CORE_FULL_V4.
+    const total = fhTotalV3(state);
+    const col = fhPickedHand(state);
+    const rows = total - col.points;
+    return [stdPart(FH_STD_SPEC, "core", fhScoreV4(total), col.column >= 0 ? `${rows} from the rows + ${col.points} from column ${col.column + 1} = ${total} of ${FH_CORE_FULL_V4} hand points` : `${rows} of ${FH_CORE_FULL_V4} hand points (no column picked)`)];
+  }
   if ((state.rev ?? 1) >= FH_REV_FLAT) {
     const total = fhTotalV3(state);
     const col = fhPickedHand(state);
     const rows = total - col.points;
-    return [stdPart(FH_STD_SPEC, "core", fhScoreV3(total), col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × 1.4` : `${rows} hand points × 1.4 (no column picked)`)];
+    return [stdPart(FH_STD_SPEC_V3, "core", fhScoreV3(total), col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × 1.4` : `${rows} hand points × 1.4 (no column picked)`)];
   }
   if ((state.rev ?? 1) >= FH_REV_STEEP) {
     const { total } = fhTotals(state.rows, state.rev);
@@ -506,8 +544,12 @@ export const fiveHandsGameV3: ArcadeGame<FhState, ArcadeInputEvent | null> = {
   inputRanges: [inputRange(FH_INPUT_PLACE, [0, FH_ROWS - 1]), inputRange(FH_INPUT_PICK, [0, FH_SLOTS - 1])],
 };
 
+/** fiveHandsRev 4's game: rev 3's play, deck, table and column, 200 at 112 hand points. */
+export const fiveHandsGameV4: ArcadeGame<FhState, ArcadeInputEvent | null> = { ...fiveHandsGameV3, init: (seed) => fhInit(seed, FH_REV_128) };
+
 export function fiveHandsGameFor(rev?: number | null): ArcadeGame<FhState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
+  if (r === FH_REV_128) return fiveHandsGameV4;
   return r >= FH_REV_FLAT ? fiveHandsGameV3 : r >= FH_REV_STEEP ? fiveHandsGameV2 : fiveHandsGame;
 }
 
@@ -534,9 +576,11 @@ export type FhLevelName = "easy" | "hard" | "expert";
 
 export interface FhLevelRules {
   lv: number;
-  /** The multiplier as an integer ratio. */
-  num: number;
-  den: number;
+  /** The multiplier as an integer ratio (the levels before D6). */
+  num?: number;
+  den?: number;
+  /** D6's levels (fiveHandsRev 4): the hand points that score 200 (a straight line from 0), in place of a multiplier. */
+  full?: number;
   seconds: number;
   /** Display: the next cards shown, and the columns' values while picking. */
   preview: number;
@@ -553,40 +597,88 @@ export const FH_LEVEL_RULES: Readonly<Record<FhLevelName, FhLevelRules>> = {
   expert: { lv: FH_LV_EXPERT, num: 13, den: 10, seconds: 45, preview: 0, columnValues: false, hintCost: 0, hintLimit: 1, tableRev: FH_TABLE_EXPERT },
 };
 
+/**
+ * D6's levels (23 Nov 2026, the polish plan's difficulty spec: the lever is seconds a card; Joe's ladder test): on
+ * fiveHandsRev 4 a level deal plays its own clock and hand table, with 200 at its own hand points (a straight line, no
+ * multiplier), and deals only decks whose exact best (scripts/cards/fiveHandsBest.ts on the level's table) reaches that
+ * figure (fiveHandsLevelDecks.data.ts, scripts/fivehands-level-decks.ts). Hard and Expert carry no aid at all (no hints,
+ * preview or column values; the spec's rule 5). The level codes are new (FH_LV4_*), so a fiveHandsRev 3 level round
+ * keeps FH_LEVEL_RULES above exactly.
+ *
+ *   Easy    90 s, today's table, the next two cards and the columns' values shown, free hints; 200 at 94.
+ *   Hard    42 s (2 s a card), a pair 10; 200 at 100.
+ *   Expert  30 s (1.4 s a card), a pair 10 and two pair 15; 200 at 104.
+ *
+ * Measured on 96 room deals a level (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS): the average player
+ * 170 / 147 (Normal) / 71 / 33, the elite 195 / 184 / 172 / 159, the elite at 200 79 % / 43 % / 35 % / 21 %.
+ */
+export const FH_LV4_EASY = 11;
+export const FH_LV4_HARD = 13;
+export const FH_LV4_EXPERT = 14;
+export const FH_LEVEL_RULES_V4: Readonly<Record<FhLevelName, FhLevelRules>> = {
+  easy: { lv: FH_LV4_EASY, full: 94, seconds: 90, preview: 2, columnValues: true, hintCost: 0, hintLimit: -1, tableRev: FH_REV_FLAT },
+  hard: { lv: FH_LV4_HARD, full: 100, seconds: 42, preview: 0, columnValues: false, hintCost: 0, hintLimit: 0, tableRev: FH_TABLE_HARD },
+  expert: { lv: FH_LV4_EXPERT, full: 104, seconds: 30, preview: 0, columnValues: false, hintCost: 0, hintLimit: 0, tableRev: FH_TABLE_EXPERT },
+};
+
 function fhLevelName(lv: number | undefined): FhLevelName | null {
-  return lv === FH_LV_EASY ? "easy" : lv === FH_LV_HARD ? "hard" : lv === FH_LV_EXPERT ? "expert" : null;
+  return lv === FH_LV_EASY || lv === FH_LV4_EASY ? "easy" : lv === FH_LV_HARD || lv === FH_LV4_HARD ? "hard" : lv === FH_LV_EXPERT || lv === FH_LV4_EXPERT ? "expert" : null;
 }
+/** A level code's rules: FH_LV_* the levels before D6 (fiveHandsRev 3), FH_LV4_* D6's (fiveHandsRev 4). */
 export function fhLevelRulesOf(state: Pick<FhState, "lv">): FhLevelRules | null {
   const n = fhLevelName(state.lv);
-  return n ? FH_LEVEL_RULES[n] : null;
+  if (!n) return null;
+  return (state.lv ?? 0) >= FH_LV4_EASY ? FH_LEVEL_RULES_V4[n] : FH_LEVEL_RULES[n];
 }
-/** The multiplier as the screen writes it ("1.6"). */
-export function fhMultText(state: Pick<FhState, "lv">): string {
+/** The rules a level deal on a revision plays (fiveHandsRev 4: D6's; earlier: the levels before). */
+export function fhLevelRulesFor(rev: number | null | undefined, level: FhLevelName): FhLevelRules {
+  return rev === FH_REV_128 ? FH_LEVEL_RULES_V4[level] : FH_LEVEL_RULES[level];
+}
+/** The multiplier as the screen writes it ("1.6"; fiveHandsRev 4's Normal and levels "200 ÷ N", their 200 at N hand points). */
+export function fhMultText(state: Pick<FhState, "lv"> & { rev?: number }): string {
   const r = fhLevelRulesOf(state);
-  return r ? String(r.num / r.den) : "1.4";
+  if (!r && state.rev === FH_REV_128) return `${FH_CORE_MAX_V3} ÷ ${FH_CORE_FULL_V4}`;
+  if (r?.full) return `${FH_CORE_MAX_V3} ÷ ${r.full}`;
+  return r ? String(r.num! / r.den!) : "1.4";
 }
+/**
+ * Whether a level deal has the Hint button at all (D6's Hard and Expert have none: the spec's rule 5, an aid Normal lacks
+ * goes; the levels before D6 keep theirs, "No hints" once used up). Display and input mapping only.
+ */
+export function fhHintButtonOn(state: Pick<FhState, "lv">): boolean {
+  const r = fhLevelRulesOf(state);
+  return Boolean(r) && r!.hintLimit !== 0;
+}
+/** Whether a level deal glows a hint by itself after a while without a move (Easy, before D6 and after). Display only. */
+export function fhIdleHintOn(state: Pick<FhState, "lv">): boolean {
+  return fhLevelName(state.lv) === "easy";
+}
+
 export function fhHintsLeft(state: FhState): number {
   const r = fhLevelRulesOf(state);
   if (!r) return 0;
   return r.hintLimit < 0 ? Infinity : Math.max(0, r.hintLimit - (state.hints ?? 0));
 }
 
-/** A level's score for hand points: floor(points × the multiplier) less the hints' cost, capped at 200. */
+/** A level's score for hand points: floor(points × the multiplier) (D6's levels: × 200 ÷ full) less the hints' cost, capped at 200. */
 export function fhLevelScore(state: FhState, total: number): number {
   const r = fhLevelRulesOf(state)!;
-  return Math.min(FH_CORE_MAX_V3, Math.max(0, Math.floor((Math.max(0, total) * r.num) / r.den) - r.hintCost * (state.hints ?? 0)));
+  const points = r.full ? Math.floor((Math.max(0, total) * FH_CORE_MAX_V3) / r.full) : Math.floor((Math.max(0, total) * r.num!) / r.den!);
+  return Math.min(FH_CORE_MAX_V3, Math.max(0, points - r.hintCost * (state.hints ?? 0)));
 }
 
-/** A level's spec (the help and the reveal). */
-export function fhLevelSpec(level: FhLevelName): StdSpec {
-  const r = FH_LEVEL_RULES[level];
+/** A level's spec (the help and the reveal); `rev` 4 is D6's levels, any other the levels before. */
+export function fhLevelSpec(level: FhLevelName, rev: number | null = FH_REV_FLAT): StdSpec {
+  const r = fhLevelRulesFor(rev, level);
   return {
     field: "fiveHandsRev",
-    rev: FH_REV_FLAT,
+    rev: r.full ? FH_REV_128 : FH_REV_FLAT,
     parts: [
       {
         key: "core", label: "Hand points", max: FH_CORE_MAX_V3,
-        how: `your five rows’ hands plus the column you pick, times ${r.num / r.den} (${fhTableText(r.tableRev)})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`,
+        how: r.full
+          ? `your five rows’ hands plus the column you pick, 200 at ${r.full} hand points (${fhTableText(r.tableRev)})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`
+          : `your five rows’ hands plus the column you pick, times ${r.num! / r.den!} (${fhTableText(r.tableRev)})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`,
       },
     ],
   };
@@ -594,14 +686,15 @@ export function fhLevelSpec(level: FhLevelName): StdSpec {
 
 function fhLevelParts(state: FhState): StdPart[] {
   const r = fhLevelRulesOf(state)!;
-  const spec = fhLevelSpec(fhLevelName(state.lv)!);
+  const spec = fhLevelSpec(fhLevelName(state.lv)!, r.full ? FH_REV_128 : FH_REV_FLAT);
   const total = fhTotalV3(state);
   const col = fhPickedHand(state);
   const rows = total - col.points;
   const hints = state.hints ?? 0;
   const cost = r.hintCost * hints;
-  const mult = r.num / r.den;
-  const detail = col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × ${mult}` : `${rows} hand points × ${mult} (no column picked)`;
+  const detail = r.full
+    ? col.column >= 0 ? `${rows} from the rows + ${col.points} from column ${col.column + 1} = ${total} of ${r.full} hand points` : `${rows} of ${r.full} hand points (no column picked)`
+    : col.column >= 0 ? `(${rows} from the rows + ${col.points} from column ${col.column + 1}) × ${r.num! / r.den!}` : `${rows} hand points × ${r.num! / r.den!} (no column picked)`;
   return [stdPart(spec, "core", fhLevelScore(state, total), cost ? `${detail} · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : detail)];
 }
 
@@ -662,11 +755,13 @@ export function fhHintRow(state: FhState): { kind: "row" | "column"; index: numb
   return best >= 0 ? { kind: "row", index: best } : null;
 }
 
-const FH_LEVEL_GAMES = new Map<FhLevelName, ArcadeGame<FhState, ArcadeInputEvent | null>>();
-export function fiveHandsLevelGame(level: FhLevelName): ArcadeGame<FhState, ArcadeInputEvent | null> {
-  let g = FH_LEVEL_GAMES.get(level);
+const FH_LEVEL_GAMES = new Map<string, ArcadeGame<FhState, ArcadeInputEvent | null>>();
+/** A level's game: the levels before D6 (fiveHandsRev 3 and unstamped), or D6's on fiveHandsRev 4 (`rev` 4). */
+export function fiveHandsLevelGame(level: FhLevelName, rev: number | null = FH_REV_FLAT): ArcadeGame<FhState, ArcadeInputEvent | null> {
+  const key = `${level}:${rev === FH_REV_128 ? 4 : 3}`;
+  let g = FH_LEVEL_GAMES.get(key);
   if (!g) {
-    const r = FH_LEVEL_RULES[level];
+    const r = fhLevelRulesFor(rev, level);
     const runTicks = r.seconds * 60;
     g = {
       ...fiveHandsGameV3,
@@ -675,11 +770,11 @@ export function fiveHandsLevelGame(level: FhLevelName): ArcadeGame<FhState, Arca
       step: stepLevel,
       inputRanges: [inputRange(FH_INPUT_PLACE, [0, FH_ROWS - 1]), inputRange(FH_INPUT_PICK, [0, FH_SLOTS - 1]), inputRange(FH_INPUT_HINT)],
     };
-    FH_LEVEL_GAMES.set(level, g);
+    FH_LEVEL_GAMES.set(key, g);
   }
   return g;
 }
 
 export function fiveHandsGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<FhState, ArcadeInputEvent | null> {
-  return level === "easy" || level === "hard" || level === "expert" ? fiveHandsLevelGame(level) : fiveHandsGameFor(rev);
+  return level === "easy" || level === "hard" || level === "expert" ? fiveHandsLevelGame(level, rev ?? null) : fiveHandsGameFor(rev);
 }

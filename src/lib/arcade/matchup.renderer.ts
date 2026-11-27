@@ -7,6 +7,7 @@
  * board drawn SIX_ZOOM larger into the space the raw "pts" counter held (taps
  * mapped back through matchupCellAtShown).
  */
+import { pearlCutPoints } from "./matchupPearl.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { strategyArtVersion } from "./strategyArt";
@@ -180,7 +181,8 @@ function cutPoints(shape: string, cx: number, cy: number, r: number): Array<[num
       const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
       pts.push([cx + ((hx * 0.95) / 16) * r, cy + (((hy - 2.5) * 0.95) / 16) * r]);
     }
-  } else ring(6, -Math.PI / 2, () => r);
+  } else if (shape === "pearl") pts.push(...pearlCutPoints(cx, cy, r)); // D6's eighth gem (matchupPearl.renderer.ts).
+  else ring(6, -Math.PI / 2, () => r);
   return pts;
 }
 

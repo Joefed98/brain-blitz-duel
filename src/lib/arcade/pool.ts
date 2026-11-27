@@ -22,6 +22,13 @@
  * the set (the other set hit first, or potted, or the black before the seven). Speed's full-by time is its own
  * (poolFullByS(4)). poolRev 1, 2 and 3 play, score and replay exactly as before.
  *
+ * poolRev 5 (22 Nov 2026, the scoring review's I7, Joe's approval of 20 Nov; docs/arcade-standard/pool.md "poolRev 5"):
+ * poolRev 4's table, set, rules, physics and bank exactly; Speed is measured from the fifth of your seven potted
+ * (POOL_V5_SPEED_AT; the clock, scratches included, when that shot settles: `fifthAt`), full by POOL_FULL_BY_S_V5 (60 s),
+ * falling evenly to 0 at the buzzer, so a run that clears five quickly earns its speed without the last two and the
+ * black. The black (10) is as before (after all seven), and the black potted too soon still ends the run with no black
+ * or speed points. The core and the run of pots are unchanged. poolRev 1–4 play, score and replay exactly as before.
+ *
  * Deterministic (engine.ts): the seed deals the layout at init (no break: 7 spots, 4 stripes left as obstacles, the
  * black and the cue ball on a seeded spot at the baulk line) and nothing random happens after. Balls roll in 1/256 px
  * with integer friction, equal-mass collisions and cushions with angled jaws at the pockets; eight substeps a tick, so
@@ -44,8 +51,12 @@ import { bounceSeg, collideEqual, idiv, ilen, rollFriction, sumInts, type Seg, t
 
 /* ================================ Constants ================================ */
 
-/** The revision rooms deal: poolRev 4 (3 Nov 2026; a seeded set, spots or stripes, and 90 s). */
-export const POOL_REV = 4;
+/** The revision rooms deal: poolRev 5 (22 Nov 2026; poolRev 4's game, Speed from the fifth pot). */
+export const POOL_REV = 5;
+/** poolRev 5: poolRev 4's game with Speed measured from the fifth pot. */
+export const POOL_REV_FIFTH = 5;
+/** poolRev 4 (3 Nov 2026; a seeded set, spots or stripes, and 90 s): kept for stored rounds. */
+export const POOL_REV_V4 = 4;
 /** poolRev 3 (1 Nov 2026; more power and spin, a miss is a foul): kept for stored rounds. */
 export const POOL_REV_V3 = 3;
 /** poolRev 2 (31 Oct 2026; the cue round the ball, the meter, spin anywhere on the face): kept for stored rounds. */
@@ -53,7 +64,7 @@ export const POOL_REV_V2 = 2;
 /** The first revision (30 Oct 2026): its encoding, physics and bank are kept exactly for stored rounds. */
 export const POOL_REV_V1 = 1;
 /** A stored revision as the sim reads it: 3 or 2 as stored, else 1 (unstamped rounds were dealt as 1). */
-export const poolRevOf = (rev?: number | null): number => (rev === 4 ? 4 : rev === 3 ? 3 : rev === 2 ? 2 : 1);
+export const poolRevOf = (rev?: number | null): number => (rev === 5 ? 5 : rev === 4 ? 4 : rev === 3 ? 3 : rev === 2 ? 2 : 1);
 export const POOL_RUN_S = 120;
 export const POOL_RUN_TICKS = POOL_RUN_S * 60;
 /** poolRev 4's run: 90 s. */
@@ -241,13 +252,17 @@ export const POOL_FULL_BY_S_V2 = 58;
 export const POOL_FULL_BY_S_V3 = 73;
 /** poolRev 4's full-by time: the near-perfect skill-band median finish on the poolRev 4 bank in 90 s (69.2 s over 30 layouts, docs/arcade-standard/pool.md). */
 export const POOL_FULL_BY_S_V4 = 69;
+/** poolRev 5's full-by time: the fifth of your seven down by 60 s (the scoring review's I7). */
+export const POOL_FULL_BY_S_V5 = 60;
+/** poolRev 5: Speed is measured when this many of your seven are down. */
+export const POOL_V5_SPEED_AT = 5;
 /**
  * poolRev 4's core is full at five of your seven (28 a ball): in 90 s the middle levels pot fewer, and the 6th and 7th
  * still open the black, its speed and the run of pots (docs/arcade-standard/pool.md "poolRev 4"). Earlier revisions: 7.
  */
 export const POOL_CORE_FULL_V4 = 5;
 export const poolCoreFullFor = (rev: number): number => (rev >= 4 ? POOL_CORE_FULL_V4 : POOL_SPOTS);
-export const poolFullByS = (rev: number): number => (rev >= 4 ? POOL_FULL_BY_S_V4 : rev >= 3 ? POOL_FULL_BY_S_V3 : rev === 2 ? POOL_FULL_BY_S_V2 : POOL_FULL_BY_S);
+export const poolFullByS = (rev: number): number => (rev >= 5 ? POOL_FULL_BY_S_V5 : rev >= 4 ? POOL_FULL_BY_S_V4 : rev >= 3 ? POOL_FULL_BY_S_V3 : rev === 2 ? POOL_FULL_BY_S_V2 : POOL_FULL_BY_S);
 
 /** A revision's spec: the same parts on both; Speed's full-by time is the revision's own. */
 export function poolStdSpecFor(rev?: number | null): StdSpec {
@@ -261,12 +276,14 @@ export function poolStdSpecFor(rev?: number | null): StdSpec {
         : { key: "core", label: "Spots", max: 140, of: POOL_SPOTS, item: "spot", how: `${POOL_SPOT_PTS} a spot potted` },
       { key: "black", label: "Black", max: POOL_BLACK_PTS, of: 1, item: "black", how: r >= 4 ? "pot the black after all seven of yours" : "pot the black after every spot" },
       { key: "streak", label: "Pots in a row", max: POOL_STREAK_MAX, of: 6, item: "pot", how: `${POOL_FOLLOW_PTS} for each pot straight after another` },
-      { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `pot the black within ${poolFullByS(r)} s for all of it, falling to 0 at the buzzer` },
+      r >= 5
+        ? { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `pot ${POOL_V5_SPEED_AT} of your 7 within ${poolFullByS(r)} s for all of it, falling to 0 at the buzzer` }
+        : { key: "speed", label: "Speed", max: POOL_SPEED_PTS, of: 1, item: "finish", how: `pot the black within ${poolFullByS(r)} s for all of it, falling to 0 at the buzzer` },
     ],
   };
 }
 
-/** The dealt revision's spec (poolRev 4). */
+/** The dealt revision's spec (poolRev 5). */
 export const POOL_STD_SPEC: StdSpec = poolStdSpecFor(POOL_REV);
 
 /* ================================ The table ================================ */
@@ -433,6 +450,8 @@ export interface PoolState {
   black: number;
   /** The clock (tick + lost) the black went down legally; 0 until then. */
   finishAt: number;
+  /** poolRev 5: the clock (tick + lost) when the shot that put the fifth of your seven down settled; 0 until then. */
+  fifthAt?: number;
   acted: number;
   over: number;
   /** Effects (display only reads these): counts that rise on each event, and the last event's tick. */
@@ -479,6 +498,7 @@ function initState(seed: number, rev: number, set?: number, level?: PoolLevel | 
     streakBest: 0,
     black: 0,
     finishAt: 0,
+    ...(rev >= 5 ? { fifthAt: 0 } : {}),
     acted: 0,
     over: 0,
     pots: 0,
@@ -657,6 +677,8 @@ function resolveShot(s: PoolState): void {
     s.foulTick = s.tick;
   }
   let legal = s.shotSpots;
+  // poolRev 5: Speed's clock reads when the fifth of your seven is down (that shot settled).
+  if (s.rev >= 5 && !s.fifthAt && s.spotsDown >= POOL_V5_SPEED_AT) s.fifthAt = s.tick + s.lost;
   if (s.shotBlack) {
     if (spotsBefore <= blackAt && !s.shotCue && !foul) {
       s.black = 1;
@@ -760,16 +782,18 @@ function stepState(prev: PoolState, input: ArcadeInputEvent | null): PoolState {
 
 /** Each part of a state, the core first (fouls are the penalty, outside the parts). */
 export function poolStdParts(s: PoolState): StdPart[] | null {
-  if (s.rev !== 1 && s.rev !== 2 && s.rev !== 3 && s.rev !== 4) return null;
+  if (s.rev !== 1 && s.rev !== 2 && s.rev !== 3 && s.rev !== 4 && s.rev !== 5) return null;
   const spec = poolStdSpecFor(s.rev);
   const legal = s.black === 1;
-  const speed = legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, poolFullByS(s.rev) * 60, poolRunTicksFor(s.rev)) : 0;
+  // poolRev 5: from the fifth pot (not after the black potted too soon); earlier revisions: the black potted legally.
+  const fifth = s.rev >= 5 && (s.fifthAt ?? 0) > 0 && s.black !== 2;
+  const speed = s.rev >= 5 ? (fifth ? stdSpeed(POOL_SPEED_PTS, s.fifthAt!, poolFullByS(s.rev) * 60, poolRunTicksFor(s.rev)) : 0) : legal ? stdSpeed(POOL_SPEED_PTS, s.finishAt, poolFullByS(s.rev) * 60, poolRunTicksFor(s.rev)) : 0;
   const balls = s.rev >= 4 ? poolSetName(s.set ?? POOL_SET_SPOTS) : "spots";
   return [
     stdPart(spec, "core", stdLine(140, s.spotsDown, poolCoreFullFor(s.rev)), `${s.spotsDown} of ${POOL_SPOTS} ${balls}`),
     stdPart(spec, "black", legal ? POOL_BLACK_PTS : 0, legal ? "potted last" : s.black === 2 ? "potted too soon" : "still up"),
     stdPart(spec, "streak", stdEach(s.follows, POOL_FOLLOW_PTS, POOL_STREAK_MAX), `${s.follows} after another pot (best run ${s.streakBest})`),
-    stdPart(spec, "speed", speed, legal ? `cleared in ${Math.round(s.finishAt / 6) / 10} s` : "not cleared"),
+    stdPart(spec, "speed", speed, s.rev >= 5 ? (fifth ? `${POOL_V5_SPEED_AT} of yours down in ${Math.round(s.fifthAt! / 6) / 10} s` : s.black === 2 ? "black potted too soon" : `${s.spotsDown} of yours down`) : legal ? `cleared in ${Math.round(s.finishAt / 6) / 10} s` : "not cleared"),
   ];
 }
 

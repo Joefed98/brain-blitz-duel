@@ -40,7 +40,7 @@ assert.doesNotMatch(route, /You['’]re not in this room|Head back home and join
 
 // Join card: name only, remembered, same server join, plain message once started.
 const card = readFileSync("src/components/duel/JoinFromLink.tsx", "utf8");
-assert.match(card, /setName\(getStoredName\(\)\)/);
+assert.match(card, /setName\(nameOrGenerated\(getStoredName\(\)\)\)/); // Changed with Joe's approval, 23 Nov 2026
 assert.match(
   card,
   /setStoredName\(trimmed\);\s*await joinRoomByCode\(roomCode, trimmed, "link"\);\s*await onJoined\(\);/,
@@ -49,7 +49,9 @@ assert.equal((card.match(/<[iI]nput\b/g) ?? []).length, 1, "only the display nam
 assert.match(card, /preview\.state !== "lobby"/);
 assert.match(card, /This game’s already started\./);
 assert.match(card, /navigate\(\{ to: "\/" \}\)/);
-assert.doesNotMatch(card, /createRoom|startRoom|generate/);
+// The join card never makes, starts or deals a room or puzzle (only the server does, from the room seed). The pre-fill's
+// generated display name (nameOrGenerated from generatedName) is not that, so only its name strings are left out of the search.
+assert.doesNotMatch(card.replace(/nameOrGenerated|generatedName|a generated name/g, ""), /createRoom|startRoom|generate/); // Changed with Joe's approval, 26 Nov 2026
 
 // Preview server function: readable without being in the room, but it tells a
 // stranger only whether the room can be joined (no names, puzzles or answers).

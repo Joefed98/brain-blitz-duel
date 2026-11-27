@@ -19,6 +19,10 @@ import { generateBallTrack } from "../src/lib/duel/ballTrack.server";
 import { BALL_TRACK_BANK_V7 } from "../src/lib/duel/ballTrackBankV7.server";
 import { btV8DealIndex, BT_V8_DEAL, BT_V8_EXCLUDED } from "../src/lib/duel/ballTrackDealV8.server";
 import { boostedOracle, replayedBtStd } from "./arcade-standard/balltrack";
+import { pinPreBalltrackD6 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal btRev 9 (btRev 8's play and deal on D6's figures); this check was written for btRev 8, so it deals it (d6-strategy-levels-check proves btRev 9).
+pinPreBalltrackD6(true);
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const PART = process.argv.find((a) => a.startsWith("--part="))?.slice(7);

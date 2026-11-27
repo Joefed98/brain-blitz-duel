@@ -474,8 +474,7 @@ export function SignUpFlow({
         <AccountHead title="Sign in" onBack={back} />
         <h1 className="acct-h1" data-wrap-ok>This phone’s guest games stay here</h1>
         <p className="acct-lede">
-          You’re signing in to an account you already have. What you played on this phone as a guest stays with the
-          guest and won’t move to your account:
+          This phone’s guest progress stays with the guest, not your account:
         </p>
         <Panel>
           {stayBehindLines(progress).map((line) => (

@@ -1164,3 +1164,202 @@
   inset: 0;
   white-space: nowrap;
 }
+
+/* ------------------------------------------------------------------ Compete's ladder hero (P3, 22 Nov 2026) */
+/* The rank and the Play card as one obsidian hero with the cut corner (plan section 2.1, mockup compete-mixed-phone):
+   the tier as a gold eyebrow, the Joulz Rating large, the bar and the week's change, Puzzles and Arcade as two quiet
+   tiles, then the pick and gold Find a match. Today's esports look; tokens only. */
+.rt-ladder {
+  position: relative;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-20);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--jz-gold) 12%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--jz-surface) 0%, var(--jz-bg-raised) 100%);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+}
+.rt-ladder .rt-rank {
+  gap: var(--jz-space-12);
+}
+.rt-ladder .rt-rank-head {
+  align-items: flex-start;
+}
+.rt-ladder-eyebrow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-8);
+  overflow: hidden;
+  color: var(--jz-gold-ink);
+  font: var(--jz-weight-bold) 15px/20px var(--jz-font);
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rt-ladder-rating {
+  color: var(--jz-text);
+  font: var(--jz-weight-black) 56px/1.05 var(--jz-font);
+  font-stretch: 112%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.rt-ladder-emblem {
+  flex: none;
+}
+.rt-ladder-week {
+  margin: 0;
+  font: var(--jz-weight-bold) 15px/20px var(--jz-font);
+}
+.rt-ladder-up {
+  color: var(--jz-win);
+}
+.rt-ladder-down {
+  color: var(--jz-loss-text);
+}
+.rt-ladder .rt-bar-block {
+  gap: var(--jz-space-8);
+}
+.rt-ladder .rt-side {
+  background: color-mix(in srgb, var(--jz-bg) 70%, transparent);
+}
+.rt-ladder .rt-play {
+  padding: 0;
+  background: none;
+}
+
+/* ------------------------------------------------------------------ VS, full-bleed (P3, 22 Nov 2026) */
+/* Plan section 4 and mockups vs-e-phone / vs-e-desktop: each half lit in its player's colour, their full card drawn as
+   large as the half allows, the tier and rating beside it, a champagne VS plate on a gold seam, the record and the
+   stakes at the foot. Timings unchanged (the slam above); under Reduce Motion everything is drawn in place. */
+.rt-vs {
+  gap: 0;
+  margin: 0 calc(-1 * var(--jz-page-pad));
+  padding: var(--jz-space-16) 0 var(--jz-space-24);
+}
+.rt-vs-top {
+  padding: 0 var(--jz-page-pad) var(--jz-space-12);
+}
+.rt-vs-side {
+  position: relative;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--jz-space-16);
+  padding: var(--jz-space-24) var(--jz-page-pad);
+}
+.rt-vs-side::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+}
+.rt-vs-them::before {
+  background: radial-gradient(90% 85% at 50% 0%, color-mix(in srgb, var(--vs-tint) 38%, transparent), transparent 72%);
+}
+.rt-vs-me::before {
+  background: radial-gradient(90% 85% at 50% 100%, color-mix(in srgb, var(--vs-tint) 38%, transparent), transparent 72%);
+}
+.rt-vs-them,
+.rt-vs-me {
+  padding-left: var(--jz-page-pad);
+  padding-right: var(--jz-page-pad);
+}
+.rt-vs-them {
+  flex-direction: column;
+}
+.rt-vs-me {
+  flex-direction: column-reverse;
+}
+.rt-vs-side > * {
+  position: relative;
+  z-index: 1;
+}
+.rt-vs-card {
+  width: 100%;
+  max-width: 520px;
+  flex: none;
+  margin: 0 auto;
+}
+.rt-vs-emblem {
+  flex-direction: row;
+  justify-content: center;
+  gap: var(--jz-space-8);
+}
+.rt-vs-tier {
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+  color: var(--jz-text);
+}
+.rt-vs-rail {
+  position: relative;
+  gap: 0;
+  padding: 0 var(--jz-page-pad);
+}
+/* The gold seam across the screen, behind the plate. */
+.rt-vs-line {
+  height: 3px;
+  background: var(--jz-gold);
+}
+.rt-vs-mark {
+  width: 112px;
+  height: 92px;
+  border: 0;
+  border-radius: 0;
+  background: var(--jz-gold-metal);
+  color: var(--jz-on-gold);
+  font-size: 52px;
+  line-height: 1;
+}
+.rt-vs-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16) var(--jz-page-pad) 0;
+}
+.rt-vs-foot .rt-stakes {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--jz-weight-bold);
+  text-align: center;
+}
+@media (min-width: 1024px) {
+  /* A computer: the two halves side by side, the plate between them (mockup vs-e-desktop). */
+  .rt-vs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100%;
+  }
+  .rt-vs-top,
+  .rt-vs-foot {
+    grid-column: 1 / -1;
+  }
+  .rt-vs-them { grid-column: 3; grid-row: 2; flex-direction: column; }
+  .rt-vs-me { grid-column: 1; grid-row: 2; flex-direction: column; }
+  .rt-vs-rail { grid-column: 2; grid-row: 2; flex-direction: column; justify-content: center; }
+  .rt-vs-line { width: 3px; height: auto; flex: 1; }
+  .rt-vs-them::before { background: radial-gradient(85% 90% at 100% 50%, color-mix(in srgb, var(--vs-tint) 38%, transparent), transparent 72%); }
+  .rt-vs-me::before { background: radial-gradient(85% 90% at 0% 50%, color-mix(in srgb, var(--vs-tint) 38%, transparent), transparent 72%); }
+}
+
+/* ------------------------------------------------------------------ the result's title (P3, 22 Nov 2026) */
+/* "You win" at 62 px in champagne gold (mockup result-e-phone; no exclamation mark), then the score; Home beside Rematch. */
+.rt-result .rt-result-title {
+  font-size: 62px;
+  line-height: 66px;
+  color: var(--jz-gold-ink);
+}
+.rt-result[data-outcome="lost"] .rt-result-title,
+.rt-result[data-outcome="drawn"] .rt-result-title {
+  font-size: 44px;
+  line-height: 50px;
+  color: var(--jz-text);
+}
+.rt-result .rt-result-score {
+  font-size: 44px;
+  line-height: 48px;
+  color: var(--jz-text);
+}

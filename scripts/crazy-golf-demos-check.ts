@@ -12,7 +12,7 @@
  *   bun scripts/crazy-golf-demos-check.ts
  */
 import { readFileSync } from "node:fs";
-import { MINIGOLF_REV_COURSE } from "../src/lib/arcade/minigolf";
+import { MINIGOLF_REV_COURSE, MINIGOLF_REV_D6 } from "../src/lib/arcade/minigolf";
 import { DEMO_LENGTH_TICKS, DEMO_START_TICK, runSeed } from "../src/lib/arcade/introDemo";
 import { minigolfDemoPlays } from "../src/lib/duel/minigolfDemoRule";
 import type { PuzzleData } from "../src/lib/duel/types";
@@ -30,7 +30,7 @@ const rows = file.rows.filter((r) => r.game_type === "minigolf");
 ok(rows.length === 1, `minigolf: exactly one demo row (got ${rows.length})`);
 const row = rows[0];
 if (row) {
-  ok(row.puzzle.type === "minigolf" && row.puzzle.golfRev === MINIGOLF_REV_COURSE, `recorded on the dealt stamp golfRev ${MINIGOLF_REV_COURSE} (got ${row.puzzle.golfRev})`);
+  ok(row.puzzle.type === "minigolf" && row.puzzle.golfRev === MINIGOLF_REV_D6, `recorded on the dealt stamp golfRev ${MINIGOLF_REV_D6} (got ${row.puzzle.golfRev})`); // Changed with Joe's approval, 27 Nov 2026 (D6)
   ok(!("level" in row.puzzle), "recorded on Normal (no level)");
   ok(row.puzzle.seed === row.seed && runSeed(row.input_log.run) === row.seed, `the seed ${row.seed} is the puzzle's and the run's`);
   ok(JSON.stringify(row.puzzle) === JSON.stringify(await exampleDeal("minigolf")), "the puzzle is the intro example deal exactly (re-run crazy-golf-demos-record.ts after the bank changes)");
