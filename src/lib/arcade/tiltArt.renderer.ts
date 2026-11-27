@@ -10,7 +10,7 @@ import { tiltPitLip } from "./tiltLip";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, tiltLevelGame, isTiltLevel, type TiltLevel, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, tiltLevelGame, tiltLevelGameV13, tiltThreeGame, TILT_REV_THREE, isTiltLevel, type TiltLevel, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -729,6 +729,9 @@ const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...ti
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
 export function tiltArtGameFor(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  // D6: tiltRev 13 plays tiltRev 12's world (Normal its first three mazes, a level D6's own mazes) in tiltRev 12's art.
+  if (rev === TILT_REV_THREE && isTiltLevel(level)) return tiltLevelArtGameV13(level);
+  if (rev === TILT_REV_THREE) return tiltThreeArtGame;
   // Levels (stage 3): a tiltRev 12 round dealt at easy, hard or expert draws its level's game (tiltRev 12's art).
   if (rev === TILT_REV_BIG && isTiltLevel(level)) return tiltLevelArtGame(level);
   if (rev === TILT_REV_BIG) return tiltBigArtGame;
@@ -758,7 +761,7 @@ export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 export function tiltArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
   if (!tiltIsExpand(rev)) return tiltArenaScene;
   // tiltRev 12: the dark walnut table runs on to the screen's edges.
-  if (rev === TILT_REV_BIG) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
+  if (rev === TILT_REV_BIG || rev === TILT_REV_THREE) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
   return (ctx, view) => tiltFill(ctx, view, TILT_X_W, TILT_X_H);
 }
 
@@ -1457,6 +1460,17 @@ function tiltLevelArtGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEv
   if (!g) {
     g = { ...tiltLevelGame(level), draw: drawX };
     levelArtGames.set(level, g);
+  }
+  return g;
+}
+/** tiltRev 13 (D6): Normal's three mazes and the levels' own, all in tiltRev 12's art. */
+const tiltThreeArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltThreeGame, draw: drawX };
+const levelArtGamesV13 = new Map<TiltLevel, ArcadeGame<TiltState, ArcadeInputEvent | null>>();
+function tiltLevelArtGameV13(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  let g = levelArtGamesV13.get(level);
+  if (!g) {
+    g = { ...tiltLevelGameV13(level), draw: drawX };
+    levelArtGamesV13.set(level, g);
   }
   return g;
 }

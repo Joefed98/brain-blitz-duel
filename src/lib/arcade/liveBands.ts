@@ -10,7 +10,7 @@
  */
 import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
-import { BT_D6_BAND_CURVE, BT_REV_D6, BT_REV_STRICT } from "./ballTrack";
+import { BT_V9_BAND_CURVE, BT_REV_D6, BT_REV_STRICT } from "./ballTrack";
 import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
 import { INK_REV_D6, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
@@ -88,7 +88,7 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 
 export const LIVE_BANDS = {
   // D6 (27 Nov 2026): btRev 9, Normal's parts full where the realistic elite fills them (28 marbles home).
-  balltrack: { field: "btRev", rev: BT_REV_D6, curve: BT_D6_BAND_CURVE, strictRev: BT_REV_STRICT },
+  balltrack: { field: "btRev", rev: BT_REV_D6, curve: BT_V9_BAND_CURVE, strictRev: BT_REV_STRICT },
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): wavRev 13 plus the charged shot; the same parts.
   wavefront: { field: "wavRev", rev: WAV_REV_BIG, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,

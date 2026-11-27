@@ -1002,7 +1002,7 @@ export const BT_REV_D6 = 9;
 /** btRev 9 Normal's figures (bank courses carry none). */
 export const BT_D6_NORMAL_FULL: BtD6Full = { home: 28, gold: 5, combo: 18, boost: 28 };
 /** btRev 9 Normal's core line (LIVE_BANDS, the "?" help): marbles home of 28 → 0…140, straight. */
-export const BT_D6_BAND_CURVE = bandCurve([0, BT_D6_NORMAL_FULL.home], [0, 140]);
+export const BT_V9_BAND_CURVE = bandCurve([0, BT_D6_NORMAL_FULL.home], [0, 140]);
 
 /** A D6 level's course settings (scripts/balltrack-d6-deal.ts builds its courses from them) and its part figures. */
 export interface BtD6LevelSettings {

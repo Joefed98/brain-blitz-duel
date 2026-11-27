@@ -147,6 +147,8 @@ export const INK_REV_BIG = 14;
  * every level is still drawable within its ink, its bonus line proved and its ink par above its proved line.
  */
 export const INK_REV_HILLS = 15;
+/** inkRev 16 (D6, 27 Nov 2026): inkRev 15's world at every level, each part on the level's own figures (INK_D6_FIGURES, below). */
+export const INK_REV_D6 = 16;
 /**
  * inkRev 15's birds: fewer and bigger (Joe's review: the rows of small birds cluttered the sky): each bird box 14 px
  * thick (inkRev 14: 10) and no inkRev 13 extra birds, every level still proved drawable with them.
@@ -251,11 +253,11 @@ export const INK_V14_SHAMROCK_R = 12;
 export const INK_V14_BIRD_H_FP = 10 * 256;
 /** inkRev 10, 11, 12, 13 and 14: the taller world and its features (x200). */
 export function inkX(rev?: number | null): boolean {
-  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
+  return rev === INK_REV_EXPAND || rev === INK_REV_SPREAD || rev === INK_REV_STD || rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS || rev === INK_REV_D6;
 }
 /** inkRev 13 and 14: clovers, ink par, more birds, failed drops that never end the run, the standard's parts (INK_V13_STD). */
 export function inkClover(rev?: number | null): boolean {
-  return rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS;
+  return rev === INK_REV_CLOVER || rev === INK_REV_BIG || rev === INK_REV_HILLS || rev === INK_REV_D6;
 }
 export const INK_TALL_H = 674;
 /** How much lower every inkRev 10 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
@@ -4236,7 +4238,6 @@ export function inkBridgeLevelGame(diff: InkDiff): ArcadeGame<InkState, ArcadeIn
  * 88 / 35 / 29 / 23 %. A narrower Expert pot was tried and moved the average player by 2 points only (32 px: 62.4
  * against 64.4 at 42 px on the stage-3 figures), so the worlds stay as they are.
  */
-export const INK_REV_D6 = 16;
 /** A level's D6 figures: ink par full at this per-mille total, trick shots and clovers at these counts, speed full with this many seconds left. */
 export interface InkD6Figures {
   parFull: number;

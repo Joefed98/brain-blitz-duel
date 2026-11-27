@@ -2324,9 +2324,9 @@ export const tiltLiftGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   init: (seed) => ({ ...initX(seed), lift: 1 }),
 };
 
-/** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves). */
+/** True for the revisions that play the expansion's mazes (tiltRev 8, and tiltRev 9 on its lifted curves; tiltRev 13, D6, plays tiltRev 12's). */
 export function tiltIsExpand(rev?: number | null): boolean {
-  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD || rev === TILT_REV_PAR || rev === TILT_REV_BIG;
+  return rev === TILT_REV_EXPAND || rev === TILT_REV_LIFT || rev === TILT_REV_STD || rev === TILT_REV_PAR || rev === TILT_REV_BIG || rev === TILT_REV_THREE;
 }
 
 /* ================= tiltRev 10 (29 Oct 2026): the arcade scoring standard ================= */
