@@ -2856,7 +2856,7 @@
    "game": "gravity",
    "stamp": {
     "key": "gravityRev",
-    "rev": 8
+    "rev": 9
    },
    "how": "the bundled demo's own touches replayed",
    "row": {
@@ -2864,7 +2864,7 @@
     "seed": 0,
     "puzzle": {
      "type": "gravity",
-     "gravityRev": 8,
+     "gravityRev": 9,
      "timeLimitMs": 120000,
      "walls": [
       0,

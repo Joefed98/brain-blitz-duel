@@ -15,6 +15,7 @@ import { leftWrongKeys, usesNotesFree } from "../notesFree";
 import { kakuroProgress, kakuroRuleMistakeKeys, kakuroWrongKeys } from "../kakuro";
 import { kakuroRuleMistakes } from "../numberOverhaul";
 import { cleanPoints, speedPoints } from "./shape";
+import { storedLevelFullByS } from "./plLevelSpeed";
 import { storedFullByS } from "./levelSpeed";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { GRID_EARLY_POINTS, GRID_SHARE_POINTS, GRID_STANDARD, gridNetPlaced, type GridStandardType } from "./gridRules";
@@ -123,8 +124,10 @@ function gridGame(type: GridStandardType): StandardGame {
     grade(input, ctx) {
       if (input.graded.isCorrect) {
         const mistakes = fillominoStrokes(input.puzzle) ? wrongChanges(game, input) : everWrong(game, input);
-        // Kakuro's level deals may carry their own "full by" time (D2, 22 Nov 2026); none on Normal or any other game.
-        const own = type === "kakuro" ? storedFullByS(input.puzzle) : undefined;
+        // Kakuro's level deals may carry their own "full by" time (D2, 22 Nov 2026, `speedFullByS`); a D4 level deal of
+        // Loopline, Regions or Island Link its level's (22 Nov 2026, plLevelSpeed.ts, `levelFullByS`); every other round
+        // the game's own, as before.
+        const own = type === "kakuro" ? storedFullByS(input.puzzle) : (storedLevelFullByS(input.puzzle) ?? undefined);
         const speed = speedPoints(rule.speed, input.msLeft, input.limitMs, (own ?? rule.fullByS) * 1000);
         const bonus = mistakes === null ? 0 : cleanPoints(rule.bonus, rule.per, mistakes);
         return { finished: true, speed, bonus, measure: "clean", facts: { mistakes } };

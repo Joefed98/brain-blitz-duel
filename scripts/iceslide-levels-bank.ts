@@ -26,8 +26,9 @@ import {
   type IceSlideLevel,
 } from "../src/lib/duel/iceSlideLevels.server";
 import type { SlidePuzzleData } from "../src/lib/duel/types";
+import { SKID_ELITE_PERSON, playSkidLikeAPerson } from "./iceslide-human";
 
-const MAX_RETRIES = 64;
+const MAX_RETRIES = 256;
 export const ICESLIDE_LEVEL_BANK_PATH = fileURLToPath(new URL("../src/lib/duel/iceSlideLevelBank.server.ts", import.meta.url));
 
 interface Candidate {
@@ -36,10 +37,21 @@ interface Candidate {
   puzzle: SlidePuzzleData;
 }
 
+/**
+ * A level that keeps only boards a person can finish (D4, 22 Nov 2026: Expert): the elite person-like player
+ * (scripts/iceslide-human.ts, its own times, every one at or over the human limits) must reach the exit inside the
+ * level's clock.
+ */
+function personFinishes(level: IceSlideLevel, puzzle: SlidePuzzleData): boolean {
+  const s = iceSlideLevelSettings(level) as { personSolvable?: boolean; timeLimitMs: number };
+  if (!s.personSolvable) return true;
+  return playSkidLikeAPerson(puzzle as never, SKID_ELITE_PERSON, s.timeLimitMs).solved;
+}
+
 function candidateFor(level: IceSlideLevel, index: number, fromRetry = 0): Candidate {
   for (let retry = fromRetry; retry < MAX_RETRIES; retry++) {
     const puzzle = buildIceSlideLevelEntry(level, index, retry);
-    if (puzzle) return { index, retry, puzzle };
+    if (puzzle && personFinishes(level, puzzle)) return { index, retry, puzzle };
   }
   throw new Error(`iceslide ${level} bank entry ${index}: no verified board in ${MAX_RETRIES} fixed seeds`);
 }

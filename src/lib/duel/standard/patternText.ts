@@ -11,6 +11,7 @@ import { fillMax } from "../roundMax";
 import { preNov7Pinned } from "../speedPipesNov7";
 import { prePatternNov15Pinned } from "../patternNov15";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parMovesDealt, parStrictDealt } from "../parMoves";
+import { TOPSY_NORMAL_FULL_BY_S, topsyLineDealt } from "../topsyLine";
 import { GRADIENT_LIMIT_PER_PAR, partialCreditDealt } from "../partialCredit";
 
 /** The intro line (two phone lines at most, no scoring terms). */
@@ -70,10 +71,11 @@ export const PAR_MOVES_PATTERN_INTRO: Record<"iceslide" | "gravity", string> = {
   gravity: "Clear all three boards; bonuses for speed and the fewest tilts. Up to {max}.",
 };
 
-function parMovesHelp(strict: boolean): Record<"iceslide" | "gravity", string> {
+function parMovesHelp(strict: boolean, topsyLine = false): Record<"iceslide" | "gravity", string> {
   // slideRev 4 / gravityRev 7 (puzzle polish, 3 Nov 2026): par shown on screen, speed full earlier, par gone at 1.5×.
+  // Topsy-Turvy gravityRev 9 (D4, 22 Nov 2026, topsyLine.ts): Normal's speed full by 40 s.
   const zero = strict ? "one and a half times par" : "twice par";
-  const fullBy = (t: "iceslide" | "gravity") => (strict ? PAR_STRICT_FULL_BY_S[t] : PATTERN_STD[t].fullByS);
+  const fullBy = (t: "iceslide" | "gravity") => (strict ? (t === "gravity" && topsyLine ? TOPSY_NORMAL_FULL_BY_S : PAR_STRICT_FULL_BY_S[t]) : PATTERN_STD[t].fullByS);
   const one = (t: "iceslide" | "gravity", finish: string, label: string, fewest: string, unfinished: string) =>
     puzzleScoreList({
       finish,
@@ -92,8 +94,11 @@ function parMovesHelp(strict: boolean): Record<"iceslide" | "gravity", string> {
 export const PAR_MOVES_PATTERN_HELP: Record<"iceslide" | "gravity", string> = parMovesHelp(false);
 /** The "?" help SCORE text on the stricter-par stamps (puzzle polish, 3 Nov 2026). */
 export const PAR_STRICT_PATTERN_HELP: Record<"iceslide" | "gravity", string> = parMovesHelp(true);
+/** The "?" help SCORE text with Topsy-Turvy's gravityRev 9 (D4: Normal full speed by 40 s). */
+export const PAR_STRICT_TOPSY_LINE_HELP: Record<"iceslide" | "gravity", string> = parMovesHelp(true, true);
 /** The help for the stamps dealt now. */
-export const parMovesPatternHelp = (type: "iceslide" | "gravity"): string => (parStrictDealt() ? PAR_STRICT_PATTERN_HELP : PAR_MOVES_PATTERN_HELP)[type];
+export const parMovesPatternHelp = (type: "iceslide" | "gravity"): string =>
+  (parStrictDealt() ? (type === "gravity" && topsyLineDealt() ? PAR_STRICT_TOPSY_LINE_HELP : PAR_STRICT_PATTERN_HELP) : PAR_MOVES_PATTERN_HELP)[type];
 
 /**
  * Partial-credit fixes (7 Nov 2026, partialCredit.ts): Gridlock (unblockRev 3), Turntable (ringsRev 4) and Gradient

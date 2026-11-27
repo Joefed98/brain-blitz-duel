@@ -28,6 +28,7 @@ import { bankedIntroExample } from "../src/lib/duel/puzzleBank.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { PATTERN_NOV15_STAMPS } from "../src/lib/duel/patternNov15";
+import { TOPSY_LINE_REV } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
 import { slideBoard, replaySlide, type SlideDir } from "../src/lib/duel/slide";
 import { replayTopsyPuzzle, isTopsy } from "../src/lib/duel/topsy";
 import { pipesAfterTurns, type PipesTurn } from "../src/lib/duel/depth4/pipesTaps";
@@ -303,7 +304,9 @@ for (const game of GAMES) {
   const pub = splitPuzzle(introExample(game)).pub;
   ok(JSON.stringify(row.puzzle) === JSON.stringify(pub), `${game}: the puzzle is exactly today's intro example (public half)`);
   const stamp = PATTERN_NOV15_STAMPS[game as PuzzleType]!;
-  ok((row.puzzle as unknown as Record<string, number>)[stamp.key] === stamp.to, `${game}: recorded on ${stamp.key} ${stamp.to}`);
+  // Changed with Joe's approval, 22 Nov 2026: Topsy-Turvy's demo is on gravityRev 9, the stamp Normal deals since D4.
+  const dealtRev = game === "gravity" ? TOPSY_LINE_REV : stamp.to; // Changed with Joe's approval, 22 Nov 2026
+  ok((row.puzzle as unknown as Record<string, number>)[stamp.key] === dealtRev, `${game}: recorded on ${stamp.key} ${dealtRev}`); // Changed with Joe's approval, 22 Nov 2026
   ok(acceptIntroDemo(game, row) === row, `${game}: getIntroDemoFn's stamp rules accept it`);
   ok(REVISED_PUZZLE_DEMOS.has(game) && log.presentation === puzzlePresentation(game), `${game}: presentation ${log.presentation}`);
   ok(puzzleInputDemoCompatible(game, log), `${game}: the phone's presentation rule accepts it`);

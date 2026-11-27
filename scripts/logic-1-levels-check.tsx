@@ -18,11 +18,13 @@
  *     on Easy also by the full count), and the reasoning the level names (line alone; or needing lines together).
  *  7. Colour Flood: Easy's live boards' par exact by search; every bank board's route floods it in par moves, its par in
  *     the band, and (quick: two Hard and one Expert; CHECKS_FULL=1: all) its par re-proved the minimum.
- *  8. Minefield (Joe, 15 Nov 2026, "too-hard games: today's becomes Hard"): Hard deals minesRev 2 exactly, Normal the
- *     gentler minesRev 3 (16 mines), Easy minesRev 4, Expert minesRev 5 on 120 s; every board cleared by logic alone
- *     from its opening, the opening in the level's band; a played run replays through the server on each revision.
+ *  8. Minefield: Normal the gentler minesRev 3 (16 mines), Easy minesRev 4; since D4 (Changed with Joe's approval,
+ *     22 Nov 2026) Hard deals minesRev 6 (10 × 16, 26 mines, 90 s) and Expert minesRev 7 (10 × 16, 40 mines, 105 s),
+ *     where they dealt minesRev 2 and 5 (both still replay); every board cleared by logic alone from its opening, the
+ *     opening in the level's band; a played run replays through the server on each revision.
  *  9. The stages in happy-dom: Box Six Expert hides clashes until Check; Easy hides a digit placed six times; Polypotions
- *     Expert veils the layers not yet uncovered; Safe Cracker Expert draws five drums; Colour Flood Expert draws its
+ *     Expert veils the layers not yet uncovered; Safe Cracker Expert draws six drums (five until D4: Changed with Joe's
+ *     approval, 22 Nov 2026); Colour Flood Expert draws its
  *     blocked stones and six pots; Hanoi's timed-out reveal says how many moves from done.
  *
  *   bun scripts/logic-1-levels-check.tsx
@@ -65,7 +67,7 @@ const { countNonoSolutions, nonoDimsOf, nonoLogicSolve } = await import("../src/
 const { FLOOD_BLOCKED, floodPlayable, replayFlood } = await import("../src/lib/duel/flood");
 const { floodLevelMinimum } = await import("../src/lib/duel/floodLevels.server");
 const { FLOOD_LEVEL_BANK } = await import("../src/lib/duel/logicLevelBanks.server");
-const { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL } = await import("../src/lib/arcade/minesweeper");
+const { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_EXPERT_D4, MINES_REV_HARD_D4, MINES_REV_LOGIC, MINES_REV_NORMAL } = await import("../src/lib/arcade/minesweeper"); // Changed with Joe's approval, 22 Nov 2026
 const { miniSudokuPuzzle } = await import("../src/puzzles/miniSudoku");
 const { sortTubesPuzzle } = await import("../src/puzzles/sortTubes");
 const { safeCrackerPuzzle } = await import("../src/puzzles/safeCracker");
@@ -293,7 +295,7 @@ for (const level of LEVELS) {
 
 /* ------------------------------------------------------------------ 8. Minefield */
 {
-  const want: Record<string, number> = { easy: MINES_REV_EASY, normal: MINES_REV_NORMAL, hard: MINES_REV_LOGIC, expert: MINES_REV_EXPERT };
+  const want: Record<string, number> = { easy: MINES_REV_EASY, normal: MINES_REV_NORMAL, hard: MINES_REV_HARD_D4, expert: MINES_REV_EXPERT_D4 }; // Changed with Joe's approval, 22 Nov 2026
   for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
     for (let n = 0; n < N; n++) {
       const p = deal("minesweeper", level === "normal" ? undefined : level, 260 + n) as Loose & { seed: number; minesRev: number };
@@ -318,12 +320,12 @@ for (const level of LEVELS) {
   ok(minesGeoFor(MINES_REV_NORMAL).count === 16 && minesGeoFor(MINES_REV_LOGIC).count === 20, "minesweeper: Normal has 16 mines, Hard today's 20");
   ok(minesGeoFor(MINES_REV_EXPERT).runTicks === 120 * 60, "minesweeper: Expert runs 120 s");
   // The registry's settings describe each revision's board exactly (Joe, 16 Nov 2026: Expert 34 mines, opening 8–16).
-  for (const [level, rev] of [["easy", MINES_REV_EASY], ["hard", MINES_REV_LOGIC], ["expert", MINES_REV_EXPERT]] as const) {
+  for (const [level, rev] of [["easy", MINES_REV_EASY], ["hard", MINES_REV_HARD_D4], ["expert", MINES_REV_EXPERT_D4]] as const) { // Changed with Joe's approval, 22 Nov 2026
     const lv = settings<{ cols: number; rows: number; mines: number; opening: [number, number]; seconds: number }>("minesweeper", level);
     const gg = minesGeoFor(rev);
     ok(lv.cols === gg.cols && lv.rows === gg.rows && lv.mines === gg.count && lv.opening[0] === gg.openMin && lv.opening[1] === gg.openMax && lv.seconds * 60 === gg.runTicks, `minesweeper ${level}: the registry matches minesRev ${rev}'s board`);
   }
-  ok(minesGeoFor(MINES_REV_EXPERT).count / minesGeoFor(MINES_REV_EXPERT).cells > minesGeoFor(MINES_REV_LOGIC).count / minesGeoFor(MINES_REV_LOGIC).cells, "minesweeper: Expert is denser than Hard");
+  ok(minesGeoFor(MINES_REV_EXPERT_D4).count / minesGeoFor(MINES_REV_EXPERT_D4).cells > minesGeoFor(MINES_REV_HARD_D4).count / minesGeoFor(MINES_REV_HARD_D4).cells, "minesweeper: Expert is denser than Hard"); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ the hidden layer's grey (Joe, 16 Nov 2026) */
@@ -399,8 +401,8 @@ const stageProps = (puzzle: unknown) => ({ puzzle, locked: false, onSubmit: () =
 {
   const p = deal("safe", "expert", 404);
   const { root, unmount } = await mount(React.createElement(safeCrackerPuzzle.Stage!, stageProps(p)));
-  ok(root.querySelector('.logic-safe-drums[data-dials="5"]') !== null && root.querySelectorAll(".logic-safe-drums .safe-dial-drum").length === 5, "safe expert: five drums");
-  ok(/tries left\s*2/.test(root.textContent ?? ""), "safe expert: two tries");
+  ok(root.querySelector('.logic-safe-drums[data-dials="6"]') !== null && root.querySelectorAll(".logic-safe-drums .safe-dial-drum").length === 6, "safe expert: six drums"); // Changed with Joe's approval, 22 Nov 2026
+  ok(/tries left\s*1/.test(root.textContent ?? ""), "safe expert: one try"); // Changed with Joe's approval, 22 Nov 2026
   unmount();
 }
 {

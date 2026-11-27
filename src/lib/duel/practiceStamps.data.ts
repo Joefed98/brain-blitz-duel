@@ -33,7 +33,7 @@ export const PRACTICE_STAMPS = {
   "freecell": "freecellRev=5 puzzleScoreRev=3 speedPar=1",
   "freekick": "freekickRev=6 puzzleScoreRev=3 speedPar=1",
   "golfsol": "golfSolRev=1 puzzleScoreRev=3 speedPar=1",
-  "gravity": "gravityRev=8 puzzleScoreRev=3 speedPar=1",
+  "gravity": "gravityRev=9 puzzleScoreRev=3 speedPar=1",
   "homerun": "homerunRev=5 puzzleScoreRev=3 speedPar=1",
   "hotfloor": "puzzleScoreRev=3 speedPar=1",
   "hover": "hoverRev=11 puzzleScoreRev=3 speedPar=1",
