@@ -22,7 +22,14 @@ export function buildLaserBank(level: LaserBankLevel, count = LASER_BANK_SIZE[le
   for (let index = 0; index < count; index++) {
     let found = false;
     for (let retry = 0; retry < MAX_RETRIES && !found; retry++) {
-      const puzzle = buildLaserLevelEntry(level, laserLevelSeed(level, index, retry));
+      // A seed whose search builds no layout is passed over like a duplicate (D4, 22 Nov 2026: Expert's exact tray of
+      // 10–12 mirrors and 9–10 bombs leaves a few seeds without one).
+      let puzzle: LaserPuzzleData;
+      try {
+        puzzle = buildLaserLevelEntry(level, laserLevelSeed(level, index, retry));
+      } catch {
+        continue;
+      }
       const key = laserLevelKey(puzzle);
       if (keys.has(key)) continue;
       keys.add(key);

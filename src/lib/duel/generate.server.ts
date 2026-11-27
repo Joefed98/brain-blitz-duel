@@ -20,10 +20,13 @@ import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { dealPatternNov15 } from "./patternNov15";
+import { dealTopsyLine } from "./topsyLine";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
+import { dealPyramidPartial } from "./pyramidPartial";
+import { dealBallparkBullseyes } from "./ballparkBullseyes";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -51,7 +54,7 @@ import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
 import { generateBalanceLevel } from "./balanceLevels.server";
-import { dealTargetExpert, generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
+import { generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
 import type { BalanceLevelSettings } from "./balanceLevels";
 import { generateLightsOut, generatePipes, generateSudoku, withPipesOneLayout } from "./logic.server";
 import { generateFlow } from "./flow.server";
@@ -149,6 +152,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "./standard/plLevelSpeed";
 import { dealWordLevel } from "./wordLevels.server";
 import { dealAttentionLevel } from "./attentionLevels.server";
 
@@ -217,6 +221,12 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // Integer Pyramid's unfinished credit (D2, 22 Nov 2026, pyramidPartial.ts): depthRev 3, stone by stone.
+  { name: "pyramidPartial", deal: dealPyramidPartial },
+  // Ballpark's bullseyes (D2, 22 Nov 2026, ballparkBullseyes.ts): depthRev 3, a bullseye worth 3 up to 30.
+  { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
+  // D4 (22 Nov 2026, topsyLine.ts): Topsy-Turvy gravityRev 9 on Normal, full speed by 40 s (Joe's option A).
+  { name: "topsyLine", deal: dealTopsyLine },
 ];
 
 /**
@@ -256,7 +266,16 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   const measured = type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
   // The Attention games' levels (stage 3 of the overhaul) re-deal their board on the level's levers, after every layer;
   // a context without a level (Normal) is never touched.
-  return context.level && context.level !== NORMAL ? dealAttentionLevel(measured, context.level) : measured;
+  if (!context.level || context.level === NORMAL) return measured;
+  // The Pattern and Logic levels' own speed lines (D4, 22 Nov 2026; plLevelSpeed.ts), after every layer.
+  return stampPlLevelSpeed(dealAttentionLevel(measured, context.level), context.level);
+}
+
+/** A D4 level deal carries its level's full-speed time (`levelFullByS`), so a later retune never moves it. */
+function stampPlLevelSpeed(puzzle: PuzzleData, level: Level): PuzzleData {
+  if (!PL_LEVEL_SPEED_GAMES.includes(puzzle.type)) return puzzle;
+  const fullByS = settingsFullByS(gameLevelSettings(puzzle.type, level));
+  return fullByS === null ? puzzle : ({ ...puzzle, levelFullByS: fullByS } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -422,8 +441,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "kakuro") return dealKakuroLevel(gameSeed(type, context), context.level);
   // Exact's levels (targetLevels.server.ts, 15 Nov 2026): Normal is today's deal below.
   if (type === "target" && context.level) {
-    // Expert deals from its proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
-    if (context.level === "expert" && gameLevelSettings<TargetLevelSettings>("target", "expert")) return dealTargetExpert();
+    // D2 (22 Nov 2026): Hard and Expert are targets in a row (targetRounds.ts); Expert's last target still comes from its
+    // proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
     const settings = gameLevelSettings<TargetLevelSettings>("target", context.level);
     if (settings) return generateTargetLevel(settings);
   }

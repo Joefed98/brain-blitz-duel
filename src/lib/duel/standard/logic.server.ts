@@ -30,6 +30,7 @@ import { rev3Progress } from "../puzzleProgress";
 import { tubesSolverProgress } from "../solverProgress.server";
 import { leftWrongKeys, listLessOne, usesNotesFree } from "../notesFree";
 import { LOGIC_EARLY_POINTS, LOGIC_SHARE_POINTS, LOGIC_STANDARD, type LogicStandardType, floodSpareMoves } from "./logicRules";
+import { storedLevelFullByS } from "./plLevelSpeed";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
 
@@ -38,7 +39,9 @@ const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v))
 /** Speed points on the game's own numbers (`efficiency` scales them where today's mistakes cut speed). */
 function speedOf(type: LogicStandardType, input: StandardInput, efficiency = 1): number {
   const r = LOGIC_STANDARD[type];
-  return speedPoints(r.speed, input.msLeft, input.limitMs, r.fullByS * 1000) * clamp01(efficiency);
+  // A D4 level deal's own time (22 Nov 2026, plLevelSpeed.ts); every other round the game's own, as before.
+  const fullByS = storedLevelFullByS(input.puzzle) ?? r.fullByS;
+  return speedPoints(r.speed, input.msLeft, input.limitMs, fullByS * 1000) * clamp01(efficiency);
 }
 
 /** Unfinished: up to 120 by `done ÷ total`, plus up to 10 for how early (10 ÷ total a part), less `off`. */

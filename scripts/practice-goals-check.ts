@@ -71,6 +71,9 @@ import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { FLOW_REV3_FULL_BY_S, LASER_REV4_FULL_BY_S, PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { TOPSY_NORMAL_FULL_BY_S } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
+import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { STD_CRYPTOGRID, STD_SLIDER, STD_SWAPWORD } from "../src/lib/duel/standard/word";
 import { STANDARD_GAMES } from "../src/lib/duel/standard/games.server";
 import type { PuzzleType } from "../src/lib/duel/types";
@@ -159,7 +162,7 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   bridges: GRID_STANDARD.bridges,
   kakuro: GRID_STANDARD.kakuro,
   blockparty: { speed: PATTERN_STD.blockparty.speed, fullByS: PATTERN_STD.blockparty.fullByS, bonus: 0 },
-  gravity: { speed: PAR_MOVES_STD.speed, fullByS: PAR_STRICT_FULL_BY_S.gravity, bonus: PAR_MOVES_STD.par },
+  gravity: { speed: PAR_MOVES_STD.speed, fullByS: TOPSY_NORMAL_FULL_BY_S, bonus: PAR_MOVES_STD.par }, // Changed with Joe's approval, 22 Nov 2026 (gravityRev 9: 40 s)
   rings: { speed: PATTERN_STD.rings.speed, fullByS: PATTERN_STD.rings.fullByS, bonus: PATTERN_STD.rings.par ?? -1 },
   // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Pattern overhaul): the dealt laserRev 4's full-speed time (30 s).
   laser: { speed: PATTERN_STD.laser.speed, fullByS: LASER_REV4_FULL_BY_S, bonus: 0 },
@@ -209,7 +212,9 @@ for (const c of PRACTICE_CHALLENGES) {
     check(Boolean(rule), `${c.id}: its standard rules are known`);
     check(Boolean(STANDARD_GAMES[c.type]), `${c.id}: graded on the puzzle scoring standard`);
     if (rule && g.kind === "bonus") check(g.max === rule.bonus && g.max > 0, `${c.id}: bonus ${g.max} is the rule's ${rule.bonus}`);
-    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === rule.fullByS && c.text.includes(`${rule.fullByS} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${rule.fullByS} s`);
+    // Changed with Joe's approval, 22 Nov 2026: a Hard or Expert goal of the D4 games quotes its level's own speed line (stamped on the deal).
+    const fullBy = (c.level !== "classic" && PL_LEVEL_SPEED_GAMES.includes(c.type) ? settingsFullByS(gameLevelSettings(c.type, c.level)) : null) ?? rule?.fullByS;
+    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === fullBy && c.text.includes(`${fullBy} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${fullBy} s`); // Changed with Joe's approval, 22 Nov 2026
     if (rule) check(rule.speed + rule.bonus <= 50, `${c.id}: speed and bonus both fit a finish's 50 (standardFinish never trims either)`);
   } else if (g.kind === "score") {
     // APPROVED by Joe, 11 Nov 2026, change (6): was `g.score === 180 && c.text === "Score 180 or more"`; any score the

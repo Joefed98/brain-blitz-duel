@@ -68,9 +68,10 @@ type Pipes = Extract<PuzzleData, { type: "pipes" }>;
 const LEVELS = ["easy", "hard", "expert"] as const;
 const WANT: Record<(typeof LEVELS)[number], { cols: number; rows: number; scrambled: number; exact: boolean; leaks: boolean; fullByS: number }> = {
   easy: { cols: 5, rows: 5, scrambled: 0.6, exact: true, leaks: true, fullByS: 60 },
-  hard: { cols: 8, rows: 8, scrambled: 0.9, exact: false, leaks: true, fullByS: 60 },
-  // Expert full speed by 90 s (Joe, 16 Nov 2026; was the game's 60 s).
-  expert: { cols: 8, rows: 11, scrambled: 0.95, exact: false, leaks: false, fullByS: 90 },
+  hard: { cols: 8, rows: 8, scrambled: 0.9, exact: false, leaks: true, fullByS: 70 }, // Changed with Joe's approval, 22 Nov 2026
+  // Hard full speed by 70 s and Expert by 96 s (D4, from the elite's finishes under the human limits; Expert 90 s from
+  // Joe, 16 Nov 2026, was the game's 60 s). Changed with Joe's approval, 22 Nov 2026.
+  expert: { cols: 8, rows: 11, scrambled: 0.95, exact: false, leaks: false, fullByS: 96 }, // Changed with Joe's approval, 22 Nov 2026
 };
 // Quick depth: 60 boards a level (and 120 Normal deals); CHECKS_FULL=1: 400 a level and 1,000 Normal deals.
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
