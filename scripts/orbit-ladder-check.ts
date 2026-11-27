@@ -18,7 +18,7 @@
  *     before) and its witness scores exactly 200 through the server's grade on the puzzle as dealt, every feature taken;
  *     no level's line is above its bank's least pace or perfect orbits; the first Easy entry rebuilds byte for byte
  *     (`bun scripts/orbit-ladder-bank.ts --check 1 --level=easy`; CHECKS_FULL=1: one entry of every level);
- *  5. Joe's ladder test on the recorded 96-deal ladder (scripts/fixtures/d5-ladder-orbit.json.gz) and a live re-play
+ *  5. the recorded 96-deal ladder (scripts/fixtures/d5-ladder-orbit.json.gz) and a live re-play
  *     sample (one run a level and player) scoring exactly as recorded;
  *  6. the practice challenges count the things themselves (all four slingshots, all the stardust on Hard).
  *
@@ -45,7 +45,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { dealAt } from "./level-tune";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { LADDER_COURSES, ladderPuzzle, ladderServerScore, ladderStart, ORBIT_HUMAN_READY_TICKS } from "./orbit-ladder-lib";
 import { ORBIT_LOST_LEGACY, orbitFinalCheckpoint, stableExtra, type OrbitLegacyFixture } from "./orbit-lost-legacy-record";
 
@@ -183,9 +183,10 @@ const linesOf = (l: Lv): Readonly<OrbitLines> => (l === "normal" ? ORBIT_V17_LIN
   }
 }
 
-/* 5. Joe's ladder test on the recorded ladder, and a live re-play sample. */
+/* 5. the recorded ladder, and a live re-play sample. */
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("orbit")) ok(cond, `5a: ${label}`);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("orbit", 1)) ok(cond, `5b: ${label}`);
 }
 

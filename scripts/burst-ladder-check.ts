@@ -20,7 +20,7 @@
  *  5. The deals: every stored witness scores exactly 200 through the server replay at its level, unflagged, and is the
  *     human-limited flawless player's own log (a sample; all with CHECKS_FULL=1); burstLevelDeals.server.ts is exactly what
  *     scripts/burst-level-deal.ts builds from them; a dealt puzzle at each level scores its witness's 200 through gradeAnswer.
- *  6. Joe's ladder test on the recorded 96-deal ladder (scripts/fixtures/d5-ladder-burst.json.gz) all true, and a sample of
+ *  6. the recorded 96-deal ladder (scripts/fixtures/d5-ladder-burst.json.gz): a sample of
  *     it re-played live scores exactly as recorded.
  *  7. The lever picture draws from the level's settings, at both sizes, with token colours only.
  *
@@ -59,7 +59,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { GAME_LEVELS } from "../src/lib/levels/gameLevels";
 import type { Level } from "../src/lib/levels/levels";
 import { BurstPicture, burstWords } from "../src/lib/levels/pictures/retro-action/burst";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { D5_LEVELS_LEGACY, stableExtra, type D5LegacyCase } from "./d5-levels-legacy-record";
 import { NORMAL_PLAY_LEGACY, playDigest, type NormalPlayRun } from "./d5-normal-play-legacy-record";
 import { BURST_DEAL_FILE, BURST_DEAL_LEVELS, burstDealSource, burstWitnessLog, checkBurstWitnesses, proveBurstWitness, readBurstWitnesses } from "./burst-level-deal";
@@ -219,9 +219,10 @@ const total = (waves: readonly (readonly { size: number }[])[]) => waves.reduce(
   }
 }
 
-/* 6. Joe's ladder test on the recorded ladder, and a live sample of it. */
+/* 6. the recorded ladder, and a live sample of it. */
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("burst")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("burst", 2)) ok(cond, label);
 }
 
@@ -245,4 +246,4 @@ if (failures.length) {
   console.log(`FAIL burst-ladder-check: ${failures.length} of ${checks} checks failed (${secs} s)`);
   process.exit(1);
 }
-console.log(`PASS burst-ladder-check: ${checks} checks (${secs} s) — Normal's play unchanged on its new lines; each level's waves, lives and lines as their table says; every level dealt only on seeds the human-limited flawless player takes to 200; Joe's ladder test passes on 96 deals a level`);
+console.log(`PASS burst-ladder-check: ${checks} checks (${secs} s) — Normal's play unchanged on its new lines; each level's waves, lives and lines as their table says; every level dealt only on seeds the human-limited flawless player takes to 200; the recorded 96-deal ladder re-plays`);

@@ -16,7 +16,7 @@
  *     landing 3 or more after it; everything near its path in the camera's view 15 ticks before the input), and that
  *     witness scores exactly 200 through the server's grade on the dealt puzzle, with every part full and no hit; the
  *     camera the view test reads is the renderer's; ricoRev 4's frame-exact witnesses break the limits;
- *  5. Joe's ladder test on the recorded 96-deal ladder (scripts/fixtures/d5-ladder-ricochet.json.gz,
+ *  5. the recorded 96-deal ladder (scripts/fixtures/d5-ladder-ricochet.json.gz,
  *     `bun scripts/d5-ladder-record.ts ricochet --deals=96`), and a live re-play sample (2 runs a level and player)
  *     scoring exactly as recorded; the proof player (the flawless skill-band level) scores 200 on every sampled deal;
  *  6. the practice challenges count the things themselves (all three scrolls, all six rides, 220 m on Hard), so the
@@ -44,7 +44,7 @@ import { challengesFor, goalMet } from "../src/lib/duel/practiceChallenges";
 import { gameLevelSettings } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { roomSeed } from "./arcade-skill-bands/games";
-import { ladderFixtureVerdicts, playDealt, replaySample } from "./d5-ladder-lib";
+import { playDealt, replaySample } from "./d5-ladder-lib";
 
 console.error = () => {};
 let checks = 0;
@@ -188,9 +188,10 @@ function encode(rev: number, level: MoonLevel | null, seed: number, events: read
   ok(refused === 6, `4e: ricoRev 4's frame-exact witnesses break the limits (${refused} / 6 refused)`);
 }
 
-/* 5. Joe's ladder test on the recorded ladder, and a live re-play sample. */
+/* 5. the recorded ladder, and a live re-play sample. */
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("ricochet")) ok(cond, `5a: ${label}`);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("ricochet", 2)) ok(cond, `5b: ${label}`);
   for (const lv of ["easy", "normal", "hard", "expert"] as const) {
     const scores: number[] = [];
