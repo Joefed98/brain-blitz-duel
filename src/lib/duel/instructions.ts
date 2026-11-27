@@ -21,7 +21,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { preAttentionOverhaulPinned } from "./attentionOverhaul";
-import { ATTENTION_LEVEL_HELP } from "./attentionLevels";
+import { ATTENTION_LEVEL_HELP_D3 } from "./attentionLevels";
 
 /** The Attention overhaul's help (15 Nov 2026, attentionOverhaul.ts) while its stamps are dealt. */
 const attentionOverhaulDealt = () => !preAttentionOverhaulPinned();
@@ -506,7 +506,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Steady hand:", detail: "every reaction close together scores extra." },
         { action: "Traps:", detail: "teal, red or blue; light orange; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
         { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
-        { action: "Levels:", detail: "Easy has fewer flashes and plain decoys; Hard more gold-like decoys; Expert up to 5 decoys and the gold shows for 1 second only.", helpOnly: true },
+        { action: "Levels:", detail: "Easy 5 golds, the first with no trap before it, plain traps only; Hard 8 golds, 3 or 4 quick traps before each, most of them gold-like; Expert 9 golds, 6 to 8 fast traps before each, and the gold shows for 0.6 seconds.", helpOnly: true },
       ],
       // Depth to 200 (tapRev 5): the stretched curve and the steady hand (depth/speedTexts.ts).
       score: flashDepthHelp(),
@@ -520,7 +520,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "All the numbers", detail: "move every 15 seconds." },
         { action: "Flow:", detail: "right taps in a row, with no wrong tap, build a bonus." },
         { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 16 numbers that never move; Hard 30 in 50 s, moving every 10 s; Expert 30 from highest to lowest in 45 s, moving every 8 s.", helpOnly: true },
+        { action: "Levels:", detail: "Easy 16 numbers from 1 to 16 that never move; Hard 32 numbers in 42 seconds, moving every 10 seconds; Expert 40 numbers from highest to lowest in 55 seconds, moving every 8 seconds.", helpOnly: true },
       ],
       // The scoring standard (tapRev 6): standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.numhunt(),
@@ -548,7 +548,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         // The Attention overhaul's levels (scanRev 5): a 60 s clock at every level.
         { action: "Three grids,", detail: attentionOverhaulDealt() ? "each bigger, in 60 seconds." : "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.symscan, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.symscan, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.symscan(),
     },
@@ -566,7 +566,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Next picture", detail: "moves on (Done on the last); you can’t go back.", helpOnly: true }
           : { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
         ...(attentionOverhaulDealt() ? [{ action: "5 misses allowed", detail: "for the finish bonus.", helpOnly: true }] : []),
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.spotdiff, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.spotdiff, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.spotdiff(),
     },
@@ -596,7 +596,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         ...(attentionOverhaulDealt() ? [{ action: "Tap a shape", detail: "to mark it as counted (a dot stays on it)." }] : []),
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.countup, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.countup, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.countup(),
     },
@@ -822,7 +822,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         // The Attention overhaul (15 Nov 2026): backtracking and the controls, said plainly.
         { action: "Backtracking", detail: "counts against par: every step walked counts, back ones too.", helpOnly: true },
         { action: "Arrows or joystick:", detail: "choose in the game menu or in Settings.", helpOnly: true },
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.maze, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.maze, helpOnly: true }] : []),
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
       score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
@@ -869,7 +869,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
         { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
         { action: "Wires", detail: attentionOverhaulDealt() ? "are numbered from 1 on the left (Normal has 7)." : "are numbered 1–7 from the left.", helpOnly: true },
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.bomb, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.bomb, helpOnly: true }] : []),
       ],
       score: logicStandardHelp("bomb"),
     },
@@ -908,7 +908,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every 5 links", detail: "the board reshuffles with five new charms.", helpOnly: true },
         { action: "Reverse:", detail: "a banner warns from link 17; links 21–25 run last to first (the arrows point back).", helpOnly: true },
         { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 30 links with longer windows and no reverse; Hard 40 with shorter windows and two reversed runs; Expert 50 in 60 s with six charms to a cycle.", helpOnly: true },
+        { action: "Levels:", detail: "Easy 4 charms to a cycle, 24 links, one wrong tap forgiven; Hard 6 charms, 48 links, two reversed boards; Expert 7 charms, 56 links in 70 seconds, three reversed boards.", helpOnly: true },
       ],
       // The scoring standard (chainDepthRev 3): no milestones; standard/attentionTexts.ts.
       score: STANDARD_ATTENTION_HELP.chain(),
@@ -933,7 +933,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Remember", detail: "where each card was." },
         // The streak and the gold pair, one short line.
         { action: "Bonus:", detail: "match in a row for a streak; find the gold pair in 30 s." },
-        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.pairmatch, helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP_D3.pairmatch, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.pairmatch(),
     },
@@ -1680,7 +1680,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold tiles:", detail: "hit a target with one for bonus points." },
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn’t divide exactly", detail: "is refused.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 8 targets up to 60 with plus and minus only; Hard 10 up to 200, faster; Expert 11 up to 240 with every operator.", helpOnly: true },
+        { action: "Levels:", detail: "Easy 8 targets up to 60, plus and minus only, falling slowly; Hard 10 targets from 40 to 250, falling faster, lots of ×2; Expert 8 targets from 150 to 400, every operator.", helpOnly: true },
       ],
       // tenRev 5 (the scoring standard, the dealt stamp): standard/numberText.ts.
       score: standardNumberHelp("tendrop"),
@@ -1697,7 +1697,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Aim, don’t spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
         { action: "Doubles and streaks:", detail: "hit both clays of a pair, and clays in a row, for bonuses." },
         { action: "The hit streak", detail: "grows ×2 from the 5th clay in a row, ×3 from the 10th, ×4 from the 15th; a clay that gets away or a bird ends it.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 20 slower clays and 6 birds; Hard 28 faster clays and 24 birds; Expert 30 of the fastest, with triples, and 32 birds.", helpOnly: true },
+        { action: "Levels:", detail: "Easy 20 slower clays, 3 doubles, 6 birds; Hard 30 fast clays, every one in a double, 24 birds; Expert 36 of the fastest, every one in a triple, 32 birds.", helpOnly: true },
       ],
       score: scoreList([
         { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
@@ -1716,7 +1716,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Never tap", detail: "a hedgehog." },
         { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
         { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
-        { action: "Levels:", detail: "Easy keeps two up at once and two flips; Hard pops more and shorter, with 5–7 flips; Expert four up at once, the shortest, 7–9 flips and more hedgehogs.", helpOnly: true },
+        { action: "Levels:", detail: "Easy a 3 by 3 lawn, two up at once, up longer; Hard a 5 by 5 lawn, 5 to 7 rule flips, more hedgehogs; Expert a 6 by 6 lawn, 7 to 9 rule flips, a hedgehog in five.", helpOnly: true },
         { action: "Combo and diamonds:", detail: "right hits in a row multiply; tap the rare diamond fast." },
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
