@@ -81,8 +81,9 @@
 [data-polish="clayshoot"] .clay-hud-pips > div > span { width: auto; height: auto; flex: 0 1 6px; min-width: 3px; aspect-ratio: 1; }
 
 /* ------------------------------------------------------------ Bonk */
-/* Spotlight (21 Nov 2026): the rule plate larger (was 20 rem wide, 36 px type). */
-[data-bonk-banner="large"].bonk-banner-large { max-width: 23rem; padding-block: 12px; font-size: 44px; }
+/* Spotlight (21 Nov 2026): the rule plate wider (was 20 rem). Its height stays as the arena's layout measures it
+   (36 px type, 10 px padding; arcade-play-check's ABOVE_PX), so the field never moves down. */
+[data-bonk-banner="large"].bonk-banner-large { max-width: 23rem; }
 
 /* ------------------------------------------------------------ Effects (stage 2) */
 /* Bonk: the rule flip slams the banner in. */
