@@ -10,7 +10,7 @@ import { levelOf } from "@/lib/practice/progressRules";
 import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
 import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
-import { revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
+import { gameViewsHeading, revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -1012,7 +1012,7 @@ function LiveAnswerReveal({
             {/* The heading follows the board shown (15 Nov 2026, Joe): "Your answer", "The solution", or both. */}
             {!puzzleOwnsRevealLayout && !solutionLock ? (
               <span data-reveal-heading className="reveal-meta truncate">
-                {revealHeading(puzzle, myCorrect, switchState)}
+                {revealHeading(puzzle, myCorrect, gameViewsHeading(gameViews.current) ?? switchState)}
               </span>
             ) : null}
           </span>
@@ -1042,7 +1042,7 @@ function LiveAnswerReveal({
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {/* Drawn from the first frame (P2, 22 Nov 2026): while a room's board is still on its way, its row is held. */}
-          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={!!gameViews.views} /> : !solutionLock && !gameViews.views ? (
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={gameViews.groups.length > 0} /> : !solutionLock && gameViews.groups.length === 0 ? (
             <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending />
           ) : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
@@ -1073,7 +1073,7 @@ function LiveAnswerReveal({
           </div>
         </div>
         }
-        viewControl={gameViews.views && gameViews.current ? { views: gameViews.views, value: gameViews.current, onChange: gameViews.setCurrent } : null}
+        viewControl={gameViews.groups.length ? { groups: gameViews.groups, onChange: gameViews.setView } : null}
         breakdown={
           /* Engine games on the puzzle reveal (P2, for A2's G6): their stored breakdown in the template's breakdown slot,
              under the stage, open (practice) or behind "See breakdown" (rooms). */

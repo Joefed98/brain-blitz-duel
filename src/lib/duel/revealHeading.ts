@@ -117,6 +117,14 @@ export function revealShows(puzzle: PuzzleData, correct: boolean | null, switchS
   }
 }
 
+/**
+ * A game's own Solution / Yours views on the template's control (useRevealViews, G4) as the switch's state, so the
+ * heading follows the view shown (A2, 27 Nov 2026); any other view (a tray, a board, a picture) leaves it to the game.
+ */
+export function gameViewsHeading(view: string | null | undefined): SwitchState | null {
+  return view === "solution" || view === "yours" ? { found: true, view } : null;
+}
+
 export function revealHeading(puzzle: PuzzleData, correct: boolean | null, switchState: SwitchState | null): string {
   const shows = revealShows(puzzle, correct, switchState);
   return shows === "yours" ? HEADING_YOURS : shows === "solution" ? HEADING_SOLUTION : HEADING_BOTH;
