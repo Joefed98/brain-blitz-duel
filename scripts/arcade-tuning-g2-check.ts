@@ -210,7 +210,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song (beatRev 9, the same lanes); expansion-e2-check covers it.
   // Phone notes (27 Oct 2026): then beatRev 10, an easier chart and wider windows on the same lanes (tempo-ease-check).
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 4, "rooms deal beatRev 10 (phone notes, after beatRev 9 and 6)");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's beatRev 13): rooms deal beatRev 13.
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL + 7, "rooms deal beatRev 13 (D5's ladder, after beatRev 12, 11, 10, 9 and 6)");
   // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
   // sliceRev 10 (27 Oct 2026) keeps sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it too.
   // sliceRev 12 (3 Nov 2026, the Action polish: bigger food; slice-food-check) after those.
@@ -544,8 +545,9 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // so the rule names both through SAME_PLAY_DEMO_REVS; the list must be exactly those two.
   ok(
     /data\.type === "beat" && demo\?\.puzzle\.type === "beat" && !demoRevAccepted\("beat", demo\.puzzle\.beatRev\)\) return null/.test(src) &&
-      [...SAME_PLAY_DEMO_REVS.beat].sort((a, b) => a - b).join() === [BEAT_REV_STD, BEAT_REV_STD + 1].join(),
-    "Tempo's demo plays only on beatRev 11 and 12 (12 plays 11 exactly; the scoring standard; beatRev 10, 9 and 6 before it)",
+      // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's beatRev 13): 13 plays 12 exactly at Normal, so the list is 12 and 13.
+      [...SAME_PLAY_DEMO_REVS.beat].sort((a, b) => a - b).join() === [BEAT_REV_STD + 1, BEAT_REV_STD + 2].join(),
+    "Tempo's demo plays only on beatRev 12 and 13 (13 plays 12 exactly at Normal since D5's ladder; beatRev 11, 10, 9 and 6 before them)",
   );
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
   // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).

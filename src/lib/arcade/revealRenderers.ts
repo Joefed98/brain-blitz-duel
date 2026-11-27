@@ -255,7 +255,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   pyramid: simple(GOLD, PY_WORLD_W, PY_WORLD_H, pyramidArt, (p, a) => replayPyramidRun(seedOf(p), a, p.type === "pyramid" ? p.pyramidRev : undefined, levelOfPuzzle(p))),
   golfsol: simple(GOLD, GS_WORLD_W, GS_WORLD_H, golfSolArt, (p, a) => replayGolfSolRun(seedOf(p), a, p.type === "golfsol" ? p.golfSolRev : undefined)),
   muggins: simple(GOLD, MG_WORLD_W, MG_WORLD_H, mugginsArt, (p, a) => replayMugginsRun(seedOf(p), a, p.type === "muggins" ? p.mugginsRev : undefined)),
-  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
+  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined, puzzleLevel(p))),
   alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined, puzzleLevel(p)), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
@@ -275,7 +275,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => in390(breakerWorldWFor(p.type === "breaker" ? p.brkRev : undefined), breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined)),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev, puzzleLevel(p)).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
       return null;
     },
   },
@@ -285,14 +285,14 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // curlRev 2 draws a shorter world (390 × 540; display only).
   curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined, p.type === "curling" ? p.level : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
   pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined, (p as { level?: unknown }).level)),
-  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
+  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined, puzzleLevel(p)), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   // Cards & Board (30 Oct 2026): the final board as the run left it.
   minesweeper: simple("#F2C75C", MINES_WORLD_W, MINES_WORLD_H, { draw: drawMinesweeper }, (p, a) => replayMinesweeperRun(seedOf(p), a, p.type === "minesweeper" ? p.minesRev : undefined)),
   mahjong: simple("#F2C75C", MAHJONG_WORLD_W, MAHJONG_WORLD_H, { draw: drawMahjong }, (p, a) => replayMahjongRun(seedOf(p), a, p.type === "mahjong" ? p.mahjongRev : undefined, levelOfPuzzle(p))),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => in390(rallyWorldWFor(p.type === "rally" ? p.rallyRev : undefined), rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined))),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => (p.type === "slice" && (p.sliceRev === SLICE_REV_EXPAND || p.sliceRev === SLICE_REV_BIG || p.sliceRev === SLICE_REV_STANDARD) ? Math.round((390 * SLICE_V9_H) / SLICE_V9_W) : sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined))),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined, (p as { level?: unknown }).level), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
-  beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
+  beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined, puzzleLevel(p)), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),
   cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame, (p) => crossWorldHFor(p.type === "cross" ? p.crossRev : undefined)),
   wavefront: simple(

@@ -159,6 +159,13 @@ tasks.push({
     // Changed with Joe's approval, 22 Nov 2026 (D2): the era switches prePyramidPartial and preBallparkBullseyes.
     // Changed with Joe's approval, 22 Nov 2026 (routine consequence of D4's Topsy-Turvy gravityRev 9): preTopsyLine after D2's two, 54.
     // Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2 and D4): the era switches preD3Speed and preD3Maze, 56.
+    // Changed with Joe's approval, 22 Nov 2026 (D2's two pins: 53) and 23 Nov 2026 (routine consequence of D5's five stamps:
+    // ricoPreMid, burstPreSmall, wavPreWide, skylinePreCount and orbitPreLost). The era count is shared with D1–D4 and D6;
+    // whichever merges later re-applies it (re-applied on main, 26 Nov 2026: 53 + 5 = 58).
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): swingPreLadder, 59.
+    // Changed with Joe's approval, 26 Nov 2026, second set (D5's bastionPreLadder, beatPreLanes, blockfallPreLevels, hoverPreFit, snakePreLadder and rallyPreLadder): 65.
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13, pinRev 9 and flipRev 14): breakerPreLadder, pinballPreLadder and flipPreLadder, 68.
+    // Changed with Joe's approval, 27 Nov 2026 (re-applied against main at the 27 Nov merge: main's 57, then D5's fifteen pins): 72.
     // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree.
     // Changed with Joe's approval, 23 Nov 2026 (D6: freecellPrePar98, tripeaksPreEase, racingPreFive and d6PreLevels).
     // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22). D2's and D6's switches together (Joe, 23 Nov 2026:
@@ -166,7 +173,8 @@ tasks.push({
     // Changed with Joe's approval, 27 Nov 2026 (D6: matchupPreD6), 62.
     // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's); D6's nine (23 and 27 Nov 2026) re-applied on top at D6's merge of main, 27 Nov 2026, 66.
     // Changed with Joe's approval, 27 Nov 2026 (D6: balltrackPreD6, inkPreD6, minigolfPreD6), 69.
-    ok(names.size === 69, `69 era switches (${names.size})`);
+    // Changed with Joe's approval, 27 Nov 2026 (D6's twelve re-applied on top of D5's at D6's merge of main after #485): 72 + 12 = 84.
+    ok(names.size === 84, `84 era switches (${names.size})`);
   },
 });
 

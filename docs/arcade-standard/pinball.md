@@ -1,5 +1,69 @@
 # Pinball on the arcade scoring standard (pinRev 6, 29 Oct 2026)
 
+## pinRev 9 (D5's ladder, 23 Nov 2026): Normal's refit
+
+Rooms, rated play and the Daily deal **`pinRev 9`** (`PIN_REV_LADDER`, `pinball9Game`). At Normal it is pinRev 8's table,
+play and timings exactly (56 px flippers, 3 balls, no ball save, gravity 100 %, a 20 s multiball, 90 s); the state adds
+`lad: 1`, folded into the checkpoint checksum last. Only the lines move (Joe's rule of 23 Nov 2026):
+
+| Part | Max | pinRev 8 | pinRev 9 (Normal) |
+|---|---|---|---|
+| Table points | 130 | full at 61,000 | full at 56,000 (`PIN_V9_FULL_AT`) |
+| J-O-U-L-Z | 20 | one set | one set |
+| Multiball | 20 | started | started |
+| Jackpots | 15 | 5 each (3) | 8 each (`PIN_V9_JACKPOT_EACH`: 2 of 3 fill it) |
+| Ramp combos | 15 | 5 each (3) | 8 each (`PIN_V9_COMBO_EACH`: 2 of 3 fill it) |
+
+Measured: with one combo filling the part (15 each, the brief's "about 1 of 3") the realistic elite reached 200 on 63 % of
+96 proved Normal deals, over Joe's 40–60 %; 8 each puts it at 59 %. The help and the standard's spec read pinRev 9's lines
+(`PIN_STD_SPEC_V9`, LIVE_BANDS). Normal deals only the seeds whose human-limited flawless run scores 200
+(`pinballLevelDeals.server.ts`, below). The pin `pinballPreLadder` deals pinRev 8 as before (`dealEra.ts`); every older
+stamp replays and scores exactly as before (`scripts/fixtures/pinball-ladder-legacy.json.gz`: pinRev 8 at every level,
+pinRev 7 and 6, recorded before any pinRev 9 code by `scripts/pinball-ladder-legacy-record.ts`).
+
+## Levels (D5, 23 Nov 2026)
+
+The lever is **the flippers' length** and so the drain between their tips (`flipLen` in `PINBALL_LEVELS`,
+`src/lib/arcade/retroLevels.ts`, on the state as `lv`; pinRev 8's rounds replay on `PINBALL_LEVELS_V8`). The sim sweeps and
+resolves each bat at its level's length (`pinFlipLenFp` in `pinball4.ts`, every older state 56 px); the art draws it from
+the same figure (`drawFlippers` and the flip flash read `lv.flipLen`), within 2 px of the capsule's end. The deal stamps
+`level`; every level deals pinRev 9.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Flippers (drain at rest) | 62 px (17 px, about one ball) | 56 px (27 px) | 52 px (34 px) | 50 px (37 px) |
+| Balls | 4, a 10 s ball save | 3 | 3 | 2 |
+| Gravity | 100 % | 100 % | 110 % | 115 % |
+| Multiball | 20 s | 20 s | 20 s | 20 s |
+| Lines (table points, jackpot, combo) | 44,000, 15, 15 | 56,000, 8, 8 | 56,000, 15, 15 | 56,000, 15, 15 |
+| Average (mean) | 134.9 | 68.0 | 48.2 | 30.8 |
+| Elite (mean) | 195.0 | 187.3 | 185.2 | 147.9 |
+| Elite at 200 | 71 % (68 of 96) | 59 % (57) | 38 % (36) | 29 % (28) |
+| Proof | 60 seeds of 82 | 60 of 94 | 60 of 79 | 60 of 91 |
+
+Measured on the recorded ladder (`scripts/fixtures/d5-ladder-pinball.json.gz`, `bun scripts/d5-ladder-record.ts pinball
+--deals=96`: 96 real deals a level, each graded by the server). Before (pinRev 8 at every level, the same players, 24 deals):
+average 89.5 / 87.1 / 92.8 / 38.9, elite 182.3 / 168.9 / 177.3 / 161.2, elite at 200 17 % / 21 % / 4 % / 25 %.
+
+Why the numbers moved from the spec's row:
+
+- **The flippers.** The spec's 48 and 42 px left almost nothing to play on Hard and Expert: at 42 px, gravity 120 % and 2
+  balls the average player scored 9 and the realistic elite 40 (24 deals); at 48 px Hard's elite reached 200 on 8 %. A
+  few pixels of bat are a lot of drain: 52 and 50 px put both levels back in reach, each still a step below Normal's 56.
+- **Easy's gravity 100 %** (spec 85 %): at 85 % the floaty ball seldom climbed to the lanes, so the realistic elite missed
+  J-O-U-L-Z on a third of Easy runs and reached 200 no more often than on Normal.
+- **Expert's gravity 115 %** (spec 120 %), with 2 balls.
+- **Per-level lines** (decision 12): Easy's table points full at 44,000; on Easy, Hard and Expert one jackpot and one ramp
+  combo fill their parts (shorter games hold fewer of both). Normal keeps 2 of 3 of each.
+
+**The proof.** Every level, Normal included, deals only seeds (the seed sets the skill shot's lanes; the table is fixed) on
+which the flawless skill-band player held to the human limits (0.25 s to react, 0.15 s to move) scores exactly 200 through
+the server's grade: `scripts/pinball-level-witness.ts` tries the skill-band room seeds in order and keeps 60 a level, writing
+`src/lib/duel/pinballLevelDeals.server.ts` and the witness logs `scripts/fixtures/pinball-level-witness.json.gz` (`--check`
+replays them all and rebuilds the file byte for byte). `scripts/pinball-ladder-check.ts` (~1 min) proves the legacy fixture,
+the stamp and pin, Normal's same play and lines, each level's rules, the flippers swept and drawn at their length, the proof
+and the ladder test.
+
 ## pinRev 8 (the Retro overhaul, stage 3, 16 Nov 2026): outlane saves counted
 
 pinRev 7's table, play, timings and parts exactly (playRevOf maps 8 to 7's play), with the outlane saves counted: the

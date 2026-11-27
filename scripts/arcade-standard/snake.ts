@@ -16,7 +16,7 @@ import { roomSeed } from "../arcade-skill-bands/games";
 import {
   snakeGameFor,
   snakeStdParts,
-  SNAKE_REV_GRACE,
+  SNAKE_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   SNAKE_RUN_TICKS,
   SNAKE_STD_CAPS,
   SNAKE_STD_CORE_MAX,
@@ -30,16 +30,16 @@ import type { StdEntry, StdRun } from "./entry";
 export const entry: StdEntry = {
   type: "snake",
   field: "snakeRev",
-  rev: SNAKE_REV_GRACE,
+  rev: SNAKE_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   parts: [
     { key: "core", label: `Stars eaten, a gold star counting 2 (straight line, full at ${SNAKE_V13_CORE_STARS})`, max: SNAKE_STD_CORE_MAX },
-    { key: "gold", label: "Gold stars (7 dealt, each up to 40 ÷ 7, falling to 0 as it fades)", max: SNAKE_STD_CAPS.gold },
-    { key: "combo", label: "Combos (1 a star from the third in a row, each within 3 s)", max: SNAKE_STD_CAPS.combo },
-    { key: "lane", label: "Lane rides (1 a ride of 10 squares in a row along a lane)", max: SNAKE_STD_CAPS.lane },
+    { key: "gold", label: "Gold stars (7 dealt, full at 60 % of their whole worth, falling to 0 as it fades)", max: SNAKE_STD_CAPS.gold }, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
+    { key: "combo", label: "Combos (2 a star from the third in a row, each within 3 s, full at 10)", max: SNAKE_STD_CAPS.combo }, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
+    { key: "lane", label: "Lane rides (2 a ride of 10 squares in a row along a lane, full at 5)", max: SNAKE_STD_CAPS.lane }, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
     { key: "warp", label: "Warp stars (+2 a star within 2 s of a wormhole trip)", max: SNAKE_STD_CAPS.warp },
   ],
   perfect(): StdRun[] {
-    const game = snakeGameFor(SNAKE_REV_GRACE);
+    const game = snakeGameFor(SNAKE_REV_LADDER); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
     const start = game.init(roomSeed(0)) as SnakeState;
     const life = start.goldLife!;
     const golds = start.golds!.length;

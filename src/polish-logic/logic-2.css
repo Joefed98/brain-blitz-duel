@@ -157,52 +157,8 @@
   font-size: inherit;
 }
 
-/* ------------------------------------------------------------------ Lamplighter */
-.logic2-lamps > .logic2-lamp-cell,
-[data-puzzle-play] .logic2-lamps > .logic2-lamp-cell {
-  border: 0;
-  background: var(--la-logic-cell) center / 100% 100% no-repeat;
-  box-shadow: none;
-  transition: background-image 160ms ease-out;
-}
-/* A lit square fills with warm light, so lit and dark read at a glance (the thin beams stay, quieter). */
-.logic2-lamps > .logic2-lamp-cell[data-lit],
-[data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
-  background-image: var(--la-lightup-cell-lit);
-}
-.logic2-lamps > .logic2-lamp-cell .lightup-beam {
-  opacity: 0.16;
-}
-.logic2-lamps > .logic2-wall,
-[data-puzzle-play] .logic2-lamps > .logic2-wall {
-  border: 0;
-  background: var(--la-lightup-wall) center / 100% 100% no-repeat;
-  box-shadow: none;
-}
-.logic2-lamps > .logic2-wall[data-over] {
-  box-shadow: inset 0 0 0 2px var(--jz-loss, #ff5a6e);
-  border-radius: 4px;
-}
-.logic2-lamps > .logic2-wall[data-over] .logic2-num {
-  color: var(--jz-loss, #ff5a6e);
-}
-.logic2-lamps .logic2-wall-num {
-  font-size: clamp(15px, 5.2cqw, 22px);
-}
-.logic2-lamps .logic2-tick {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--jz-gold, #e2c07a);
-}
-.logic2-lamps .logic2-bulb {
-  width: 88%;
-  height: 88%;
-  border-radius: 50%;
-}
-/* A clash: a crisp red ring round both lamps (no glow). */
-.logic2-lamps .logic2-bulb[data-clash] {
-  box-shadow: 0 0 0 2px var(--jz-loss, #ff5a6e);
-}
+/* ------------------------------------------------------------------ Lamplighter: the dark-squares hint (the board is
+   82f2f648's warm lamps again, logic.css and polish-nov3-logic.css, on the Spotlight deep board at the end; E1.1). */
 .logic2-hint[data-hint-hidden] { visibility: hidden; }
 .logic2-hint {
   margin: 6px auto 0;
@@ -412,8 +368,7 @@
   text-shadow: none;
 }
 [data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-camp-frame,
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-glass-frame,
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-lamp-frame {
+[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic-glass-frame {
   background: linear-gradient(180deg, #0d1210, #080b0a);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.5);
 }
@@ -425,35 +380,11 @@
   background: var(--la-logic-cell) center / 100% 100% no-repeat;
   box-shadow: none;
 }
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell {
-  filter: none;
-  background: var(--la-logic-cell) center / 100% 100% no-repeat !important;
-  box-shadow: none;
-}
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
-  background-image: var(--la-lightup-cell-lit) !important;
-}
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-wall {
-  background: var(--la-lightup-wall) center / 100% 100% no-repeat;
-  box-shadow: none;
-}
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps .logic-lamp {
-  box-shadow: none !important;
-}
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps .logic-lamp[data-clash] {
-  box-shadow: 0 0 0 2px var(--jz-loss, #ff5a6e) !important;
-}
-
-/* The shared puzzle surface's cell edge and the old beam glow stay off the overhauled boards. */
-[data-puzzle-surface] .logic2-lamps > [data-puzzle-cell],
+/* The shared puzzle surface's cell edge stays off the overhauled boards. */
 [data-puzzle-surface] .logic2-camp > [data-puzzle-cell],
 [data-puzzle-surface] .logic2-shikaku > [data-puzzle-cell],
 [data-puzzle-surface] .logic2-fillomino > [data-puzzle-cell] {
   box-shadow: none !important;
-}
-.logic2-lamps .lightup-beam {
-  box-shadow: none !important;
-  background: rgba(255, 214, 140, 0.5) !important;
 }
 
 /* Trail: batch W's bevels, highlights and the teal glow on the head are replaced (no glare, no glowing edges). */
@@ -684,70 +615,6 @@
   pointer-events: none;
 }
 
-/* Lamplighter: light falling across the floor (Joe, 15 Nov 2026: a soft glow that blends across squares, no hard
-   edge between lit squares, lit not painted). The light is one blurred warm layer under the squares (.logic2-glow, a
-   pool on each lit square at its --logic2-light falloff); a lit square is see-through over it, keeping only a faint
-   trace of its lacquer tile, while walls and dark squares stay opaque. */
-.logic2-lamps > .logic2-glow {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  pointer-events: none;
-  filter: blur(6px);
-}
-.logic2-lamps-small.logic2-lamps > .logic2-glow,
-.logic2-lamps.logic-lamps-small > .logic2-glow {
-  filter: blur(3px);
-}
-.logic2-lamps > .logic2-glow > i {
-  margin: -2px;
-  border-radius: 30%;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 196, 110, 0.95) 0%, rgba(240, 150, 52, 0.85) 55%, rgba(200, 104, 24, 0.6) 100%);
-  opacity: calc(0.3 + 0.7 * var(--logic2-light, 1));
-}
-.logic2-lamps > .logic2-lamp-cell[data-lit],
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell[data-lit] {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--la-logic-cell) center / 100% 100% no-repeat;
-  opacity: 0.12;
-}
-.logic2-lamps {
-  overflow: hidden;
-}
-/* Dark squares let a faint halo of a neighbour's light show at their edges (their lacquer drawn at 0.9), and the thin
-   beam lines go: the glow says where the light reaches (a clash's red beams stay). */
-.logic2-lamps > .logic2-lamp-cell:not([data-lit]),
-[data-puzzle-play][data-puzzle-play][data-puzzle-play] .logic2-lamps > .logic2-lamp-cell:not([data-lit]) {
-  background: transparent !important;
-}
-.logic2-lamps > .logic2-lamp-cell:not([data-lit])::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--la-logic-cell) center / 100% 100% no-repeat;
-  opacity: 0.9;
-}
-.logic2-lamps .lightup-beam {
-  display: none;
-}
-.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
-  opacity: 0.06;
-}
-.logic2-lamps.logic2-lamps .lightup-beam {
-  display: none !important;
-}
-.logic2-lamps > .logic2-lamp-cell[data-lit]::before {
-  content: none;
-}
-
 /* ------------------------------------------------------------------ stage 2: effects */
 /* Tents and Trees: a faint line joins each tent to its tree (half in each square, meeting across the gap). */
 .logic2-camp > .logic2-cell > .logic2-pair-line {
@@ -781,25 +648,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   [data-logic-solved] .logic2-shikaku > .logic2-pane { animation: none; }
-}
-/* Lamplighter's solve: every lamp and the light it throws brighten together, once (≤ 1.2 s). */
-[data-logic-solved] .logic2-lamps > .logic2-glow {
-  animation: logic2-lights-up 900ms ease-out 1 both;
-}
-[data-logic-solved] .logic2-lamps .logic2-bulb {
-  animation: logic2-bulb-up 900ms ease-out 1 both;
-}
-@keyframes logic2-lights-up {
-  0%, 100% { opacity: 1; }
-  40% { opacity: 1; filter: blur(6px) brightness(1.45); }
-}
-@keyframes logic2-bulb-up {
-  0%, 100% { transform: none; }
-  40% { transform: scale(1.12); filter: brightness(1.3); }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-logic-solved] .logic2-lamps > .logic2-glow,
-  [data-logic-solved] .logic2-lamps .logic2-bulb { animation: none; }
 }
 /* Trail: a fixed number reached on its own step glows gold for a moment. */
 .logic2-trail .tr-cell.tr-milestone[data-reached] {
@@ -860,4 +708,172 @@
 @media (prefers-reduced-motion: reduce) {
   .logic2-bridges .bridges-line.logic2-lay,
   [data-logic-solved] .logic2-bridges .bridges-line { animation: none; }
+}
+
+/* ================================================================== Spotlight (the polish plan, A2, 21 Nov 2026)
+ * The art rules 1 to 3 on the seven boards (display only; every piece stays inside its own cell's box). Frames are the
+ * category's colour over the surface, never near-black (earlier E0.3) and with no 1 px hairline (E0.5); Tents' grass is
+ * brighter; Shikaku, Trail, Loopline and Regions sit on light grids or paper with navy numbers; Island Link's sea is
+ * brighter with white islands. The pieces are the re-rendered sprites of scripts/logic-art/render2.py, same names.
+ * Rules carry an id's weight (`:is(#logic-overhaul-2, html)`), so they sit above the batch P and earlier layers.
+ */
+:is(#logic-overhaul-2, html) :is(.logic-camp-frame, .logic-glass-frame, .fences-frame) {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 22%, var(--jz-surface)), color-mix(in oklab, var(--category-accent) 12%, var(--jz-bg)));
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.38);
+}
+
+/* Tents and Trees: the brighter turf is the sprite; the count signs keep their wood. */
+:is(#logic-overhaul-2, html) .logic2-camp.logic-camp {
+  background: transparent;
+}
+
+/* Shikaku: a light grid (ivory squares, navy lines from the frame's ink), pastel panes, navy numbers. */
+:is(#logic-overhaul-2, html) .logic2-shikaku.logic-glass {
+  background: color-mix(in oklab, var(--jz-navy) 70%, var(--category-accent));
+}
+:is(#logic-overhaul-2, html) .logic2-shikaku > .logic-glass-cell {
+  background:
+    linear-gradient(to right, color-mix(in srgb, var(--jz-navy) 16%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--jz-navy) 16%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--jz-white) 92%, var(--jz-gold));
+  box-shadow: none;
+}
+:is(#logic-overhaul-2, html) .logic2-shikaku > .logic2-pane {
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--jz-navy) 30%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-shikaku > .shikaku-clue.logic2-num,
+:is(#logic-overhaul-2, html) .logic2-shikaku .logic2-num {
+  color: var(--jz-navy);
+  text-shadow: none;
+}
+:is(#logic-overhaul-2, html) .logic2-shikaku > .logic2-preview {
+  border-color: var(--jz-navy);
+  background: color-mix(in srgb, var(--jz-navy) 8%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-shikaku > .logic2-rect-ghost {
+  border-color: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+
+/* Trail: ivory tiles with navy numbers, a champagne path (trail.tsx), champagne stones. */
+:is(#logic-overhaul-2, html) .logic2-trail {
+  border-radius: 10px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 22%, var(--jz-surface)), color-mix(in oklab, var(--category-accent) 12%, var(--jz-bg)));
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--category-accent) 14%, var(--jz-surface)), 0 10px 24px rgb(0 0 0 / 0.38);
+}
+:is(#logic-overhaul-2, html) .logic2-trail .tr-cell.tr-milestone {
+  color: var(--jz-navy);
+  text-shadow: none;
+}
+:is(#logic-overhaul-2, html) .logic2-trail .tr-step {
+  color: var(--jz-navy);
+}
+:is(#logic-overhaul-2, html) .logic2-trail .tr-step.tr-wrong {
+  color: color-mix(in srgb, var(--jz-red) 70%, var(--jz-navy));
+}
+:is(#logic-overhaul-2, html) .logic2-trail .tr-step.tr-end {
+  box-shadow: 0 0 0 2px var(--jz-navy), 0 0 0 4px var(--jz-gold);
+}
+:is(#logic-overhaul-2, html) .logic2-trail .logic2-trail-ghost {
+  color: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-reveal .logic2-trail [data-missed]::after {
+  border-color: color-mix(in srgb, var(--jz-navy) 60%, transparent);
+}
+
+/* Loopline: light paper (the slate sprite, re-rendered), navy dots and numbers, the loop in the Logic teal. */
+:is(#logic-overhaul-2, html) .logic2-fences {
+  --loop-ink: color-mix(in oklab, var(--category-accent) 78%, var(--jz-navy));
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-cell {
+  fill: transparent;
+  stroke: none;
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-guide {
+  stroke: color-mix(in srgb, var(--jz-navy) 16%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-line:not([data-wrong]) {
+  stroke: var(--loop-ink);
+  filter: none;
+}
+:is(#logic-overhaul-2, html) .logic2-fences .logic2-wire-hl line {
+  stroke: color-mix(in srgb, var(--category-accent) 45%, var(--jz-white));
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-clue {
+  fill: var(--jz-navy);
+  stroke: none;
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-clue[data-tone="met"] {
+  fill: var(--loop-ink);
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-clue[data-tone="over"] {
+  fill: color-mix(in srgb, var(--jz-red) 85%, var(--jz-navy));
+}
+:is(#logic-overhaul-2, html) .logic2-fences .fences-cross line {
+  stroke: color-mix(in srgb, var(--jz-red) 70%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-fences .logic2-fences-missed line {
+  stroke: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+
+/* Regions: a light grid, tinted regions (the pastel tile sprites), navy numbers; region edges in navy ink, a finished
+   region's edges champagne. */
+:is(#logic-overhaul-2, html) .logic2-fillomino.fillomino-board {
+  background: color-mix(in oklab, var(--jz-navy) 70%, var(--category-accent));
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino.fillomino-board > .fillomino-cell[data-edge-r]:not(.fillomino-done) {
+  border-right-color: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino.fillomino-board > .fillomino-cell[data-edge-b]:not(.fillomino-done) {
+  border-bottom-color: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino .fillomino-given,
+:is(#logic-overhaul-2, html) .logic2-fillomino .fillomino-done .fillomino-entry {
+  color: var(--jz-navy);
+  text-shadow: none;
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino .fillomino-entry {
+  color: color-mix(in oklab, var(--category-accent) 55%, var(--jz-navy));
+  text-shadow: none;
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino .fillomino-over .fillomino-entry {
+  color: var(--jz-white);
+}
+:is(#logic-overhaul-2, html) .logic2-fillomino .logic2-fill-ghost {
+  color: color-mix(in srgb, var(--jz-navy) 45%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-reveal .logic2-fillomino [data-missed]::after {
+  border-color: color-mix(in srgb, var(--jz-navy) 55%, transparent);
+}
+
+/* Island Link: a brighter sea (the sprite), white islands with navy numbers, a met island gold. */
+:is(#logic-overhaul-2, html) .bridges-frame:has(.logic2-bridges) {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 22%, var(--jz-surface)), color-mix(in oklab, var(--category-accent) 12%, var(--jz-bg)));
+}
+:is(#logic-overhaul-2, html) .logic2-bridges .bridges-dots circle {
+  fill: color-mix(in srgb, var(--jz-white) 22%, transparent);
+}
+:is(#logic-overhaul-2, html) .logic2-bridges .bridges-island text {
+  fill: var(--jz-navy);
+  stroke: none;
+}
+:is(#logic-overhaul-2, html) .logic2-bridges .bridges-island-done text {
+  fill: var(--jz-ink-gold);
+}
+:is(#logic-overhaul-2, html) .logic2-bridges .bridges-island-over text {
+  fill: color-mix(in srgb, var(--jz-red) 85%, var(--jz-navy));
+}
+/* Trail's empty squares a step under the numbered tiles, so the givens stand out (both ivory). */
+:is(#logic-overhaul-2, html) .logic2-trail .tr-ground {
+  filter: brightness(0.86) saturate(0.85);
+}
+
+/* Lamplighter (E1.1, Spotlight's deep board): the warm lamps, beams and per-square pools are 82f2f648's (logic.css,
+   polish-nov3-logic.css); the board round them is the Logic deep colour, never near-black, and the unlit squares one
+   step lighter than the frame. */
+:is(#logic-overhaul-2, html) .logic-lamp-frame {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 18%, var(--jz-surface)), color-mix(in oklab, var(--category-accent) 10%, var(--jz-bg)));
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.38);
+}
+:is(#logic-overhaul-2, html) .logic-lamps-lit > .logic-lamp-cell:not(.lightup-cell-lit) {
+  background-color: color-mix(in oklab, var(--category-accent) 16%, var(--jz-surface));
 }

@@ -352,11 +352,13 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("kakuro", "Human calculator", "Fill the grid within 60 s.", "C", "speed", false, speed(40, 60)),
 
   /* ================================================================ Action */
-  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10.
+  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10. bastionRev 5 (D5's
+  // ladder, 23 Nov 2026) fills Normal's Weak spots at 28 hits, so "Weak at the knees" counts the 30 hits themselves (the
+  // stored `weak`), never the part's line: the goal is as hard as before.
   ch("bastion", "Drone strike", "Down all three drones.", "C", "fullset", false, part("Drones", 30), "bastion.drones"),
   ch("bastion", "Hold the wall", "Keep the base untouched.", "C", "clean", false, part("Base intact", 10), "bastion.base"),
   ch("bastion", "Quick hands", "Make ten fast reloads.", "C", "maxout", false, part("Fast reloads", 20)),
-  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, part("Weak spots", 30)),
+  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, all(f("weak", "gte", 30))),
   // Roofbound (flip): clean time 100 + perfect landings 60 + double flips 20 + flow streak 20.
   ch("flip", "Double or nothing", "Land eight double flips.", "C", "combo", false, all(full("Double flips", 20))),
   ch("flip", "Sweet spot", "Land five sweet spots.", "C", "fullset", false, all(full("Perfect landings", 60))),
@@ -365,36 +367,45 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("swing", "Gatecrasher", "Fly through every gate.", "C", "fullset", false, all(full("Gates", 10))),
   ch("swing", "Vine time", "Make ten runs of eight clean swings.", "C", "streak", false, all(line("Clean-swing streak", "gte", 20))),
   ch("swing", "King of the swingers", "Get 70 % of the way on Expert.", "E", "maxout", false, all(full("Course", 110))),
-  // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15.
-  ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, part("Scrolls", 15)),
-  ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, part("Lantern rides", 30)),
-  ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, part("Height", 125)),
+  // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15. ricoRev 5 (D5, 23 Nov 2026) fills each
+  // part before the last item (scrolls at 2, rides at 3, Hard's height at 190 m), so these count the things themselves
+  // (Moonwalker 245 m on Hard: ricoRev 3–4's full height, MOON_CORE_FULL_M, past Hard's 190 m).
+  ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, all(f("scrolls", "gte", 3))),
+  ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, all(f("rides", "gte", 6))),
+  ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 245))), // Changed with Joe's approval, 27 Nov 2026 (question M1: keeps 245 m, D5's ricoRev 5)
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
-  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
+  // D5 (23 Nov 2026): skylineRev 12 fills Gold blocks at 2 of the 5, so the goal counts the gold blocks themselves.
+  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, all(f("golds", "gte", 5)), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
-  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
-  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, part("Floors", 140)),
+  // D5 (23 Nov 2026): skylineRev 12 fills Perfect streak at 5 in a row, so the goal counts the best streak itself.
+  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, all(f("bestStreak", "gte", 10))),
+  // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12: the Floors part is full at 45, so the Skyscraper counts
+  // the run's own floors, still 61 on Expert, never easier).
+  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, all(f("blocks", "gte", 61))),
   // Slice (slice): food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10.
   ch("slice", "Mild", "Score 100 without cutting a chilli.", "C", "clean", false, all(sc("gte", 100), f("bombsHit", "eq", 0))),
   ch("slice", "Golden delicious", "Slice every golden fruit.", "C", "fullset", false, all(f("goldenSliced", "gte", "@goldenDealt"), f("goldenDealt", "gte", 1))),
   ch("slice", "Combo chef", "Slice 110 foods in combos.", "C", "combo", false, all(tile("Combo foods", "gte", 110))),
   // Orbit (orbit): planets 130 + speed 20 + stardust 15 + slingshots 12 + asteroid fields 12 + perfect orbits 11.
   ch("orbit", "Sun seeker", "Reach the sun.", "C", "finish", false, all(f("finished", "eq", 1))),
-  ch("orbit", "Slingshot", "Pull all four slingshots.", "C", "fullset", false, all(full("Slingshots", 12))),
-  ch("orbit", "Stargazer", "Collect all the stardust on Hard.", "H", "fullset", false, all(full("Stardust", 15))),
+  // orbitRev 17 (D5, 23 Nov 2026) fills slingshots at 3 and stardust at 22 motes, so these count the things themselves.
+  ch("orbit", "Slingshot", "Pull all four slingshots.", "C", "fullset", false, all(f("slings", "gte", "@slingsTotal"), f("slingsTotal", "gte", 4))),
+  ch("orbit", "Stargazer", "Collect all the stardust on Hard.", "H", "fullset", false, all(f("dust", "gte", "@dustTotal"), f("dustTotal", "gte", 1))),
 
   /* ================================================================ Retro */
   // Tempo (beat): accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15.
   ch("beat", "Fever pitch", "Start all four fevers.", "C", "fullset", false, part("Fever", 25)),
-  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, part("Golden notes", 15), "beat.gold"),
-  ch("beat", "Encore", "Score 180 or more.", "C", "bigscore", true, score(180), "beat.score180"),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the Golden notes part is full at 5 in every 9, so the goal counts the notes
+  // themselves (every one the chart deals, hit dead on), never the part; older stamps keep the part at its maximum.
+  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, all({ c: "since", path: "beatRev", from: 13, then: f("goldsHit", "gte", "@golds"), before: full("Golden notes", 15) }), "beat.gold"),
+  ch("beat", "Encore", "Score 185 or more.", "C", "bigscore", true, score(185), "beat.score180"), // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
   // Blockzone (blockfall): lines 95 + pieces placed 65 + multi-line clears 24 + low stack 16.
   ch("blockfall", "Thirty lines", "Clear 30 lines.", "C", "target", false, all(f("lines", "gte", 30))),
   ch("blockfall", "Low rider", "Finish with the stack in the bottom four rows.", "C", "clean", false, part("Low stack", 16), "blockfall.low"),
   ch("blockfall", "Multi-tasker", "Clear four lines at once twice (or six doubles).", "C", "combo", false, part("Multi-line clears", 24), "blockfall.multi"),
   // Breaker (breaker): bricks 140 + clear 10 + speed 20 + gold bricks 30.
   ch("breaker", "Twenty-four carat", "Break every gold brick.", "C", "fullset", false, all(f("goldBroken", "gte", "@goldDealt"), f("goldDealt", "gte", 1))),
-  ch("breaker", "No drops", "Score 100 without losing a ball.", "C", "clean", false, all(sc("gte", 100), f("losses", "eq", 0))),
+  ch("breaker", "No drops", "Break 55 bricks without losing a ball.", "C", "clean", false, all(f("bricks", "gte", 55), f("losses", "eq", 0))), // Changed with Joe's approval, 27 Nov 2026 (question B2: counts the bricks themselves on brkRev 13)
   ch("breaker", "Wall breaker", "Clear the whole wall on Hard.", "H", "finish", false, all(f("cleared", "eq", 1))),
   // Fission (burst): atoms 140 + wave clears 35 + golden atoms 25.
   ch("burst", "Golden touch", "Pop all five golden atoms.", "C", "fullset", false, all(f("goldens", "gte", "@goldensDealt"), f("goldensDealt", "gte", 5))),
@@ -406,19 +417,22 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("cross", "Keep moving", "Make four no-stop crossings, each after a no-stop one.", "C", "streak", true, all(f("streakPts", "gte", 40))),
   // Hover (hover): barriers 120 + star chains 30 + gold stars 20 + tight gates 20 + centre lines 10.
   ch("hover", "Tight squeeze", "Thread all five tight gates.", "C", "fullset", false, all(f("tightGates", "gte", 5))),
-  ch("hover", "Chain gang", "Complete all five star chains.", "C", "fullset", false, all(f("chainPts", "gte", 30))),
+  // D5 (23 Nov 2026): the chains themselves, so hoverRev 12's lower star-chains line does not make it easier (on every earlier
+  // stamp 30 chain points was exactly all five chains whole).
+  ch("hover", "Chain gang", "Complete all five star chains.", "C", "fullset", false, all(f("starChains", "gte", 5))),
   ch("hover", "All the way", "Pass every barrier.", "C", "finish", true, all(f("gates", "gte", "@totalGates"), f("totalGates", "gte", 1))),
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),
   ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
-  ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
+  ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, all(f("jackpots", "gte", 3))), // Changed with Joe's approval, 27 Nov 2026 (question B2: counts the jackpots themselves on pinRev 9)
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
-  ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),
-  ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
-  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 130)),
+  ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(f("targetHits", "gte", 5))), // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
+  ch("rally", "Target practice", "Hit all 6 gold targets.", "C", "fullset", false, all(f("bonusHits", "gte", 6))), // Changed with Joe's approval, 26 Nov 2026 (question 4: counts the 6 gold targets on rallyRev 14)
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): Hard's core is full at 15, so the goal counts the gold-ball hits themselves.
+  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "target", false, all(f("goldHits", "gte", 23))),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
   ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
-  ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),
+  ch("snake", "Comet tail", "Score 165 or more.", "C", "bigscore", false, score(165)), // Changed with Joe's approval, 26 Nov 2026 (question 4: 150 got easier on snakeRev 16)
   ch("snake", "Golden comet", "Eat all seven gold stars.", "C", "fullset", false, all(f("goldStars", "gte", "@goldStarsDealt"), f("goldStarsDealt", "gte", 7))),
   // Wavefront (wavefront): ships 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10.
   ch("wavefront", "Boss fight", "Destroy the boss.", "C", "finish", false, all(f("bossKilled", "gte", 1))),

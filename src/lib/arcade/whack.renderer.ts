@@ -28,7 +28,8 @@ const BONK_GROUND_ART: readonly SpeedArtName[] = ['bonk-lawn', 'bonk-burrow'];
 const PALETTE = {
   gold: '#F5B82E', red: '#E0503C', fur: '#8A7365', furDark: '#6B5547', muzzle: '#F0D7AC', ink: '#241C22',
   spines: '#B7A18C', spinesDark: '#7E6A58', shine: '#FFF4CF', hole: '#131114', rim: '#58493E',
-  meadowTop: '#36552A', meadowBottom: '#27401F', earth: '#6E4C30', earthLight: '#8C6640', earthDark: '#4A3221',
+  // Spotlight (21 Nov 2026): a brighter green meadow (were #36552A and #27401F).
+  meadowTop: '#4A6A2C', meadowBottom: '#3E5E26', earth: '#6E4C30', earthLight: '#8C6640', earthDark: '#4A3221',
 };
 /** Sprite kinds: 0 gold hat, 1 red hat, 2 hedgehog (bomb), 3 gopher without a hat, 4 gold hat alone, 5 red hat alone. */
 const SPRITE_PX = 220;
@@ -616,14 +617,14 @@ export function bonkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   for (const side of sceneSides(view)) {
     const r = { x: side.x * k, y: side.y * k, w: side.w * k, h: side.h * k };
     sceneFill(ctx, r, 0, px.side, [[0, PALETTE.meadowTop], [1, PALETTE.meadowBottom]]);
-    sceneBlades(ctx, r, 0xb0b6, ["rgba(78,118,56,0.5)", "rgba(30,51,24,0.5)"], 70, 5);
+    sceneBlades(ctx, r, 0xb0b6, ["rgba(98,140,66,0.45)", "rgba(40,66,30,0.4)"], 70, 5);
   }
   // 17 Oct 2026 (item 28): the field is centred on the play screen; the meadow runs on above it, settling
   // darker towards the rule box (view.boxTop is the arena box's top, in world units).
   const boxTop = view.boxTop ?? 0;
   if (boxTop < -0.01) {
     const a = { x: px.left, y: boxTop * k, w: px.right - px.left, h: (-boxTop + SCENE_TUCK) * k };
-    sceneFill(ctx, a, a.y, a.y + a.h, [[0, "#1C3016"], [1, PALETTE.meadowTop]]);
+    sceneFill(ctx, a, a.y, a.y + a.h, [[0, "#2E4A20"], [1, PALETTE.meadowTop]]);
     sceneBlades(ctx, a, 0xb0b8, ["rgba(78,118,56,0.4)", "rgba(30,51,24,0.45)"], 70, 5);
   }
   const below = sceneBelow(view);
@@ -634,10 +635,10 @@ export function bonkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   // grass tufts and a few faded flowers on top. Darker and fainter than the field, never a target.
   const soilAt = r.y + Math.max(r.h * 0.55, Math.min(r.h, 90));
   sceneFill(ctx, r, r.y, r.y + Math.max(r.h, 1), [
-    [0, "#2C4723"],
-    [Math.min(0.5, 40 / Math.max(r.h, 1)), "#243D1C"],
-    [Math.min(0.95, (soilAt - r.y) / Math.max(r.h, 1)), "#1C3016"],
-    [1, "#1A2414"],
+    [0, "#46662A"],
+    [Math.min(0.5, 40 / Math.max(r.h, 1)), "#3C5A25"],
+    [Math.min(0.95, (soilAt - r.y) / Math.max(r.h, 1)), "#2E4A1E"],
+    [1, "#233419"],
   ]);
   if (soilAt < r.y + r.h) {
     const soil = { x: r.x, y: soilAt, w: r.w, h: r.y + r.h - soilAt };

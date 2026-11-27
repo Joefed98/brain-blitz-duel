@@ -195,16 +195,16 @@ function trailRuns(p: TrailPuzzleData, undos: number) {
   ok(!/logic2-tick/.test(none), "Lamplighter: a 0 opens unticked");
   const lit = html(createElement(LampBoard, { board, marks: [1, 0, 0, 0, 0, 0, 0, 0, 1] }));
   ok(/logic2-tick/.test(lit), "Lamplighter: a 0 is ticked once its neighbours are lit");
-  ok(/data-lit/.test(lit) && /lightup-lamp/.test(lit), "Lamplighter: lit squares fill and lamps are the bulb sprite");
+  ok(/data-lit/.test(lit) && /class="logic-lamp /.test(lit), "Lamplighter: lit squares fill and lamps are the old glowing bulbs"); // Changed with Joe's approval, 22 Nov 2026
   // The "N squares dark" hint's line is held (hidden) from the first frame, so the board never moves when it shows
   // (the intro demo's taps landed a row off when it pushed the board up, 15 Nov 2026).
   const stage = html(createElement(lightUpPuzzle.Stage, { puzzle: { type: "lightup", size: 3, walls: [4], wallNumbers: [0] } as never, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, stateKey: "logic2-check-lightup" }));
   ok(/class="logic2-hint"[^>]*data-hint-hidden/.test(stage), "Lamplighter: the dark-squares hint's line is kept from the start");
   // The light is one soft glow layer under the squares (Joe, 15 Nov 2026): a pool for every lit square, at its falloff.
-  const glow = lit.match(/class="logic2-glow"[^>]*>(.*?)<\/i><\/i>/)?.[1] ?? "";
-  const pools = (glow.match(/<i /g) ?? []).length;
-  const litSquares = (lit.match(/data-lit=""/g) ?? []).length;
-  ok(pools > 0 && pools === litSquares && (glow.match(/--logic2-light/g) ?? []).length === pools, `Lamplighter: one glow pool for each lit square (${pools} of ${litSquares})`);
+  const pools = (lit.match(/class="lightup-cell[^"]*lightup-cell-lit/g) ?? []).length; // Changed with Joe's approval, 22 Nov 2026
+  const litSquares = (lit.match(/data-lit=""/g) ?? []).length; // Changed with Joe's approval, 22 Nov 2026
+  const lights = (lit.match(/--logic2-light/g) ?? []).length; // Changed with Joe's approval, 22 Nov 2026
+  ok(pools > 0 && pools === litSquares && lights === pools, `Lamplighter: each lit square its own warm pool (${pools} of ${litSquares})`); // Changed with Joe's approval, 22 Nov 2026
   // Loopline: a met number takes the met tone (drawn gold).
   const fences = html(createElement(FencesBoard, { size: 2, clues: [0, -1, -1, -1], states: new Array(12).fill(0) }));
   ok(/data-tone="met"/.test(fences) && /fences-slate/.test(fences) && /fences-peg/.test(fences), "Loopline: a met 0, the slate and the pegs");

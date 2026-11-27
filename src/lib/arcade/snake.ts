@@ -19,7 +19,7 @@
  * the body passes through. Unstamped rounds keep the original rules.
  */
 
-import { retroLevelSettings, withRetroLevel, type SnakeLv } from "./retroLevels";
+import { SNAKE_LEVELS, SNAKE_LEVELS_V16, withRetroLevel, type SnakeLv, type SnakeLv16 } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -31,7 +31,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdFinal } from "./arcadeStandard";
+import { stdFinal, stdLine } from "./arcadeStandard";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -214,6 +214,11 @@ export interface SnakeState extends BandFields {
    */
   midRocks?: number[];
   midRocksV?: number[];
+  /**
+   * snakeRev 16 only (D5's ladder, 23 Nov 2026): 1 on the ladder's stamp (its scoring lines, and a level's rocks on the
+   * field: retroLevels.ts SnakeLv16). Absent on every earlier round.
+   */
+  ladder?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -525,7 +530,9 @@ function stepRev2(state: SnakeState, input: ArcadeInputEvent | null): SnakeState
     // Shower rocks (rev 3) do not count against the asteroids a meteor has earned.
     const showerCells = next.showerCells ?? [];
     const asteroids = showerCells.length > 0 ? landed.filter((cell) => !showerCells.includes(cell)).length : landed.length;
-    if (warn < 0 && snakeRocksEarned(next.eaten, next.tunef) > asteroids) {
+    // snakeRev 16 (D5's ladder): a level's timed rocks fall whatever the comet's length, up to its most rocks.
+    const field = next.ladder ? snakeV16FieldOf(next) : null;
+    if (warn < 0 && (field ? asteroids < field.rockMax : snakeRocksEarned(next.eaten, next.tunef) > asteroids)) {
       warn = due.cell;
       landTick = due.tick;
     }
@@ -635,6 +642,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.midRocks) extra.push(state.midRocks.length, ...state.midRocks, ...(state.midRocksV ?? []));
   // snakeRev 15: the grace and the stun after that, so every snakeRev 14 checksum is unchanged.
   if (state.grace !== undefined) extra.push(state.grace, state.graceUsed ?? 0, state.stunTo ?? 0);
+  // snakeRev 16 (D5's ladder): its marker after that, so every snakeRev 15 checksum is unchanged.
+  if (state.ladder) extra.push(state.ladder);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -753,6 +762,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null, level?: Level | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_LADDER) return snakeV16For(level);
   if (rev === SNAKE_REV_GRACE) return snakeV15For(level);
   if (rev === SNAKE_REV_SIZES) return snakeV14Game;
   if (rev === SNAKE_REV_WRAP) return snakeV13Game;
@@ -808,7 +818,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE || rev === SNAKE_REV_LADDER) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -915,7 +925,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE || rev === SNAKE_REV_LADDER ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
@@ -1344,6 +1354,8 @@ export interface SnakeStdParts {
 
 /** snakeRev 11's parts, each within its maximum (snakeRev 12: the core counts gold stars twice, full at 28). */
 export function snakeStdParts(state: SnakeState): SnakeStdParts {
+  // snakeRev 16 (D5's ladder): the same parts on the level's (or Normal's) lower full lines.
+  if (state.ladder) return snakeV16Parts(state);
   return {
     core: state.wrap ? snakeV13Core(snakeCoreStars(state), state.lv?.fullAt) : state.gold2 ? snakeV12Core(snakeCoreStars(state)) : snakeStdCore(state.eaten),
     gold: snakeStdGoldPoints(state.goldLeft ?? 0, (state.golds ?? []).length, state.goldLife ?? SNAKE_GOLD_LIFE),
@@ -1592,14 +1604,165 @@ export const snakeV15Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = {
 };
 
 const snakeV15ByLevel = new Map<string, ArcadeGame<SnakeState, ArcadeInputEvent | null>>();
-/** snakeRev 15 at a level (retroLevels.ts: graces from lives, the pace, walls on Hard and Expert). */
+/**
+ * snakeRev 15 at a level (retroLevels.ts: graces from lives, the pace, walls on Hard and Expert). Its own table,
+ * SNAKE_LEVELS, read directly: snakeRev 16's table (the one dealt and listed since D5's ladder) never reaches a
+ * snakeRev 15 round.
+ */
 function snakeV15For(level?: Level | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
-  const lv = retroLevelSettings("snake", level);
+  const lv = level && level !== "normal" ? SNAKE_LEVELS[level] : null;
   if (!lv) return snakeV15Game;
   let game = snakeV15ByLevel.get(level!);
   if (!game) {
     game = withRetroLevel(snakeV15Game, lv, (state, l) => ({ ...state, grace: Math.max(0, l.lives - 1) }));
     snakeV15ByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/* ================= D5's ladder (snakeRev 16, 23 Nov 2026) ================= */
+
+/**
+ * snakeRev 16 (D5's ladder, Joe, 23 Nov 2026; docs/arcade-standard/snake.md "snakeRev 16" and "Levels (D5, 23 Nov 2026)"):
+ * snakeRev 15's world, play and parts, with two changes, the same for every player:
+ *
+ *  - Normal's feature lines move down to what the realistic elite takes on three runs in four (Joe's rule for the Normal
+ *    scoring stamps): gold stars full at SNAKE_V16_LINES.goldPct % of the gold stars' whole worth, combos at
+ *    SNAKE_V16_LINES.comboFull combo stars, lane rides at SNAKE_V16_LINES.laneFull rides. The core (36 core stars) and
+ *    warp stars (full at 10 points) keep their lines. Normal's play is snakeRev 15's exactly (one forgiven crash).
+ *  - The levels (retroLevels.ts SNAKE_LEVELS_V16), the lever rocks on the field: Easy has no rocks and no meteor shower;
+ *    Hard and Expert start with rocks already down and drop more on the clock (one every `rockEvery` s from `rockFrom` s,
+ *    whatever the comet's length, up to `rockMax` rocks), with walls; each level carries its own scoring lines.
+ *
+ * A level's rocks are drawn at init from a stream of their own keyed by the seed, after everything snakeRev 15 draws, so
+ * the stars, gold stars, lanes, wormholes and the shower are snakeRev 15's: the rocks already down are single squares,
+ * off the border, never on a star, a gold star or a lane, never touching a wormhole mouth, another rock or the shower's
+ * squares, and clear of the comet's way out at the start; the timed rocks keep snakeRev 15's rock squares (and sizes),
+ * retimed to the level's clock, then single squares drawn the same way. No rock touches another, so no square of the
+ * field is ever shut in.
+ *
+ * States add `ladder: 1`, folded into the checkpoint checksum last; a level's settings ride on `lv` as before.
+ */
+export const SNAKE_REV_LADDER = 16;
+
+/** A set of scoring lines: the core stars the core is full at and where each feature part is full. */
+export interface SnakeV16Lines {
+  fullAt: number;
+  goldPct: number;
+  comboFull: number;
+  laneFull: number;
+  warpFull: number;
+}
+/** Normal's lines on snakeRev 16 (the realistic elite's three-runs-in-four figures on Normal, D5 23 Nov 2026). */
+export const SNAKE_V16_LINES: SnakeV16Lines = { fullAt: SNAKE_V13_CORE_STARS, goldPct: 60, comboFull: 10, laneFull: 5, warpFull: 10 };
+/** The core's straight line (unchanged from snakeRev 13), for the "?" help (liveBands.ts). */
+export const SNAKE_V16_BAND_CURVE = SNAKE_V13_BAND_CURVE;
+/** Timed rocks stop this many ticks before the buzzer (a shadow always lands in the run). */
+export const SNAKE_V16_ROCK_LAST = 60;
+
+/** A snakeRev 16 state's scoring lines: its level's, else Normal's. */
+export function snakeV16LinesOf(state: Pick<SnakeState, "ladder" | "lv">): SnakeV16Lines {
+  return state.ladder && state.lv ? (state.lv as SnakeLv16) : SNAKE_V16_LINES;
+}
+
+/** A snakeRev 16 level's rock rules (null at Normal and on every earlier round). */
+export function snakeV16FieldOf(state: Pick<SnakeState, "ladder" | "lv">): SnakeLv16 | null {
+  return state.ladder && state.lv ? (state.lv as SnakeLv16) : null;
+}
+
+/** The gold stars' ticks-left sum at which their part is full on snakeRev 16 (goldPct % of every gold star's whole life). */
+export function snakeV16GoldFull(state: SnakeState): number {
+  const life = state.goldLife ?? SNAKE_GOLD_LIFE;
+  return Math.trunc(((state.golds ?? []).length * life * snakeV16LinesOf(state).goldPct) / 100);
+}
+
+/** snakeRev 16's parts: snakeRev 15's measures on straight lines to the level's (or Normal's) full lines. */
+export function snakeV16Parts(state: SnakeState): SnakeStdParts {
+  const l = snakeV16LinesOf(state);
+  return {
+    core: snakeV13Core(snakeCoreStars(state), l.fullAt),
+    gold: stdLine(SNAKE_STD_CAPS.gold, state.goldLeft ?? 0, snakeV16GoldFull(state)),
+    combo: stdLine(SNAKE_STD_CAPS.combo, state.comboPts ?? 0, l.comboFull),
+    lane: stdLine(SNAKE_STD_CAPS.lane, state.laneRides ?? 0, l.laneFull),
+    warp: stdLine(SNAKE_STD_CAPS.warp, state.warpPts ?? 0, l.warpFull),
+  };
+}
+
+/** A level's rocks on the field: the ones already down at the start and the timed slots after them. */
+export function snakeV16Field(base: SnakeState, seed: number, lv: SnakeLv16): { rocks: number[]; slots: SnakeRockSlot[] } {
+  const cols = snakeColsOf(base);
+  const rows = snakeRowsOf(base);
+  let rng = (seed ^ 0x524f434b) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const rowOf = (c: number) => snakeRow(c, cols);
+  const colOf = (c: number) => snakeCol(c, cols);
+  const near = (a: number, b: number, d: number) => Math.abs(rowOf(a) - rowOf(b)) <= d && Math.abs(colOf(a) - colOf(b)) <= d;
+  const stars = new Set(base.queue);
+  const golds = new Set((base.golds ?? []).map((g) => g.cell));
+  const mouths = base.warps ?? [];
+  const laneCols = [base.laneCol, base.laneCol2].filter((c): c is number => c !== undefined);
+  const head = base.body[0] ?? 0;
+  const taken: number[] = [...(base.rockSlots ?? []).flatMap((slot) => snakeRockSpan(base, slot.cell)), ...(base.showerCells ?? [])];
+  const free = (cell: number) => {
+    const r = rowOf(cell);
+    const c = colOf(cell);
+    if (r < 1 || c < 1 || r > rows - 2 || c > cols - 2) return false;
+    if (stars.has(cell) || golds.has(cell) || r === base.laneRow || laneCols.includes(c)) return false;
+    // The comet's way out: its column and the next ones either side, from below its tail to 8 squares above its head.
+    if (Math.abs(c - colOf(head)) <= 1 && r >= rowOf(head) - 8 && r <= rowOf(head) + 3) return false;
+    return mouths.every((m) => !near(m, cell, 1)) && taken.every((t) => !near(t, cell, 1));
+  };
+  const fresh = (): number => {
+    for (let attempt = 0; attempt < 400; attempt++) {
+      const cell = (1 + draw(rows - 2)) * cols + 1 + draw(cols - 2);
+      if (free(cell)) {
+        taken.push(cell);
+        return cell;
+      }
+    }
+    return -1;
+  };
+  const rocks: number[] = [];
+  for (let k = 0; k < lv.rocksAtStart; k++) {
+    const cell = fresh();
+    if (cell >= 0) rocks.push(cell);
+  }
+  const slots: SnakeRockSlot[] = [];
+  const old = (base.rockSlots ?? []).map((slot) => slot.cell);
+  if (lv.rockEvery > 0) {
+    for (let tick = lv.rockFrom * TICKS_PER_SECOND, i = 0; tick <= SNAKE_RUN_TICKS - SNAKE_V16_ROCK_LAST; tick += lv.rockEvery * TICKS_PER_SECOND, i++) {
+      const cell = i < old.length ? old[i]! : fresh();
+      if (cell >= 0) slots.push({ cell, tick });
+    }
+  }
+  return { rocks, slots };
+}
+
+function initV16(seed: number, lv: SnakeLv16 | null): SnakeState {
+  const base: SnakeState = { ...snakeV15Game.init(seed), ladder: 1 };
+  if (!lv) return base;
+  const out: SnakeState = { ...base, lv, grace: Math.max(0, lv.lives - 1) };
+  if (!lv.shower) out.showerCells = [];
+  if (lv.rockMax <= 0) return { ...out, rockSlots: [] };
+  const field = snakeV16Field(base, seed, lv);
+  return { ...out, rocks: field.rocks, rockSlots: field.slots };
+}
+
+export const snakeV16Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeV15Game, init: (seed) => initV16(seed, null) };
+
+const snakeV16ByLevel = new Map<string, ArcadeGame<SnakeState, ArcadeInputEvent | null>>();
+/** snakeRev 16 at a level (retroLevels.ts SNAKE_LEVELS_V16); Normal is snakeV16Game. */
+function snakeV16For(level?: Level | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  const lv = level && level !== "normal" ? SNAKE_LEVELS_V16[level] : null;
+  if (!lv) return snakeV16Game;
+  let game = snakeV16ByLevel.get(level!);
+  if (!game) {
+    game = { ...snakeV16Game, init: (seed: number) => initV16(seed, lv) };
+    snakeV16ByLevel.set(level!, game);
   }
   return game;
 }

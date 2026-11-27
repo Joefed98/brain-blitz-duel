@@ -43,7 +43,7 @@ import {
   snakeGameFor, snakeStdParts, snakeCoreStars, snakeV12Core, snakeStdCore, snakeRow, snakeWorldHForRev, snakeWorldWForRev,
   SNAKE_REV_STD, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V9_COLS, SNAKE_V9_ROWS,
   SNAKE_STD_CAPS, SNAKE_STD_CORE_MAX, SNAKE_INPUT_TURN,
-  type SnakeState, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_GRACE, SNAKE_REV_LADDER, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake"; // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/snake-rev12-legacy.json.gz";
@@ -84,8 +84,8 @@ const without = (s: SnakeState) => {
 /* 1. Wiring. */
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
 // wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_12 + 3 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */ && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_LADDER && SNAKE_REV_LADDER === SNAKE_REV_12 + 4 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */ && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_LADDER && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 28]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
 ok(SNAKE_V12_CORE_STARS === 28 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 28 core stars; a gold star counts 2");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
@@ -112,7 +112,7 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
   const perfect = (entry.perfect() as StdRun[])[0]!;
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
   // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 15 (Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul)).
-  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_GRACE, "the standard module names snakeRev 15, the dealt stamp (snakeRev 12 before the Retro overhaul)");
+  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_LADDER, "the standard module names snakeRev 16, the dealt stamp (snakeRev 12 before the Retro overhaul)"); // Changed with Joe's approval, 27 Nov 2026 (D5's snakeRev 16)
   ok(entry.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 120], ["gold", 40], ["combo", 20], ["lane", 10], ["warp", 10]]), "parts: core 120, gold 40, combo 20, lane 10, warp 10 (unchanged)");
   ok(perfect.score === 200, `the perfect run scores 200 (got ${perfect.score})`);

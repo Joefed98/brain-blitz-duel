@@ -44,7 +44,7 @@ import {
 import { inkClover, inkStdSpecFor, inkV13Score, INK_CLOUD_LEVELS, INK_LEVELS, INK_RUN_TICKS, INK_V13_CLOVERS, type InkState } from "./inkBridge";
 import { tiltParParts, TILT_P_CLEAN_POINTS, TILT_P_CORE_MAX, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_RUN_TICKS, TILT_S_MAZES, TILT_S_PROGRESS_SCALE, type TiltState } from "./tilt";
 import { btStateBalls, btStdScore, btStdSpecOf, BT_V7_GOLDS, type BtState } from "./ballTrack";
-import { orbitStdScore, orbitXpCounts, ORBIT_REV3_RUN_TICKS, ORBIT_STD, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_TRAILS, type OrbitRev3State } from "./orbitRev3";
+import { orbitStdScore, orbitStdSpecOf, orbitXpCounts, ORBIT_REV3_RUN_TICKS, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_TRAILS, type OrbitRev3State } from "./orbitRev3";
 import { ORBIT_TOTAL } from "./orbit";
 
 /** "1 gate" / "3 gates" (or the plural given). */
@@ -217,13 +217,15 @@ function orbitParts(s: OrbitRev3State): StdPart[] | null {
   const best = Math.max(0, Math.min(ORBIT_TOTAL, s.best));
   const left = ORBIT_REV3_RUN_TICKS - Math.max(0, Math.min(ORBIT_REV3_RUN_TICKS, s.endedTick));
   const f = (key: string) => b.features[key] ?? 0;
+  // orbitRev 17: its own lines (the level's), so each part's maximum and count read as the run scored.
+  const spec = orbitStdSpecOf(s);
   return [
-    stdPart(ORBIT_STD, "core", b.core, finished || best >= ORBIT_TOTAL ? "sun reached" : of(best, ORBIT_TOTAL, "planets")),
-    stdPart(ORBIT_STD, "speed", f("speed"), finished ? `${secs(left)} left` : "sun not reached"),
-    stdPart(ORBIT_STD, "dust", f("dust"), of(c.dust, ORBIT_XP_TRAILS * ORBIT_XP_MOTES, "motes")),
-    stdPart(ORBIT_STD, "slings", f("slings"), of(c.slings, ORBIT_XP_MOONS, "slingshots")),
-    stdPart(ORBIT_STD, "fields", f("fields"), of(c.threads, ORBIT_XP_FIELDS, "fields")),
-    stdPart(ORBIT_STD, "perfect", f("perfect"), n(c.perfect, "perfect orbit")),
+    stdPart(spec, "core", b.core, finished || best >= ORBIT_TOTAL ? "sun reached" : of(best, ORBIT_TOTAL, "planets")),
+    stdPart(spec, "speed", f("speed"), finished ? `${secs(left)} left` : "sun not reached"),
+    stdPart(spec, "dust", f("dust"), of(c.dust, ORBIT_XP_TRAILS * ORBIT_XP_MOTES, "motes")),
+    stdPart(spec, "slings", f("slings"), of(c.slings, ORBIT_XP_MOONS, "slingshots")),
+    stdPart(spec, "fields", f("fields"), of(c.threads, ORBIT_XP_FIELDS, "fields")),
+    stdPart(spec, "perfect", f("perfect"), n(c.perfect, "perfect orbit")),
   ];
 }
 

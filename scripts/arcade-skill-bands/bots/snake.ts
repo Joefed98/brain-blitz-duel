@@ -10,7 +10,7 @@
  * next star) the player steers away from what is right ahead of the head.
  */
 import { bandPoints } from "../../../src/lib/arcade/scoreBands";
-import { snakeGoldWorth, snakeStdGoldWorth, snakeStdCore, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, snakeRockCells, snakeRockSpan, snakeWarnCells, snakeOnLane, type SnakeState } from "../../../src/lib/arcade/snake";
+import { snakeGoldWorth, snakeStdGoldWorth, snakeStdCore, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, snakeReversal, snakeStepTicks, snakeStepTicksOf, snakeStepTicksFor, snakeColsOf, snakeWarpExit, SNAKE_INPUT_TURN, snakeRowsOf, SNAKE_GOLD_LIFE, snakeRockCells, snakeRockSpan, snakeWarnCells, snakeOnLane, type SnakeState } from "../../../src/lib/arcade/snake";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
@@ -41,7 +41,23 @@ const SNAKE_STD_FLAWLESS_LANE_COST = 0.4;
  * snakeRev 9: whether the bots play the expansion's features (gold stars, lanes, wormholes). The
  * measuring script (scripts/expansions-e2-bands.ts) turns it off to see where today's play lands.
  */
-export const snakeBotOptions = { features: true };
+export const snakeBotOptions = {
+  features: true,
+  /**
+   * D5's comet planner (scripts/snake-oracle.ts, 23 Nov 2026): the shortest gap between two swipes this player keeps,
+   * in ticks, over its level's own gap (0: the level's gap, every existing use). The proof sets it to the human
+   * limits' move time (0.15 s, 9 ticks).
+   */
+  minGap: 0,
+};
+
+/**
+ * snakeRev 16's levels (D5's ladder, with the Oct 2026 fixes only): the player reads the level's own pace (its start and
+ * fastest ticks a square, retroLevels.ts) where older runs read Normal's. A Normal state has no level, so its pace is the
+ * same either way; set per run.
+ */
+let LEVEL_PACE = false;
+const stepNow = (s: SnakeState): number => (LEVEL_PACE ? snakeStepTicksOf(s) : snakeStepTicks(s.eaten));
 
 function nb(cell: number, dir: number): number {
   const r = Math.trunc(cell / COLS) + DR[dir]!;
@@ -293,10 +309,11 @@ function choose(s: SnakeState, human: Human, shadows: Set<number>, committed: bo
   return path;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const level = human.level;
-  const gap = SWIPE_GAP[level]!;
+  const gap = Math.max(SWIPE_GAP[level]!, snakeBotOptions.minGap);
   const init = game.init(seed) as SnakeState;
+  LEVEL_PACE = Boolean(fixes) && Boolean(init.ladder);
   ROWS = snakeRowsOf(init);
   COLS = snakeColsOf(init);
   const features = Boolean(init.exp) && snakeBotOptions.features;
@@ -324,7 +341,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   const schedule = (s: SnakeState, turns: Turn[], p: number[]) => {
     for (const k of [...swipes.keys()]) if (k > s.tick) swipes.delete(k);
-    const baseStep = snakeStepTicks(s.eaten);
+    const baseStep = stepNow(s);
     let earliest = Math.max(s.tick + 1, lastSwipe + gap);
     for (const turn of turns) {
       const index = turn.index;
@@ -396,14 +413,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // Worth it when it can be reached well before it fades.
         // (snakeRev 10's gold stars stay longer: goldLife.)
         const life = s.goldLife ?? SNAKE_GOLD_LIFE;
-        let worth = dist * snakeStepTicks(s.eaten) + 40 < life;
+        let worth = dist * stepNow(s) + 40 < life;
         // snakeRev 11 (the arcade standard): a gold star (about 5.7) beats a star on the core's straight line (about 4.4,
         // nothing past the core's full count), so elite and flawless players take every gold they can reach in time.
         if (worth && (level === "elite" || level === "perfect") && !s.std) {
           // Elite and flawless (Oct 2026): stars first. The gold is taken only when what it still pays (its
           // worth on arrival, nothing past the gold cap) beats the star points the detour's extra squares cost
           // at the run's own star rate, valued on the band curve where the run is heading.
-          const step = snakeStepTicks(s.eaten);
+          const step = stepNow(s);
           const md = (a: number, b: number) => Math.abs(Math.trunc(a / COLS) - Math.trunc(b / COLS)) + Math.abs((a % COLS) - (b % COLS));
           const extra = Math.max(0, dist + md(g, s.pellet) - md(head, s.pellet));
           // snakeRev 11 (the arcade standard): a gold's straight-line share of 40, and the core's straight line.
@@ -451,8 +468,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
     if (replanAt >= 0 && t >= replanAt) {
       replanAt = -1;
-      const nextMove = t + snakeStepTicks(s.eaten) - s.sinceMove - 1;
-      const step = snakeStepTicks(s.eaten);
+      const nextMove = t + stepNow(s) - s.sinceMove - 1;
+      const step = stepNow(s);
       const minRun = Math.ceil(gap / step);
       const run0 = Math.max(0, Math.floor((nextMove - lastSwipe) / step));
       path = choose(s, human, shadows, nextMove - t < 2 || lastSwipe + gap > nextMove, minRun, run0, goldGoal >= 0 ? goldGoal : s.pellet);
@@ -481,7 +498,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const dir = sides[human.pick(rooms)]!;
         const p = turnCell === head ? [] : [a1];
         schedule(s, [{ cell: turnCell, dir, index: turnCell === head ? -1 : 0 }], p);
-        autoAt = t + snakeStepTicks(s.eaten) * 2;
+        autoAt = t + stepNow(s) * 2;
       }
     }
 
