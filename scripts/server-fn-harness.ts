@@ -40,6 +40,10 @@ import { join, resolve } from "node:path";
 /* ------------------------------------------------------------------ PostgreSQL */
 
 export function postgresBin(): string | null {
+  // JOULZ_PG_BIN (local deploy, scripts/deploy-local.sh): a PostgreSQL bin directory outside /usr/lib/postgresql,
+  // e.g. Homebrew's on a Mac. Unset everywhere else, so CI and every check find the binaries as before.
+  const override = process.env.JOULZ_PG_BIN;
+  if (override && ["initdb", "pg_ctl", "psql"].every((b) => existsSync(join(override, b)))) return override;
   const root = "/usr/lib/postgresql";
   if (!existsSync(root)) return null;
   for (const version of readdirSync(root).sort().reverse()) {
