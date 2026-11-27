@@ -44,7 +44,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="tilt"
       label={gameDisplayName("tilt")}
       // The board's oak (tiltRev 12: its walnut), so the sub-pixel sliver at the centred world's edges is wood, not a dark line (17 Oct 2026).
-      background={data?.tiltRev === TILT_REV_BIG || data?.tiltRev === TILT_REV_THREE ? WALNUT_TABLE_EDGE : "#9A7347"}
+      background={data?.tiltRev === TILT_REV_THREE || data?.tiltRev === TILT_REV_BIG ? WALNUT_TABLE_EDGE : "#9A7347"}
       fitWorld
       centreWorld
       scene={tiltArenaSceneFor(data?.tiltRev)}

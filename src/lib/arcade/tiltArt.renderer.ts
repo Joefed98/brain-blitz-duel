@@ -761,7 +761,9 @@ export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 export function tiltArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
   if (!tiltIsExpand(rev)) return tiltArenaScene;
   // tiltRev 12: the dark walnut table runs on to the screen's edges.
-  if (rev === TILT_REV_BIG || rev === TILT_REV_THREE) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
+  if (rev === TILT_REV_BIG) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
+  // D6: tiltRev 13 plays tiltRev 12's walnut world.
+  if (rev === TILT_REV_THREE) return (ctx, view) => tiltWalnutFill(ctx, view, TILT_X_W, TILT_X_H);
   return (ctx, view) => tiltFill(ctx, view, TILT_X_W, TILT_X_H);
 }
 
