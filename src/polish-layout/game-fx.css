@@ -768,6 +768,15 @@
   flex-direction: column;
   gap: 6px;
 }
+/* The choice's labels may wrap onto a second line (Iron Wall's "Mouse movement" | "Click and drag" ran past their
+   halves of the card); each segment keeps its 44 px target. */
+.arena-scheme .jz-seg > button {
+  white-space: normal;
+  text-wrap: balance;
+  text-align: center;
+  line-height: 17px;
+  padding-block: var(--jz-space-4);
+}
 .arena-scheme-note {
   font-size: 13px;
   line-height: 18px;

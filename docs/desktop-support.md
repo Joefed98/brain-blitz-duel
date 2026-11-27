@@ -272,7 +272,9 @@ Hover, Rally, Meteor, Pinball, Spacewalk, High Rise, Coral Pop, Gemstone, Ball T
 `useArenaHudDraw()` (`src/lib/gameFrame/arenaHud.ts`), which does what ArcadeCanvasStage does round its draw: the
 painters skip the world on the arena only, and the values go to the store. Phones, tablets upright, intro demos,
 reveals, replays and every check's render draw exactly as before (the flag is read only inside a live stage's draw on
-the arena). Ball Tracker's strip above its board (`BtHud`) is drawn outside the frame loop and stays where it is.
+the arena). Left in the world for the desktop brief after F1 (Joe, 27 Nov 2026): Ball Tracker's strip above its
+board (`BtHud`, drawn outside the frame loop), Blockzone's speed gauge and Gemstone's colour-goal sizes under the board
+(each drawn by the game's own code, not the shared painters).
 
 Games whose HUD is drawn some other way and would keep it in the world: Rainbow Bridge, Curl Champ, Top Bins, Home Run,
 Crazy Golf, Cue Ball (its upright strip), Apex; Tenfall, Bonk and Pull! have DOM HUDs, already mirrored in "This run".
