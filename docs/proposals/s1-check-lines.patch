@@ -1,0 +1,460 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 0c57ef99..5b37cdf9 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -1061,7 +1061,9 @@ outside the repo.
+   (`feel` in `gameSounds.ts`), the arcade buzzer (`impact`, arcadeFeedback); the podium / two-player final for the
+   winner (`celebrate`); the between-rounds chat toast keeps its tick (chat-notice-check asserts it). In-game moments
+   pass `{ inGame: true }`: only with a live `[data-game-stage]` on screen, never in an intro demo, replay or answer
+-  reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
++  reveal (`holdHaptics`). Every tappable control in app chrome (buttons, links, tabs, switches, radios, options, menu
++  items; never inside game art) gets the light `tick` on a completed tap through `src/lib/pressFeel.ts` (Joe's
++  decision, 27 Nov 2026); never on drags or routine in-game hits: **don't call `navigator.vibrate` or add a
+   `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
+   default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
+ - **Joe's quick fixes** (1 Nov 2026; display, sound and room draw only, no stamps): Orbit's SET CHECKPOINT (orbitRev 12–13)
+diff --git a/scripts/appearance-check.tsx b/scripts/appearance-check.tsx
+index b9455f79..3e863a89 100644
+--- a/scripts/appearance-check.tsx
++++ b/scripts/appearance-check.tsx
+@@ -120,7 +120,7 @@ const probe = (selector: string) => (sel: string) => {
+     text: cs.getPropertyValue("--jz-text").trim().toUpperCase(),
+     apText: (() => {
+       const s = document.createElement("span");
+-      s.style.color = "var(--ap-text)";
++      s.style.color = "var(--jz-text)"; // Changed with Joe's approval, 27 Nov 2026 (S1: --ap-text retired; the token itself)
+       el.appendChild(s);
+       const c = getComputedStyle(s).color;
+       s.remove();
+diff --git a/scripts/brand-assets-check.ts b/scripts/brand-assets-check.ts
+index 4570ed7d..18f70115 100644
+--- a/scripts/brand-assets-check.ts
++++ b/scripts/brand-assets-check.ts
+@@ -50,7 +50,8 @@ ok(LOGO_COLOURS.gold.upper[0] === BRAND_GOLD && LOGO_COLOURS.inverted.upper[0] =
+ const wordmark = readFileSync("src/components/brand/AppWordmark.tsx", "utf8");
+ ok(!/wordmark-last|slice\(-1\)/.test(wordmark), "AppWordmark has no separately coloured last letter");
+ const css = readFileSync("src/polish-layout/app-pages.css", "utf8");
+-const rule = /\.ap-wordmark-text \{([^}]*)\}/.exec(css)?.[1] ?? "";
++// Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++const rule = /\.jz-wordmark-text \{([^}]*)\}/.exec(css)?.[1] ?? "";
+ ok(
+   /font-weight: var\(--jz-weight-black\)/.test(rule) && rule.includes(`font-stretch: ${WORDMARK_STRETCH}%`) && /text-transform: uppercase/.test(rule) && /color: var\(--jz-white\)/.test(rule),
+   "the header wordmark: Archivo 900, 118 %, white, capitals by CSS",
+diff --git a/scripts/celebrations-browser.ts b/scripts/celebrations-browser.ts
+index 8fa97b2a..e72d8dca 100644
+--- a/scripts/celebrations-browser.ts
++++ b/scripts/celebrations-browser.ts
+@@ -117,8 +117,9 @@ interface Screen extends ThemeScreen {
+ const SCREENS: Record<string, Screen> = {
+   podium: { name: "podium, 10 players", mode: "room", room: room("finished", "result", { players: 10, rounds: 6 }), ready: "[data-podium-place]", waitMs: 2400 },
+   podiumLost: { name: "podium, 10 players, not first", mode: "room", room: podiumLost, ready: "[data-podium-place]", waitMs: 2400 },
+-  standings: { name: "standings, 10 players", mode: "room", room: standingsShuffle, ready: "ul li .th-name", waitMs: 2400 },
+-  final2: { name: "final results, 2 players", mode: "room", room: room("finished", "result", { rounds: 6 }), ready: ".th-score", waitMs: 2400 },
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  standings: { name: "standings, 10 players", mode: "room", room: standingsShuffle, ready: "ul li .jz-name", waitMs: 2400 },
++  final2: { name: "final results, 2 players", mode: "room", room: room("finished", "result", { rounds: 6 }), ready: ".jz-score", waitMs: 2400 },
+   lobby3: { name: "lobby, 3 players", mode: "room", room: room("waiting", "starting", { players: 3 }), ready: "[data-host-label], [data-look-hint], ul li", waitMs: 600 },
+   lobby10: { name: "lobby, 10 players", mode: "room", room: room("waiting", "starting", { players: 10 }), ready: "[data-host-label], [data-look-hint], ul li", waitMs: 1400 },
+   reveal150: { name: "answer reveal, 150", mode: "room", room: revealWith(150), ready: "[data-reveal-score]", waitMs: 2600, plain: true },
+@@ -197,7 +198,8 @@ async function prepare(context: BrowserContext, on: boolean | null, ready: strin
+           t: performance.now() - started,
+           geo: geometry(),
+           boxes,
+-          scores: Array.from(root.querySelectorAll(".th-score")).map((e) => e.textContent ?? ""),
++          // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++          scores: Array.from(root.querySelectorAll(".jz-score")).map((e) => e.textContent ?? ""),
+           meter: !!root.querySelector("[data-charge-meter]"),
+           list: !!root.querySelector("ul li"),
+         });
+@@ -294,7 +296,8 @@ async function fire(page: Page, body: string) {
+ const undate = (html: string) =>
+   html
+     .replace(/>(Mon|Tue|Wed|Thu|Fri|Sat|Sun)</g, ">#day<")
+-    .replace(/(class="ap-date-num">)\d{1,2}</g, "$1#<")
++    // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++    .replace(/(class="jz-date-num">)\d{1,2}</g, "$1#<")
+     .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, "#date");
+ 
+ /** Where two markups part: the differing stretch of each (with 160 characters of context), for a failure line. */
+@@ -367,9 +370,11 @@ try {
+     if (before && key !== "home" && key !== "rooms") await sameMarkup(o.page, before[key], `off, ${key}`);
+     if (before && key === "home") check(true, "home markup is compared before Create");
+     offFinal[key] = await o.page.evaluate(() => [
+-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
+       "|",
+-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
+     ]);
+     await o.close();
+   }
+@@ -389,9 +394,11 @@ try {
+     check(log.some((e) => e.kind === "banner" && e.text === "You win!") && log.some((e) => e.kind === "sound:chime") && log.some((e) => e.kind === "sound:victory"), "podium, winner: no You win!, chime and victory sting");
+     await judgeLayout(o.page, "podium");
+     const final = await o.page.evaluate(() => [
+-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
+       "|",
+-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
+     ]);
+     check(JSON.stringify(final) === JSON.stringify(offFinal.podium), `podium: the count-up ends on ${final.join(" ")}, the server's ${offFinal.podium?.join(" ")}`);
+     // Taps through the layer while the banner and the hero are up.
+@@ -432,9 +439,11 @@ try {
+     check(first.join() !== end.join(), "standings: no count-up from the first frame");
+     await judgeLayout(o.page, "standings");
+     const final = await o.page.evaluate(() => [
+-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
+       "|",
+-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
+     ]);
+     check(JSON.stringify(final) === JSON.stringify(offFinal.standings), `standings: the count-up ends on ${final.join(" ")}, the server's ${offFinal.standings?.join(" ")}`);
+     check((await o.log()).some((e) => e.kind === "burst"), "standings: a climb has no sparks");
+@@ -443,9 +452,11 @@ try {
+   {
+     const o = await open(browser, server.origin, "final2", true);
+     const final = await o.page.evaluate(() => [
+-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
+       "|",
+-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
+     ]);
+     check(JSON.stringify(final) === JSON.stringify(offFinal.final2), `final results: the count-up ends on ${final.join(" ")}, the server's ${offFinal.final2?.join(" ")}`);
+     await judgeLayout(o.page, "final results");
+diff --git a/scripts/celebrations-check.tsx b/scripts/celebrations-check.tsx
+index 307d12c4..a782b5bf 100644
+--- a/scripts/celebrations-check.tsx
++++ b/scripts/celebrations-check.tsx
+@@ -298,8 +298,9 @@ const podiumProps = (mineFirst: boolean) => ({
+   onPlayAgain: () => {},
+   onLeave: () => {},
+ });
+-const scoreTexts = (host: Element) => Array.from(host.querySelectorAll(".th-score")).map((el) => el.textContent);
+-const listNames = (host: Element) => Array.from(host.querySelectorAll("ul li .th-name")).map((el) => el.textContent);
++// Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++const scoreTexts = (host: Element) => Array.from(host.querySelectorAll(".jz-score")).map((el) => el.textContent);
++const listNames = (host: Element) => Array.from(host.querySelectorAll("ul li .jz-name")).map((el) => el.textContent);
+ 
+ // 3a. The podium: winner and not.
+ for (const mineFirst of [true, false]) {
+@@ -340,7 +341,8 @@ for (const mineFirst of [true, false]) {
+   check(early.every((n, i) => n >= C.countUpFrom(standingsRows[i]!) && n <= finals[i]!) && early.some((n, i) => n < finals[i]!), `standings do not count up from the round before: ${early.join(",")}`);
+   await wait(C.COUNT_UP_MS + 300);
+   check(JSON.stringify(scoreTexts(view.host)) === JSON.stringify(standingsRows.map((r) => String(r.total))), `standings end on ${scoreTexts(view.host).join(",")}`);
+-  check(JSON.stringify(Array.from(view.host.querySelectorAll("li .th-name")).map((e) => e.textContent)) === JSON.stringify(standingsRows.map((r) => r.name)), "standings order is not the server's");
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  check(JSON.stringify(Array.from(view.host.querySelectorAll("li .jz-name")).map((e) => e.textContent)) === JSON.stringify(standingsRows.map((r) => r.name)), "standings order is not the server's");
+   check(requests.some((r) => r.kind === "burst") && sounds.filter((s) => s === "overtake").length === 1 && !sounds.includes("zap"), `a climb has no sparks and one overtake zap: ${sounds.join(",")}`);
+   // The count-up ticks, at most COUNT_TICKS_PER_S a second, then dings (rows landing together share the slot's gap).
+   const ticks = sounds.filter((s) => s === "countTick").length;
+@@ -404,7 +406,8 @@ for (const mineFirst of [true, false]) {
+   C.resetCelebrationMemory();
+   const first = await mount(React.createElement(AppWordmark));
+   check(!!first.host.querySelector("[data-logo-charge] animate"), "the app's first header does not charge in");
+-  const plain = await mount(React.createElement(LogoMark, { width: 17, height: 22, className: "ap-wordmark-mark" }));
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  const plain = await mount(React.createElement(LogoMark, { width: 17, height: 22, className: "jz-wordmark-mark" }));
+   check(!plain.host.querySelector("[data-logo-charge], clipPath, animate, g"), "a mark without the charge-in is not the plain mark");
+   check(first.host.querySelectorAll("[data-logo-line]").length === 2 && Array.from(first.host.querySelectorAll("[data-logo-line]")).every((l) => l.getAttribute("vector-effect") === "non-scaling-stroke" && l.getAttribute("stroke-width") === plain.host.querySelector("[data-logo-line]")!.getAttribute("stroke-width")), "the charge-in does not draw #133's hairline speed lines");
+   await wait(C.LOGO_CHARGE_MS + 250);
+diff --git a/scripts/haptics-check.tsx b/scripts/haptics-check.tsx
+index d395cd60..79a53465 100644
+--- a/scripts/haptics-check.tsx
++++ b/scripts/haptics-check.tsx
+@@ -527,6 +527,9 @@ const CALL_SITES: Record<string, Record<string, number>> = {
+   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the games effects kit, phase 2 step 4): the
+   // kit's one call site (lib/fx/kit.ts gameFx: wrong, near miss and the payoff moments, through the same gates).
+   "lib/fx/kit.ts": { plan: 1 },
++  // Changed with Joe's approval, 27 Nov 2026 (S1, PR 1 item 5: a light haptic on every press in app chrome): the press
++  // listener's one call (lib/pressFeel.ts, the light tick on a completed tap outside game art).
++  "lib/pressFeel.ts": { tick: 1 },
+ };
+ /**
+  * gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2, Blockfall's three or four rows at
+diff --git a/scripts/identity-everywhere-check.tsx b/scripts/identity-everywhere-check.tsx
+index 253947c8..59f6b4df 100644
+--- a/scripts/identity-everywhere-check.tsx
++++ b/scripts/identity-everywhere-check.tsx
+@@ -349,7 +349,8 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
+     check(top.length === 3, "the podium's top three as cards");
+     check(!!top[0]!.querySelector(".pcard:not(.pcard-strip):not(.pcard-mini)") && !!top[1]!.querySelector(".pcard:not(.pcard-strip):not(.pcard-mini)"), "the accounts on the podium are full cards (PlayerCard)");
+     check(!!top[2]!.querySelector("[data-nameplate='plain']") && !top[2]!.querySelector("[data-open-card]"), "a guest on the podium keeps colour and initial, opening nothing");
+-    check(top.every((li) => !li.querySelector(".th-score, [data-medal]")), "no score or medal on a podium card");
++    // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++    check(top.every((li) => !li.querySelector(".jz-score, [data-medal]")), "no score or medal on a podium card");
+     await act(async () => root.unmount());
+     el.remove();
+   });
+diff --git a/scripts/identity-screens-check.tsx b/scripts/identity-screens-check.tsx
+index bbdfcfaa..e15038a0 100644
+--- a/scripts/identity-screens-check.tsx
++++ b/scripts/identity-screens-check.tsx
+@@ -377,13 +377,16 @@ for (const [who, n, shows] of [
+   const children = header ? [...header.children].map((c) => (c as unknown as HTMLElement).className || c.tagName) : [];
+   // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: page headers show only the
+   // avatar and the title, the wordmark and the sound controls gone; the counter keeps its place on the right).
+-  if (shows) check(!!header?.querySelector(".ap-header-tools [data-coin-counter]"), `header, ${who}: the counter on the header's right`);
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  if (shows) check(!!header?.querySelector(".jz-header-tools [data-coin-counter]"), `header, ${who}: the counter on the header's right`);
+   else
+     check(
+-      !!header && header.children.length === 1 && !header.querySelector(".ap-header-tools, [data-coin-counter]"),
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      !!header && header.children.length === 1 && !header.querySelector(".jz-header-tools, [data-coin-counter]"),
+       `header, ${who}: the avatar and title only, no counter (${children.join(" | ")})`,
+     );
+-  check(!!header && !header.querySelector("[data-sound-controls], .ap-wordmark-text"), `header, ${who}: no wordmark or sound controls`);
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  check(!!header && !header.querySelector("[data-sound-controls], .jz-wordmark-text"), `header, ${who}: no wordmark or sound controls`);
+   act(() => root.unmount());
+ }
+ 
+diff --git a/scripts/nav-check.ts b/scripts/nav-check.ts
+index 2da2380b..c05636ed 100644
+--- a/scripts/nav-check.ts
++++ b/scripts/nav-check.ts
+@@ -456,7 +456,8 @@ try {
+       const { context, page } = await openThemeScreen(browser, harness.origin, screen, PHONE);
+       await page.waitForTimeout(800);
+       check((await page.locator("[data-tournaments-soon]").count()) === 0, "a player with tournaments: no coming-soon page");
+-      check((await page.locator(".ap-beta").count()) === 1 && (await page.locator("[data-public-none]").count()) === 1, "a player with tournaments gets the tournaments screens as before");
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      check((await page.locator(".jz-beta-pill").count()) === 1 && (await page.locator("[data-public-none]").count()) === 1, "a player with tournaments gets the tournaments screens as before");
+       await context.close();
+     }
+   } finally {
+diff --git a/scripts/no-wrap-check.tsx b/scripts/no-wrap-check.tsx
+index 669504d4..3581b2f6 100644
+--- a/scripts/no-wrap-check.tsx
++++ b/scripts/no-wrap-check.tsx
+@@ -10,7 +10,8 @@
+  * tab, anything in the display or mono fonts) must:
+  *  - sit on one line (its text's line boxes all on one line), and
+  *  - not overflow: not clipped by its own box (scrollWidth past clientWidth), unless it is a
+- *    player name (.th-name, or a line listing names, [data-names]) or a leaderboard row's
++ * Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*).
++ *    player name (.jz-name, or a line listing names, [data-names]) or a leaderboard row's
+  *    time · verdict · summary line ([data-ellipsis]), which truncate with an ellipsis, and never
+  *    past the screen's edge (but inside a horizontally scrolling row, [data-scroll-x], whose items
+  *    scroll into view).
+@@ -54,7 +55,8 @@ if (args.includes("--list")) {
+ /** In-page: every single-line text that wraps or overflows. */
+ function wrapProbe() {
+   const SINGLE =
+-    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
++    // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++    "h1, h2, h3, button, a, label, summary, [role='button'], .jz-kicker, .jz-cat-pill, .jz-name, .jz-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
+   const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok], .sr-only"; // .sr-only: visually hidden, never seen (approved, 7 Nov 2026)
+   const visible = (el: Element) => {
+     const r = el.getBoundingClientRect();
+@@ -104,8 +106,9 @@ function wrapProbe() {
+       // Player names (and a line listing them, [data-names]) truncate with an ellipsis.
+       if (
+         clipped &&
+-        !clipped.closest(".th-name, [data-names], [data-ellipsis]") &&
+-        !clipped.querySelector?.(".th-name")
++        // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++        !clipped.closest(".jz-name, [data-names], [data-ellipsis]") &&
++        !clipped.querySelector?.(".jz-name")
+       )
+         problems.push(
+           `"${text}" is cut off by ${describe(clipped)} (${clipped.scrollWidth}px of text in ${clipped.clientWidth}px)`,
+diff --git a/scripts/practice-challenge-fit-check.ts b/scripts/practice-challenge-fit-check.ts
+index 4d92b57f..7c67da18 100644
+--- a/scripts/practice-challenge-fit-check.ts
++++ b/scripts/practice-challenge-fit-check.ts
+@@ -45,11 +45,12 @@ const rows = sorted
+ </div>`,
+   )
+   .join("\n");
++// Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*): the section class in the template below.
+ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>${css}
+ *,*::before,*::after{box-sizing:border-box} /* Tailwind's preflight, as in the app */
+ html,body{margin:0;background:var(--jz-bg);color:var(--jz-text);font-family:"Archivo",sans-serif}
+ .col{box-sizing:border-box;padding:0 16px}</style></head>
+-<body><div class="col"><section class="ap-section"><div class="jz-panel">${rows}</div></section></div></body></html>`;
++<body><div class="col"><section class="jz-page-section"><div class="jz-panel">${rows}</div></section></div></body></html>`;
+ 
+ const CHROMIUM = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p) => p && existsSync(p));
+ const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
+diff --git a/scripts/safe-area-harness.tsx b/scripts/safe-area-harness.tsx
+index 9bec9dd2..ee46934c 100644
+--- a/scripts/safe-area-harness.tsx
++++ b/scripts/safe-area-harness.tsx
+@@ -765,7 +765,8 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
+   // The Pass part as the /shop route draws it (src/routes/shop.tsx), from window.__harnessPass.
+   pass: () => (
+     <PhoneShell tabs="shop" title="Shop">
+-      <div className="ap-stack" data-shop-page="pass">
++      {/* Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*) */}
++      <div className="jz-page-stack" data-shop-page="pass">
+         <PassScreen />
+       </div>
+     </PhoneShell>
+diff --git a/scripts/share-check.ts b/scripts/share-check.ts
+index c28632df..7159d0c8 100644
+--- a/scripts/share-check.ts
++++ b/scripts/share-check.ts
+@@ -1134,7 +1134,8 @@ else {
+         `${where}: public game button ${pub?.text ?? "missing"} (scheduled: ${publicGame})`,
+       );
+       check(!!buttons.find((b) => b.label === "Dismiss"), `${where}: no dismiss button`);
+-      check(/\bth-card\b/.test(probe.cls), `${where}: not a th-card`);
++      // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++      check(/\bjz-card\b/.test(probe.cls), `${where}: not a jz-card`);
+       for (const i of probe.items) {
+         if (i.tag === "BUTTON")
+           check(
+diff --git a/scripts/shots/standings-reveal-shots.ts b/scripts/shots/standings-reveal-shots.ts
+index d2f1790d..7e1810f1 100644
+--- a/scripts/shots/standings-reveal-shots.ts
++++ b/scripts/shots/standings-reveal-shots.ts
+@@ -25,7 +25,8 @@ const standings10 = () => {
+   return r;
+ };
+ const SCREENS: { key: string; screen: ThemeScreen; ready: string }[] = [
+-  { key: "standings-10", screen: { name: "standings, 10 players", mode: "room", room: standings10, waitMs: 0 }, ready: "ul li .th-name" },
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  { key: "standings-10", screen: { name: "standings, 10 players", mode: "room", room: standings10, waitMs: 0 }, ready: "ul li .jz-name" },
+   { key: "podium-10", screen: { name: "podium, 10 players", mode: "room", room: room("finished", "result", { players: 10, rounds: 6 }), waitMs: 0 }, ready: "[data-podium-place]" },
+ ];
+ 
+diff --git a/scripts/standings-reveal-check.tsx b/scripts/standings-reveal-check.tsx
+index d1185e6b..875e9978 100644
+--- a/scripts/standings-reveal-check.tsx
++++ b/scripts/standings-reveal-check.tsx
+@@ -235,7 +235,8 @@ async function mount(rows: Standing[], mySlot: number) {
+ }
+ const wait = (ms: number) => act(async () => sleep(ms));
+ const items = (host: Element) => Array.from(host.querySelectorAll("ul.rs-list > li")) as HTMLElement[];
+-const totals = (host: Element) => items(host).map((li) => li.querySelector(".th-score")?.textContent ?? "");
++// Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++const totals = (host: Element) => items(host).map((li) => li.querySelector(".jz-score")?.textContent ?? "");
+ const shift = (li: HTMLElement) => {
+   const m = /translateY\((-?[\d.]+)px\)/.exec(li.style.transform);
+   return m ? Number(m[1]) : 0;
+@@ -264,7 +265,8 @@ for (const { label, rows, left = [] } of CASES) {
+   // watched by a player who isn't in the list (no pinned row): every row's slide is checked here.
+   const view = await mount(rows, isCompactRoom(rows.length) ? 0 : rows.at(-1)!.slot);
+   await wait(20);
+-  const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .th-name")).map((e) => e.textContent);
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .jz-name")).map((e) => e.textContent);
+   check(JSON.stringify(names) === JSON.stringify(rows.map((r) => r.name)), `${label}: the list's page order is not the server's`);
+   check(left.every((slot) => !names.includes(`P${slot}`)), `${label}: a player who left is shown`);
+   // A player who left is marked by the "Left" tag at full strength (7 Nov 2026, accessibility audit #3; was opacity-40).
+@@ -282,7 +284,8 @@ for (const { label, rows, left = [] } of CASES) {
+   }
+   await wait(plan.stepAt.at(-1)! + 60);
+   check(!!view.host.querySelector("[data-reveal-sweep]"), `${label}: 1st lands with no sweep`);
+-  const swept = Array.from(view.host.querySelectorAll("[data-reveal-sweep] .th-name")).map((e) => e.textContent).sort();
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  const swept = Array.from(view.host.querySelectorAll("[data-reveal-sweep] .jz-name")).map((e) => e.textContent).sort();
+   check(JSON.stringify(swept) === JSON.stringify(rows.filter((r) => r.position === 1).map((r) => r.name).sort()), `${label}: the sweep is on ${swept.join()}, not 1st place`);
+   await wait(R.STANDINGS_REVEAL_END_MS - plan.stepAt.at(-1)! + 200);
+   check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(r.total))), `${label}: ends on ${totals(view.host).join()}, the server's ${rows.map((r) => r.total).join()}`);
+@@ -348,7 +351,8 @@ for (const { label, rows, left = [] } of CASES) {
+   }
+   check(still, "16 players: my pinned row slides during the reveal");
+   check(unique, "16 players: two rows are drawn in the same place during the reveal");
+-  check(pin()?.querySelector(".th-score")?.textContent === String(me.total), `16 players: my pinned row ends on ${pin()?.querySelector(".th-score")?.textContent}, not ${me.total}`);
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  check(pin()?.querySelector(".jz-score")?.textContent === String(me.total), `16 players: my pinned row ends on ${pin()?.querySelector(".jz-score")?.textContent}, not ${me.total}`);
+   check(JSON.stringify(drawn(view.host, rows)) === JSON.stringify(rows.map((r) => r.slot)), "16 players with a pinned row: not drawn in the server's order at the end");
+   await view.unmount();
+ }
+diff --git a/scripts/theme-check.tsx b/scripts/theme-check.tsx
+index f5bbfcaa..0bc6e146 100644
+--- a/scripts/theme-check.tsx
++++ b/scripts/theme-check.tsx
+@@ -4,8 +4,9 @@
+  *  1. The fonts and tokens (no browser): every file THEME_FONTS names is in public/fonts and is a woff2;
+  *     each @font-face (src/design/tokens.css, theme.css, app-pages.css) points at a file there with
+  *     font-display: swap and names Archivo, the one app font (DESIGN.md, design foundation F1, 6 Nov
+- *     2026); the root route preloads THEME_FONTS; --jz-font ends in a generic fallback family and every
+- *     old font token (--th-font-*, --ap-font) is var(--jz-font); no package was added for them. The
++ * Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*).
++ *     2026); the root route preloads THEME_FONTS; --jz-font ends in a generic fallback family and no
++ *     --th-* or --ap-* alias is left in src (retired in S1, 27 Nov 2026); no package was added for them. The
+  *     token pairs DESIGN.md section 2 promises (text, text-2 and text-3 on the background and surfaces,
+  *     on-gold on gold, gold on the background) are at least 4.5:1, from tokens.css's own values.
+  *  2. On every skinned screen (scripts/theme-screens.ts: the four tab screens, settings, lobby and
+@@ -81,14 +82,29 @@ if (!/THEME_FONTS\.map\([\s\S]{0,80}rel:\s*"preload"[\s\S]{0,80}as:\s*"font"/.te
+   if (!value.trim().startsWith(`"${APP_PAGE_FAMILY}"`) || !value.trim().endsWith("sans-serif"))
+     fail(`--jz-font is not Archivo with a fallback stack ending in sans-serif: ${value}`);
+ }
+-for (const [token, file] of [
+-  ["--th-font-head", css],
+-  ["--th-font-body", css],
+-  ["--th-font-mono", css],
+-  ["--ap-font", appCss],
+-] as const) {
+-  const value = new RegExp(`:root\\s*\\{[^}]*?${token}:\\s*([^;]+);`).exec(file)?.[1] ?? "";
+-  if (value.trim() !== "var(--jz-font)") fail(`${token} is not an alias of --jz-font: ${value}`);
++// Changed with Joe's approval, 27 Nov 2026 (S1: the --th-* and --ap-* aliases retired): was "every old font token
++// (--th-font-*, --ap-font) is var(--jz-font)"; now no --th-* or --ap-* custom property is defined or read anywhere in src.
++for (const file of [tokensCss, css, appCss, readFileSync("src/polish-layout/room-screens.css", "utf8")])
++  for (const m of file.matchAll(/--(?:th|ap)-[a-z0-9-]+/g)) fail(`an old --th-* / --ap-* alias is still in the stylesheets: ${m[0]}`);
++// Changed with Joe's approval, 27 Nov 2026 (S1): app chrome's font still resolves to Archivo. Every --font-display,
++// --font-body and --font-mono the app's own scopes set (styles.css :root, the page skin, the tab pages, the room
++// screens) is var(--jz-font), so no scope can bring in another face.
++{
++  const scopes: [string, string][] = [
++    ["src/styles.css", readFileSync("src/styles.css", "utf8")],
++    ["src/polish-layout/theme.css", css],
++    ["src/polish-layout/app-pages.css", appCss],
++    ["src/polish-layout/room-screens.css", readFileSync("src/polish-layout/room-screens.css", "utf8")],
++  ];
++  let seen = 0;
++  for (const [name, file] of scopes)
++    for (const m of file.matchAll(/--font-(display|body|mono):\s*([^;]+);/g)) {
++      // styles.css's @theme maps Tailwind's --font-* onto these same variables (var(--font-display) and friends).
++      if (/^var\(--font-(display|body|mono)\)$/.test(m[2]!.trim())) continue;
++      seen++;
++      if (m[2]!.trim() !== "var(--jz-font)") fail(`${name}: --font-${m[1]} is ${m[2]!.trim()}, not var(--jz-font) (Archivo)`);
++    }
++  if (seen < 12) fail(`app chrome's --font-* declarations: found ${seen}, expected at least 12`);
+ }
+ // The contrast DESIGN.md section 2 promises, from tokens.css's own values.
+ {
+@@ -325,7 +341,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
+     if (family !== familyFor(h, "head"))
+       problems.push(`heading "${h.textContent?.trim()}" is ${family}, not ${familyFor(h, "head")}`);
+   }
+-  for (const m of document.querySelectorAll("[data-skin] :is(.font-mono, .th-score)")) {
++  // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++  for (const m of document.querySelectorAll("[data-skin] :is(.font-mono, .jz-score)")) {
+     if (m.closest(NOT_JUDGED) || !visible(m)) continue;
+     const family = first(getComputedStyle(m).fontFamily);
+     if (family !== familyFor(m, "mono"))
+@@ -384,7 +401,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
+     skins: skins.length,
+     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
+     // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
+-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, .jz-sheet[data-skin], [data-skin] .jz-sheet, [data-skin] .jz-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
++    // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++    cards: document.querySelectorAll("[data-skin] .jz-card, [data-skin] .jz-dialog, .jz-sheet[data-skin], [data-skin] .jz-sheet, [data-skin] .jz-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
+     // The round leaderboard's closed rows: each shows its verdict line under the name.
+     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
+       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
+@@ -478,7 +496,8 @@ try {
+           if (probe.rowLines.some((l) => !l.oneLine)) problems.push("a closed leaderboard row's verdict line is not one line with an ellipsis");
+         }
+         if (probe.cards === 0 && !screen.plain)
+-          problems.push("no skin card or sheet (.th-card / .th-sheet) on the screen");
++          // Changed with Joe's approval, 27 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
++          problems.push("no skin card or sheet (.jz-card / .jz-dialog) on the screen");
+         for (const family of [...Object.values(THEME_FAMILIES), APP_PAGE_FAMILY]) {
+           if (probe.used.includes(family)) {
+             familiesUsed.add(family);
