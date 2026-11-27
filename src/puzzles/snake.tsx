@@ -45,6 +45,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still: a short trail about to reach the star, and a rock's shadow. */
 /**
@@ -66,6 +67,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: SnakePuzzleData | null = puzzle.type === "snake" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init; a new object each render
@@ -188,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) snakeArtGame.draw(context, state.current, size);
+      if (size && context) hudDraw(() => snakeArtGame.draw(context, state.current, size));
 
       frameTiming.rendered();
 
