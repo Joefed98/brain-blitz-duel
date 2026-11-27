@@ -27,7 +27,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { SKIN_GAMES, drawFrames, digest, type SkinGame } from "./skins/frames";
-import { baseDigests, baseLine, type BaseDigests } from "./skins/base";
+import { baseDigests, baseLine, NoMergeBase, type BaseDigests } from "./skins/base";
 
 const one = process.argv.find((a) => a.startsWith("--game="))?.slice(7) as SkinGame | undefined;
 // `--record-overhaul=pool,curling,racing`: writes those games' new default digests (drawn here, with no look) to the
@@ -80,7 +80,13 @@ try {
   base = baseDigests();
   console.log(`  ${baseLine(base)}`);
 } catch (e) {
-  failures.push(`main's renderers could not be drawn: ${e instanceof Error ? e.message : String(e)}`);
+  // 26 Nov 2026 (Joe): without main's frames there is nothing to compare, so the check fails here with the reason alone
+  // and draws nothing (it used to go on against the stored digests, which listed every game redrawn on main since
+  // they were recorded as a frame difference). Fails exactly as before; only the noise is gone.
+  const why = e instanceof Error ? e.message : String(e);
+  console.log(`  FAIL ${e instanceof NoMergeBase ? "no merge base" : "main's renderers could not be drawn"}: ${why}`);
+  console.log(`FAIL skins-default-check: main's frames could not be drawn, so no frame was compared (${e instanceof NoMergeBase ? "no merge base" : "see above"})`);
+  process.exit(1);
 }
 // The stored digests are this machine's record: asserted when main's live frames are exactly them (the same rasteriser).
 const storedHere = !!base && SKIN_GAMES.filter((g) => !OVERHAULED.has(g)).every((g) => Object.entries(stored[g] ?? {}).every(([n, d]) => base!.frames[g]?.[n] === d) && Object.keys(base!.frames[g] ?? {}).length === Object.keys(stored[g] ?? {}).length);
