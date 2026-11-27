@@ -726,12 +726,14 @@ export interface TallyLevers {
   compareLess: readonly [number, number];
   compareGap: readonly [number, number];
   twoColours: boolean;
+  /** D3 (levelRev 2's Easy): each counting tray asks for one shape alone or one colour alone (countRev 6's ask trays). */
+  asks?: boolean;
 }
 
 /** A level's trays (stage 3 of the Attention overhaul): today's builders on its levers; a fourth tray is the comparison. */
 export function buildTallyAt(l: TallyLevers): { stages: CountUpStage[]; counts: number[] } {
   const built = l.trays.map((total, i) =>
-    i === 3 ? buildCompareStage(total, l.compareLess, l.compareGap) : buildStage(total, l.counts[i]!, true, { groups: l.nearGroups, twoColours: l.twoColours }),
+    i === 3 ? buildCompareStage(total, l.compareLess, l.compareGap) : l.asks ? buildAskStage(total, [l.counts[i]![0], l.counts[i]![1]], pick<"shape" | "colour">(["shape", "colour"])) : buildStage(total, l.counts[i]!, true, { groups: l.nearGroups, twoColours: l.twoColours }),
   );
   return { stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
 }

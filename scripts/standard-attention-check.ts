@@ -39,6 +39,12 @@ import { hashText, makeRng, LEVELS, SKILLS } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeSteps, kitBands, median, sentAnswer } from "./standard-lib";
 import type { ChainPuzzleData, CountUpPuzzleData, MazePuzzleData, NumberHuntPuzzleData, PairPuzzleData, PuzzleData, PuzzleType, SpotPuzzleData, SymbolScanPuzzleData } from "../src/lib/duel/types";
+import { pinPreD3Speed } from "../src/lib/duel/d3Normal";
+
+// Changed with Joe's approval, 22 Nov 2026 (D3): D3's Normal scoring stamps (d3Normal.ts) deal Flash tapRev 8, Bonk
+// whackRev 5, the Chain chainDepthRev 4, Tenfall tenRev 7 and Pull! clayRev 11; this check was written for the stamps
+// before, so it deals them (d3-speed-ladder-check proves the new ones).
+pinPreD3Speed(true);
 
 // Written for the standard's stamps: Joe's puzzle notes (28 Oct 2026, puzzleNotes.ts) deal Slider and Tally one above,
 // so new deals here keep the standard's (puzzle-notes-check proves the new stamps).

@@ -497,7 +497,8 @@ function whackDrive(p: PuzzleData, pick: Pick<WhackState> | null): Driven<WhackS
   // whackRev 3 adds diamonds (its own game) and whackRev 4 keeps them up longer (its own game: the kit drove it as the
   // old board, so its runs desynced at the first checkpoint; fixed 15 Nov 2026 for the Speed intro demos); every older
   // revision plays the same board.
-  return drive(whackGameFor(p.type === "whack" && (p.whackRev === 3 || p.whackRev === 4) ? p.whackRev : undefined, p.type === "whack" ? p.bonkLevel : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
+  // Changed with Joe's approval, 22 Nov 2026 (D3): whackRev 5 (the wider quick window) plays its own game too.
+  return drive(whackGameFor(p.type === "whack" && (p.whackRev === 3 || p.whackRev === 4 || p.whackRev === 5) ? p.whackRev : undefined, p.type === "whack" ? p.bonkLevel : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
 }
 const whackTap = (hole: number): Ev => ({ k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0 });
 

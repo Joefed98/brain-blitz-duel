@@ -120,7 +120,9 @@ for (let n = 0; n < SAMPLES; n++) {
       const p = deal("chain", level, n);
       const s = CHAIN_LEVELS[level];
       if (p.type !== "chain") throw new Error("chain");
-      ok(chainRules(p).length === s.links && p.boards.length === Math.ceil(s.links / 5), `${tag("chain")}: ${s.links} links on ${Math.ceil(s.links / 5)} boards`);
+      // Changed with Joe's approval, 22 Nov 2026 (D3): a new board every cycle (the level's `block`, today's 5).
+      const block = (s as { block?: number }).block ?? 5;
+      ok(chainRules(p).length === s.links && p.boards.length === Math.ceil(s.links / block), `${tag("chain")}: ${s.links} links on ${Math.ceil(s.links / block)} boards`);
       ok((p.cycles ?? []).every((c) => c.length === s.cycle), `${tag("chain")}: ${s.cycle} charms to a cycle`);
       const reversed = Array.from({ length: s.links }, (_, k) => chainReversedAt(p, k));
       const want = Array.from({ length: s.links }, (_, k) => s.reverse.some(([a, b]) => k + 1 >= a && k + 1 <= b));
@@ -213,8 +215,11 @@ for (const type of SPEED_LEVEL_GAMES) {
   console.log(`  ${type}: human limits Easy ${easy!.average}, Normal ${normal!.average}, Hard ${hard!.average}, Expert ${expert!.average} (best tenth ${expert!.top10}; 100 deals)`);
   // Easy is never harder than Normal (within 3: Bonk and Ascend sit at a strong player's ceiling on both).
   ok(easy!.average >= normal!.average - 3, `${type}: Easy (${easy!.average}) is no harder than Normal (${normal!.average})`);
-  ok(hard!.average <= normal!.average - 3, `${type}: Hard (${hard!.average}) is clearly harder than Normal (${normal!.average})`);
-  ok(expert!.average <= hard!.average - 3, `${type}: Expert (${expert!.average}) is clearly harder than Hard (${hard!.average})`);
+  // Changed with Joe's approval, 22 Nov 2026 (D3): the step up from Normal to Hard to Expert is judged by Joe's D3
+  // ladder test in d3-speed-ladder-check, which asserts it for each of Flash, Ascend, the Chain, Bonk, Tenfall and Pull!
+  // (the average player clearly lower each level up, the realistic elite under the human limits reaching 200 less often
+  // each level up and on at least a fifth of Expert boards). A realistic elite who can reach 200 averages about 190 at
+  // every level, so the elite's average no longer steps down by 3.
   // Humanly possible to score well on: the best tenth under human limits reaches 140, or Normal's own average where
   // that is lower (Flash's curve is reaction-bound: a 250 ms reaction scores about 115 a flash).
   ok(expert!.top10 >= Math.min(140, normal!.average), `${type}: Expert's best tenth under human limits scores ${expert!.top10} (at least ${Math.min(140, normal!.average)})`);

@@ -289,60 +289,49 @@ view.root.unmount();
   const practiceSrc = (await import("node:fs")).readFileSync("src/routes/practice.tsx", "utf8");
   check(/const heldBack = useEarlyAccessHeld\(\)/.test(practiceSrc) && /<GamesCatalogue[\s\S]*?hidden=\{heldBack\}/.test(practiceSrc), "Games passes the held-back games to the catalogue");
   const { GamesCatalogue } = await import("../src/components/games/GamesCatalogue");
-  const { catalogueGames, catalogueShelves } = await import("../src/components/games/gameMeta");
+  const { catalogueGames } = await import("../src/components/games/gameMeta"); // Changed with Joe's approval, 22 Nov 2026
   const { gameOfTheDayAt } = await import("../src/lib/duel/gameOfTheDay");
   const { PUZZLE_REGISTRY } = await import("../src/lib/duel/catalogue");
-  // Changed with Joe's approval, 15 Nov 2026 (Puzzles | Arcade switch restored): the page shows one side at a time and
-  // has no All chip, so the catalogue is drawn on each side and every held-back game is proved absent on both (grid,
-  // tiles, search, game of the day), with every other game present across the two sides combined. Was one drawing with
-  // an All chip and every game in one grid.
-  const { practiceSideOf } = await import("../src/lib/duel/practiceSide");
-  const SIDES = ["puzzles", "arcade"] as const;
-  // Held back: each side's game of the day (so each side's hero must pick another), Gridlock (Plus's own stand-in above)
-  // and every game of the smallest shelf (so its chip has nothing to open).
-  const smallest = [...catalogueShelves()].sort((a, b) => a.games.length - b.games.length)[0];
-  const sideGames = (side: (typeof SIDES)[number]) => catalogueGames().filter((t) => practiceSideOf(t) === side);
-  const dayGames = SIDES.map((side) => gameOfTheDayAt(Date.now(), sideGames(side)));
-  const held = [...new Set([...dayGames, "unblock", ...smallest.games])];
-  const seenAcross = new Set<string>();
-  for (const side of SIDES) {
+  // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All): the catalogue is drawn in both views
+  // with the held-back games (the game of the day, Gridlock, and every game of the smallest shelf, so that shelf has
+  // nothing to show), and every held-back game is proved absent in both views (shelves, the All grid, a search for its
+  // own name and the game of the day), every other game present once in each, and a shelf whose games are all held back
+  // isn't drawn. Was the catalogue drawn on each Puzzles | Arcade side, with its category chips.
+  const { homeShelves } = await import("../src/components/games/gameMeta"); // Changed with Joe's approval, 22 Nov 2026
+  const VIEWS = ["shelves", "all"] as const; // Changed with Joe's approval, 22 Nov 2026
+  const smallest = [...homeShelves()].sort((a, b) => a.games.length - b.games.length)[0]!; // Changed with Joe's approval, 22 Nov 2026
+  const dayGame = gameOfTheDayAt(Date.now(), catalogueGames()); // Changed with Joe's approval, 22 Nov 2026
+  const held = [...new Set([dayGame, "unblock", ...smallest.games])]; // Changed with Joe's approval, 22 Nov 2026
+  for (const shown of VIEWS) { // Changed with Joe's approval, 22 Nov 2026
     let setQuery: (q: string) => void = () => {};
     function Catalogue() {
       const [query, onQuery] = React.useState("");
-      const [filter, onFilter] = React.useState("all");
+      const [view, onView] = React.useState<"shelves" | "all">(shown); // Changed with Joe's approval, 22 Nov 2026
       setQuery = onQuery;
-      return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, filter, onFilter, side, onSide: () => {}, hidden: held, tileStyle: null, onOpen: () => {} });
+      return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, view, onView, hidden: held, tileStyle: null, onOpen: () => {} }); // Changed with Joe's approval, 22 Nov 2026
     }
     view = await mount(() => React.createElement(Catalogue));
     await settle(30);
     const tiles = () => $$("[data-practice-game]").map((el) => el.getAttribute("data-practice-game") ?? "");
-    const shown = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null;
-    check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), `${side}: the grid leaves every held-back game out`);
-    const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null;
-    check(hero !== null && !held.includes(hero), `${side}: the game of the day is never a held-back game (${hero}, held ${dayGames.join(", ")})`);
-    check($(`[data-practice-filter="${smallest.id}"]`) === null, `${side}: a chip whose games are all held back isn't drawn (${smallest.id})`);
-    const chipIds = $$("[data-practice-filter]").map((el) => el.getAttribute("data-practice-filter") ?? "");
-    let underChips = true;
-    for (const id of chipIds) {
-      await click($(`[data-practice-filter="${id}"]`));
-      if (held.some(shown)) underChips = false;
-      // A second tap on the chosen tile shows the whole side again (there is no All chip).
-      await click($(`[data-practice-filter="${id}"]`));
+    const present = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null; // Changed with Joe's approval, 22 Nov 2026
+    check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), `${shown}: the page leaves every held-back game out`); // Changed with Joe's approval, 22 Nov 2026
+    if (shown === "shelves") { // Changed with Joe's approval, 22 Nov 2026
+      const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null; // Changed with Joe's approval, 22 Nov 2026
+      check(hero !== null && !held.includes(hero), `${shown}: the game of the day is never a held-back game (${hero}, held ${dayGame})`); // Changed with Joe's approval, 22 Nov 2026
     }
-    check(chipIds.length >= 1 && underChips && !chipIds.includes("all"), `${side}: no chip shows a held-back game, and there is no All chip (${chipIds.length} chips)`);
+    check($(`[data-games-shelf="${smallest.id}"], [data-games-group="${smallest.id}"]`) === null, `${shown}: a shelf whose games are all held back isn't drawn (${smallest.id})`); // Changed with Joe's approval, 22 Nov 2026
     let inSearch = true;
     for (const type of held) {
       await act(async () => setQuery(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].name));
-      if (shown(type)) inSearch = false;
+      if (present(type)) inSearch = false; // Changed with Joe's approval, 22 Nov 2026
     }
-    check(inSearch, `${side}: a search for a held-back game's own name doesn't find it`);
+    check(inSearch, `${shown}: a search for a held-back game's own name doesn't find it`); // Changed with Joe's approval, 22 Nov 2026
     await act(async () => setQuery(""));
-    const want = sideGames(side).filter((t) => !held.includes(t));
-    check(JSON.stringify([...tiles()].sort()) === JSON.stringify([...want].sort()), `${side}: every other game on this side is in the grid (${tiles().length})`);
-    for (const t of tiles()) seenAcross.add(t);
+    const want = catalogueGames().filter((t) => !held.includes(t)); // Changed with Joe's approval, 22 Nov 2026
+    check(JSON.stringify([...tiles()].sort()) === JSON.stringify([...want].sort()), `${shown}: every other game is on the page once (${tiles().length})`); // Changed with Joe's approval, 22 Nov 2026
     view.root.unmount();
   }
-  check(seenAcross.size === catalogueGames().filter((t) => !held.includes(t)).length, "every other game is still in the grid, across the two sides");
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 2).join(" | ")})`);

@@ -35,7 +35,7 @@ import { installOfflinePractice } from "../lib/offline/install";
 import { pushPublicKey } from "../config/pushConfig";
 import { OFFLINE_BOOT } from "../lib/offline/online";
 import { APPEARANCE_BOOT, installAppearance } from "../lib/appearance";
-import { decideFirstOpen } from "../lib/firstOpen";
+import { FIRST_GAME, decideFirstGame, decideFirstOpen } from "../lib/firstOpen";
 
 /** The first-open onboarding (lib/firstOpen.ts), loaded only on the open that shows it. */
 const FirstOpen = lazy(() => import("../components/app/FirstOpen"));
@@ -246,12 +246,19 @@ function RootComponent() {
   // The first-open onboarding (lib/firstOpen.ts; off until wave 3): decided on the first render in the
   // browser, before any page marks the first-time intro seen, then shown after hydration.
   const firstOpenWanted = useRef<boolean | null>(null);
+  // The first game (P2, 22 Nov 2026; lib/firstOpen.ts decideFirstGame, behind FIRST_GAME_ON_OPEN, off): a new phone's
+  // first open goes straight into Ascend on Easy. Decided first; when it goes, the three screens never show.
+  const firstGameWanted = useRef<boolean | null>(null);
+  if (firstGameWanted.current === null && typeof window !== "undefined")
+    firstGameWanted.current = decideFirstGame(window.location);
   if (firstOpenWanted.current === null && typeof window !== "undefined")
-    firstOpenWanted.current = decideFirstOpen(window.location);
+    firstOpenWanted.current = firstGameWanted.current ? false : decideFirstOpen(window.location);
   const [firstOpen, setFirstOpen] = useState(false);
   useEffect(() => {
-    if (firstOpenWanted.current) setFirstOpen(true);
-  }, []);
+    if (firstGameWanted.current)
+      void router.navigate({ to: "/practice", search: { game: FIRST_GAME.type, first: "1" } as never, replace: true });
+    else if (firstOpenWanted.current) setFirstOpen(true);
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>

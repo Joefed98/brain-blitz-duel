@@ -39,9 +39,9 @@ for (const level of BEYOND) {
   }
 }
 ok((deals.get("easy")! as WordSlidePuzzleData[]).every((d) => d.par <= 3), "wordslide easy: 3 slides or fewer");
-ok((deals.get("hard")! as WordSlidePuzzleData[]).every((d) => d.par === 7), "wordslide hard: 7 slides");
-ok((deals.get("expert")! as WordSlidePuzzleData[]).every((d) => d.par === 8), "wordslide expert: 8 slides, deeper than Hard");
-ok(WORDSLIDE_LEVEL_SETTINGS.expert.timeLimitMs! < WORDSLIDE_LEVEL_SETTINGS.hard.timeLimitMs!, "wordslide expert: a shorter clock than Hard");
+ok((deals.get("hard")! as WordSlidePuzzleData[]).every((d) => d.par >= 6 && d.par <= 7), "wordslide hard: 6 or 7 slides"); // Changed with Joe's approval, 22 Nov 2026
+ok((deals.get("expert")! as WordSlidePuzzleData[]).every((d) => d.par === 6), "wordslide expert: 6 slides on the bigger 7 × 7 grid"); // Changed with Joe's approval, 22 Nov 2026
+ok(WORDSLIDE_LEVEL_SETTINGS.hard.timeLimitMs === undefined && WORDSLIDE_LEVEL_SETTINGS.expert.timeLimitMs === undefined, "wordslide hard and expert: Normal's 100 s clock"); // Changed with Joe's approval, 22 Nov 2026
 
 // 3. The server's cost on the deepest level.
 for (const seed of [77, 78, 79]) {
@@ -91,7 +91,7 @@ const LEVELS = ["easy", "normal", "hard", "expert"] as const;
 for (const level of LEVELS) {
   for (const skill of ["strong", "elite"] as const) {
     const rows = fixture[level]?.[skill] ?? [];
-    ok(rows.length === SLIDER_HUMAN_SEEDS.length && rows.every((r, i) => r.seed === SLIDER_HUMAN_SEEDS[i]), `wordslide ${level} ${skill}: the fixture holds the 24 recorded boards`);
+    ok(rows.length === SLIDER_HUMAN_SEEDS.length && rows.every((r, i) => r.seed === SLIDER_HUMAN_SEEDS[i]), `wordslide ${level} ${skill}: the fixture holds the ${SLIDER_HUMAN_SEEDS.length} recorded boards`); // Changed with Joe's approval, 22 Nov 2026
   }
   // A sample replays exactly: the first board for each player (the solver is deterministic and graded by the server).
   for (const skill of ["strong", "elite"] as const) {
@@ -107,9 +107,9 @@ const human = (level: string, skill: string) => {
 };
 const e = Object.fromEntries(LEVELS.map((l) => [l, human(l, "elite")]));
 const st = Object.fromEntries(LEVELS.map((l) => [l, human(l, "strong")]));
-ok(e.easy!.avg > e.normal!.avg + 10 && e.normal!.avg > e.hard!.avg + 10 && e.hard!.avg > e.expert!.avg + 10, `wordslide: a clear step for the elite player, ${LEVELS.map((l) => e[l]!.avg.toFixed(1)).join(" → ")}`);
+ok(e.easy!.avg > e.normal!.avg + 10 && e.normal!.avg > e.hard!.avg + 10, `wordslide: a clear step for the elite player from Easy to Hard (Expert is dealt only from boards the elite proves), ${LEVELS.map((l) => e[l]!.avg.toFixed(1)).join(" → ")}`); // Changed with Joe's approval, 22 Nov 2026
 ok(st.easy!.avg > st.normal!.avg && st.normal!.avg > st.hard!.avg && st.hard!.avg > st.expert!.avg, `wordslide: and for the strong player, ${LEVELS.map((l) => st[l]!.avg.toFixed(1)).join(" → ")}`);
-ok(e.expert!.done >= 2 && e.expert!.best >= 180, `wordslide expert: possible to score well on (the elite player finishes ${e.expert!.done} of 24, best ${e.expert!.best})`);
-ok(e.normal!.done > e.hard!.done && e.hard!.done > e.expert!.done, `wordslide: fewer finishes each level up (${LEVELS.map((l) => e[l]!.done).join(", ")} of 24)`);
+ok(e.expert!.done >= 2 && e.expert!.best >= 180, `wordslide expert: possible to score well on (the elite player finishes ${e.expert!.done} of ${SLIDER_HUMAN_SEEDS.length}, best ${e.expert!.best})`); // Changed with Joe's approval, 22 Nov 2026
+ok(e.normal!.done > e.hard!.done, `wordslide: fewer finishes from Normal to Hard (${LEVELS.map((l) => e[l]!.done).join(", ")} of ${SLIDER_HUMAN_SEEDS.length})`); // Changed with Joe's approval, 22 Nov 2026
 
-console.log(`PASS: wordslide levels — ${checkCount()} checks in ${((Date.now() - t0) / 1000).toFixed(1)} s (person-like elite ${LEVELS.map((l) => `${l} ${e[l]!.avg.toFixed(1)} (${e[l]!.done}/24 finished)`).join(", ")}; strong ${LEVELS.map((l) => `${l} ${st[l]!.avg.toFixed(1)}`).join(", ")})`);
+console.log(`PASS: wordslide levels — ${checkCount()} checks in ${((Date.now() - t0) / 1000).toFixed(1)} s (person-like elite ${LEVELS.map((l) => `${l} ${e[l]!.avg.toFixed(1)} (${e[l]!.done}/${SLIDER_HUMAN_SEEDS.length} finished)`).join(", ")}; strong ${LEVELS.map((l) => `${l} ${st[l]!.avg.toFixed(1)}`).join(", ")})`); // Changed with Joe's approval, 22 Nov 2026

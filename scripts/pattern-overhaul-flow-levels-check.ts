@@ -81,8 +81,8 @@ const E = flowLevelSettings("easy");
 const H = flowLevelSettings("hard");
 const X = flowLevelSettings("expert");
 check(E.cols === 6 && E.rows === 6 && E.minPairs === 5 && E.maxPairs === 6 && E.maxWalls === 0 && E.timeLimitMs === 75_000, "Easy: 6 × 6, 5–6 pairs, no walls, 75 s");
-check(H.cols === 9 && H.rows === 9 && H.minPairs === 8 && H.maxPairs === 9 && H.minWalls === 4 && H.maxWalls === 6 && H.timeLimitMs === 75_000, "Hard: 9 × 9, 8–9 pairs, 4–6 walls, 75 s");
-check(X.cols === 9 && X.rows === 12 && X.minPairs === 12 && X.maxPairs === 14 && X.minWalls === 4 && X.maxWalls === 6 && X.timeLimitMs === 90_000, "Expert: 9 wide × 12 tall, 12–14 pairs, 4–6 walls, 90 s");
+check(H.cols === 9 && H.rows === 11 && H.minPairs === 12 && H.maxPairs === 12 && H.minWalls === 4 && H.maxWalls === 6 && H.timeLimitMs === 75_000, "Hard: 9 × 11, 12 pairs, 4–6 walls, 75 s"); // Changed with Joe's approval, 22 Nov 2026
+check(X.cols === 9 && X.rows === 13 && X.minPairs === 14 && X.maxPairs === 14 && X.minWalls === 6 && X.maxWalls === 8 && X.timeLimitMs === 70_000, "Expert: 9 wide × 13 tall, 14 pairs, 6–8 walls, 70 s"); // Changed with Joe's approval, 22 Nov 2026
 
 /* ------------------------------------------------------------------ 2. each level deals its settings */
 console.log("2. deals");
@@ -102,7 +102,7 @@ for (const level of FLOW_LEVELS) {
     check(JSON.stringify(deal(level, seed)) === JSON.stringify(p), `${level} #${seed}: the same seed deals the same board`);
   }
 }
-check(deal("expert", 5).timeLimitMs === 90_000 && deal("hard", 5).timeLimitMs === undefined, "only Expert stores its own clock");
+check(deal("expert", 5).timeLimitMs === 70_000 && deal("hard", 5).timeLimitMs === undefined, "only Expert stores its own clock"); // Changed with Joe's approval, 22 Nov 2026
 const live = withSeededRandom(3, () => generatePuzzle("flow", { level: "hard" })) as Flow;
 check(puzzleLevel(live) === "hard" && verifyFlowLevelPuzzle({ ...live, flowRev: undefined, level: undefined } as unknown as Flow, "hard") === null, "a level dealt without a seed (live) passes its level's proof too");
 
@@ -183,8 +183,8 @@ for (const level of FLOW_LEVELS) {
   check(solveAt(p, s.fullByS - 1) === 200 && solveAt(p, s.fullByS + 8) < 200, `${level}: 200 within ${s.fullByS} s, less after`);
 }
 const x = deal("expert", 12);
-const xSpeedLate = solveAt(x, 80);
-check(xSpeedLate > 150, `Expert: a solve at 80 s still has speed points on its 90 s clock (${xSpeedLate})`);
+const xSpeedLate = solveAt(x, 60); // Changed with Joe's approval, 22 Nov 2026
+check(xSpeedLate > 150, `Expert: a solve at 60 s still has speed points on its 70 s clock (${xSpeedLate})`); // Changed with Joe's approval, 22 Nov 2026
 const hardAsNormal = { ...deal("hard", 12) } as Record<string, unknown>;
 delete hardAsNormal["level"];
 check(patternFullByS("flow", hardAsNormal) === FLOW_REV3_FULL_BY_S, "the same board without its level stamp grades as Normal (the stored stamp decides)");
@@ -231,8 +231,8 @@ const { FlowBoard } = await import("../src/puzzles/flow");
 const xp = FLOW_EXPERT_BANK[0]!;
 const html = renderToStaticMarkup(createElement(FlowBoard, { pairs: xp.pairs, paths: xp.pairs.map(() => []), walls: xp.walls ?? [], cols: 9, cells: flowCellCount(flowGrid(xp)) }));
 const squares = (html.match(/class="flow-cell /g) ?? []).length + (html.match(/class="flow-wall /g) ?? []).length;
-check(squares === 108, `the Expert board draws all 108 squares (${squares})`);
-check(html.includes("aspect-ratio:9 / 12") && html.includes('data-flow-grid="9x12"') && !html.includes("aspect-square"), "the Expert board keeps its own 9 : 12 aspect");
+check(squares === 117, `the Expert board draws all 117 squares (${squares})`); // Changed with Joe's approval, 22 Nov 2026
+check(html.includes("aspect-ratio:9 / 13") && html.includes('data-flow-grid="9x13"') && !html.includes("aspect-square"), "the Expert board keeps its own 9 : 13 aspect"); // Changed with Joe's approval, 22 Nov 2026
 const normalHtml = renderToStaticMarkup(createElement(FlowBoard, { pairs: FLOW_BANK[0]!.pairs, paths: [], walls: FLOW_BANK[0]!.walls ?? [] }));
 check(normalHtml.includes("aspect-square") && !normalHtml.includes("data-flow-grid"), "a 9 × 9 board draws as before (square, no grid mark)");
 

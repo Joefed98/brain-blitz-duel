@@ -10,6 +10,7 @@ import { withSeededRandom } from "../../src/lib/duel/random";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { generateWordsmithExample } from "../../src/lib/duel/wordsmith.server";
 import { dealWordOverhaul } from "../../src/lib/duel/wordOverhaul.server";
+import { dealWordStar } from "../../src/lib/duel/wordStar";
 
 export function exampleFor(type: PuzzleType): PuzzleData {
   if (LIVE_INTRO_EXAMPLE_TYPES.has(type))
@@ -17,7 +18,7 @@ export function exampleFor(type: PuzzleType): PuzzleData {
   return (bankedIntroExample(type) ??
     withSeededRandom(INTRO_EXAMPLE_SEED, () =>
       type === "wordsmith"
-        ? dealWordOverhaul(generateWordsmithExample())
+        ? dealWordStar(dealWordOverhaul(generateWordsmithExample()))
         : generatePuzzle(type, { unblockRow: null }),
     )) as PuzzleData;
 }

@@ -82,8 +82,8 @@ const LEVELS = ["easy", "hard", "expert"] as const;
 type L = (typeof LEVELS)[number];
 const WANT: Record<L, { crates: number; min: number; max: number; perCrate: number; detour: boolean; hint: boolean; fullBy: number }> = {
   easy: { crates: 3, min: 8, max: 14, perCrate: 2, detour: false, hint: true, fullBy: 30 },
-  hard: { crates: 5, min: 25, max: 32, perCrate: 3, detour: true, hint: false, fullBy: 45 },
-  expert: { crates: 6, min: 30, max: 40, perCrate: 3, detour: true, hint: false, fullBy: 45 },
+  hard: { crates: 6, min: 28, max: 36, perCrate: 3, detour: true, hint: false, fullBy: 61 }, // Changed with Joe's approval, 22 Nov 2026
+  expert: { crates: 7, min: 38, max: 48, perCrate: 3, detour: true, hint: false, fullBy: 81 }, // Changed with Joe's approval, 22 Nov 2026
 };
 const OPP = { U: "D", D: "U", L: "R", R: "L" } as Record<SlideDir, SlideDir>;
 const deal = (seed: number, level?: string) =>
@@ -290,13 +290,13 @@ check(351 / 9 >= 39, "grid: Normal's 9 × 9 cell size");
   const { level: _l, ...asNormal } = easy;
   const normal = gradeAnswer(asNormal as PuzzleData, moves, 120_000 - 38_000);
   check(own.isCorrect && normal.isCorrect && normal.score === 200 && own.score < 200 && own.score >= 190, `grade: Easy solved at 38 s scores ${own.score} (as Normal ${normal.score})`);
-  // Unfinished on Expert: credit out of its own six crates.
+  // Unfinished on Expert: credit out of its own seven crates. (Changed with Joe's approval, 22 Nov 2026)
   const ex = dealt.expert[0]!;
   const half = solutionMoves(ex)!;
   const part = half.slice(0, Math.floor(half.length * 0.7));
   const gp = gradeAnswer(ex as PuzzleData, encodePushMoves(part), 0);
   const extra = gp.extra as { crates?: number; cratesHome?: number };
-  check(!gp.isCorrect && extra.crates === 6 && gp.score >= 0 && gp.score <= 130, `grade: an unfinished Expert board ${gp.score}, ${extra.cratesHome} of ${extra.crates}`);
+  check(!gp.isCorrect && extra.crates === 7 && gp.score >= 0 && gp.score <= 130, `grade: an unfinished Expert board ${gp.score}, ${extra.cratesHome} of ${extra.crates}`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ 7. the stuck hint */

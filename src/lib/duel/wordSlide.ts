@@ -39,12 +39,47 @@ export const WORD_SLIDE_REV_SWAP = 4;
 export function slideSwapsOn(puzzle: { wordSlideRev?: number } | null | undefined): boolean {
   return wordSlideRevOf(puzzle) >= WORD_SLIDE_REV_SWAP;
 }
-/** Locked rows needed before the last row's tiles can be swapped. */
+/** Locked rows needed before the last row's tiles can be swapped (on Normal's 5 × 5; a level grid's: its size − 1). */
 export const WS_SWAP_LOCKED = WS_SIZE - 1;
+
+/**
+ * Slider's levels (D1, 21 Nov 2026; wordSlideRev 7, level deals only): the grid size is the ladder (Easy 4 × 4, Normal
+ * 5 × 5, Hard 6 × 6, Expert 7 × 7), stored on the puzzle as `size`; every rule reads it through `wordSlideSize`, so a
+ * puzzle without the stamp (Normal and every older round) is 5 × 5 exactly as before.
+ */
+export const WORD_SLIDE_REV_SIZED = 7;
+export const WS_LEVEL_SIZES = [4, 5, 6, 7] as const;
+export function wordSlideSize(puzzle: { wordSlideRev?: number; size?: number } | null | undefined): number {
+  if (wordSlideRevOf(puzzle) < WORD_SLIDE_REV_SIZED) return WS_SIZE;
+  const n = puzzle?.size;
+  return typeof n === "number" && (WS_LEVEL_SIZES as readonly number[]).includes(n) ? n : WS_SIZE;
+}
+/**
+ * The par line a board's bonus is scored on (D1, 21 Nov 2026): the whole bonus within `full` slides, nothing from `zero`.
+ * A level board may store its own (Expert's looser line, wordSlideRev 7 only); every other board, Normal and every older
+ * round, is scored on its par and twice its par, as before.
+ */
+export function sliderParLine(puzzle: { par: number; wordSlideRev?: number; parFullAt?: number; parZeroAt?: number }): { full: number; zero: number } {
+  const own = wordSlideRevOf(puzzle) >= WORD_SLIDE_REV_SIZED;
+  const full = own && typeof puzzle.parFullAt === "number" && puzzle.parFullAt >= puzzle.par ? puzzle.parFullAt : puzzle.par;
+  const zero = own && typeof puzzle.parZeroAt === "number" && puzzle.parZeroAt > full ? puzzle.parZeroAt : 2 * puzzle.par;
+  return { full, zero: Math.max(zero, full) };
+}
+/** A drawn grid's side from its tiles (16, 25, 36 or 49); anything else is Normal's 5 (display only). */
+export function slideGridSide(grid: readonly unknown[] | null | undefined): number {
+  const n = grid?.length ?? 0;
+  return n === 16 ? 4 : n === 36 ? 6 : n === 49 ? 7 : WS_SIZE;
+}
+/** The rows of a grid of `size` (Normal's WS_MARKED_ROWS at 5). */
+export function wsRows(size: number = WS_SIZE): readonly number[] {
+  return size === WS_SIZE ? WS_MARKED_ROWS : Array.from({ length: size }, (_, r) => r);
+}
 
 export interface SlideReplayRules {
   /** wordSlideRev 4: swap tokens apply (with four rows locked). */
   swaps?: boolean;
+  /** wordSlideRev 7: the grid's size (Normal's 5 when absent). */
+  size?: number;
   /**
    * The server's dictionary: a swap applies only while every locked row reads as a word (the phone only lets a
    * word row lock, so an honest log always passes). Without it (the phone's own replay), the four locks suffice.
@@ -53,9 +88,9 @@ export interface SlideReplayRules {
 }
 
 /** The one row a swap moves tiles in, or null when swaps are not open (fewer or more than four rows locked). */
-export function slideSwapRow(locked: ReadonlySet<number>): number | null {
-  if (locked.size !== WS_SWAP_LOCKED) return null;
-  for (let r = 0; r < WS_SIZE; r++) if (!locked.has(r)) return r;
+export function slideSwapRow(locked: ReadonlySet<number>, size: number = WS_SIZE): number | null {
+  if (locked.size !== size - 1) return null;
+  for (let r = 0; r < size; r++) if (!locked.has(r)) return r;
   return null;
 }
 
@@ -81,43 +116,45 @@ export function shiftToken(shift: SlideShift): string {
 
 export type SlideToken = SlideShift | "U" | "X" | { lock: number } | { swap: [number, number] };
 
-export function parseToken(token: string): SlideToken | null {
+/** A token on a grid of `size` (Normal's 5: rows and columns 0–4; a level grid's up to 0–6); anything else is null. */
+export function parseToken(token: string, size: number = WS_SIZE): SlideToken | null {
   if (token === "U" || token === "X") return token;
-  const swap = /^S([0-4])([0-4])$/.exec(token);
-  if (swap) return swap[1] === swap[2] ? null : { swap: [Number(swap[1]), Number(swap[2])] };
-  const lock = /^L([0-4])$/.exec(token);
-  if (lock) return { lock: Number(lock[1]) };
-  const match = /^([rc])([0-4])([+-])$/.exec(token);
-  if (!match) return null;
+  const fits = (d: string) => Number(d) < size;
+  const swap = /^S([0-6])([0-6])$/.exec(token);
+  if (swap) return swap[1] === swap[2] || !fits(swap[1]!) || !fits(swap[2]!) ? null : { swap: [Number(swap[1]), Number(swap[2])] };
+  const lock = /^L([0-6])$/.exec(token);
+  if (lock) return fits(lock[1]!) ? { lock: Number(lock[1]) } : null;
+  const match = /^([rc])([0-6])([+-])$/.exec(token);
+  if (!match || !fits(match[2]!)) return null;
   return { axis: match[1] as "r" | "c", index: Number(match[2]), dir: match[3] === "+" ? 1 : -1 };
 }
 
-export function decodeSlideTokens(raw: string): string[] {
+export function decodeSlideTokens(raw: string, size: number = WS_SIZE): string[] {
   if (typeof raw !== "string" || !raw) return [];
   return raw
     .split(",")
     .slice(0, 600)
-    .filter((t) => parseToken(t) !== null);
+    .filter((t) => parseToken(t, size) !== null);
 }
 
 /** Shift one row (right = +1) or column (down = +1) by one, with wrap-around.
  * Locked rows never move; a column cycles only its unlocked cells. */
-export function applyShift(grid: string[], shift: SlideShift, locked: ReadonlySet<number> = new Set()): string[] {
+export function applyShift(grid: string[], shift: SlideShift, locked: ReadonlySet<number> = new Set(), size: number = WS_SIZE): string[] {
   const next = [...grid];
   if (shift.axis === "r" && locked.has(shift.index)) return next;
   if (shift.axis === "c" && locked.size) {
-    const rows = Array.from({ length: WS_SIZE }, (_, r) => r).filter((r) => !locked.has(r));
+    const rows = Array.from({ length: size }, (_, r) => r).filter((r) => !locked.has(r));
     const n = rows.length;
     rows.forEach((r, k) => {
       const from = rows[(k - shift.dir + n) % n]!;
-      next[r * WS_SIZE + shift.index] = grid[from * WS_SIZE + shift.index]!;
+      next[r * size + shift.index] = grid[from * size + shift.index]!;
     });
     return next;
   }
-  for (let k = 0; k < WS_SIZE; k++) {
-    const from = (k - shift.dir + WS_SIZE) % WS_SIZE;
-    if (shift.axis === "r") next[shift.index * WS_SIZE + k] = grid[shift.index * WS_SIZE + from]!;
-    else next[k * WS_SIZE + shift.index] = grid[from * WS_SIZE + shift.index]!;
+  for (let k = 0; k < size; k++) {
+    const from = (k - shift.dir + size) % size;
+    if (shift.axis === "r") next[shift.index * size + k] = grid[shift.index * size + from]!;
+    else next[k * size + shift.index] = grid[from * size + shift.index]!;
   }
   return next;
 }
@@ -131,11 +168,12 @@ export function replayWordSlide(
   const history: string[][] = [start];
   const locked = new Set<number>();
   let moves = 0;
+  const size = rules.size ?? WS_SIZE;
   const dropChanged = (before: string[], after: string[]) => {
-    for (const r of [...locked]) if (markedRowWord(before, r) !== markedRowWord(after, r)) locked.delete(r);
+    for (const r of [...locked]) if (markedRowWord(before, r, size) !== markedRowWord(after, r, size)) locked.delete(r);
   };
   for (const token of tokens) {
-    const parsed = parseToken(token);
+    const parsed = parseToken(token, size);
     if (!parsed) continue;
     const current = history[history.length - 1]!;
     if (parsed === "U") {
@@ -157,24 +195,24 @@ export function replayWordSlide(
     }
     if ("swap" in parsed) {
       // wordSlideRev 4 only; anything else (an older stamp, swaps not open, a locked row that is not a word) is ignored.
-      const row = rules.swaps ? slideSwapRow(locked) : null;
+      const row = rules.swaps ? slideSwapRow(locked, size) : null;
       if (row === null) continue;
-      if (rules.isWord && [...locked].some((r) => !rules.isWord!(markedRowWord(current, r)))) continue;
+      if (rules.isWord && [...locked].some((r) => !rules.isWord!(markedRowWord(current, r, size)))) continue;
       const next = [...current];
       const [a, b] = parsed.swap;
-      next[row * WS_SIZE + a] = current[row * WS_SIZE + b]!;
-      next[row * WS_SIZE + b] = current[row * WS_SIZE + a]!;
+      next[row * size + a] = current[row * size + b]!;
+      next[row * size + b] = current[row * size + a]!;
       history.push(next);
       moves++;
       continue;
     }
     if (parsed.axis === "r" && locked.has(parsed.index)) continue;
-    history.push(applyShift(current, parsed, locked));
+    history.push(applyShift(current, parsed, locked, size));
     moves++;
   }
   return { grid: history[history.length - 1]!, moves, locked: [...locked].sort() };
 }
 
-export function markedRowWord(grid: string[], row: number): string {
-  return grid.slice(row * WS_SIZE, row * WS_SIZE + WS_SIZE).join("");
+export function markedRowWord(grid: string[], row: number, size: number = WS_SIZE): string {
+  return grid.slice(row * size, row * size + size).join("");
 }

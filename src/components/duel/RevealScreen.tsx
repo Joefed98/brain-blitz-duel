@@ -12,9 +12,12 @@
  * stage has `container-type: inline-size`, so a family's picture can draw at the stage's width (`cqw` or
  * `useStageSize`); its height is the picture's own.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { Segmented } from "@/design/components";
+import { Button, LevelMark, Segmented } from "@/design/components";
+import { levelsOf } from "@/lib/levels/gameLevels";
+import { LEVEL_LABEL, LEVELS, type Level } from "@/lib/levels/levels";
+import { LeverPicture, leverWords } from "@/lib/levels/leverPicture";
 
 /** One view of the stage: a board, a picture, the room's chart. */
 export interface RevealView {
@@ -45,6 +48,74 @@ export function useStageSize(): { ref: (el: HTMLElement | null) => void; w: numb
   };
   useEffect(() => () => observer.current?.disconnect(), []);
   return { ref, w: size.w, h: size.h };
+}
+
+/**
+ * A game's own views on the template's stage (P2, 22 Nov 2026, for the art sessions: A1's Word pairs, Interlock, Slider,
+ * Cryptogrid and Swapword, in place of the shared Solution / Yours switch). A game's Reveal calls `useRevealViews`
+ * with its views' ids and labels; the template draws the one views control above the stage and the hook answers the
+ * chosen id, so the game draws that view itself. While a game has views the shared switch (SolutionSwitch) is not
+ * drawn. Outside a template (a check's bare render) the hook answers the first view.
+ */
+export interface RevealViewLabel {
+  id: string;
+  label: string;
+}
+
+interface GameViewsHost {
+  register: (views: RevealViewLabel[] | null) => void;
+  current: string | null;
+}
+
+const GameViewsContext = createContext<GameViewsHost | null>(null);
+
+/** For a game's Reveal: its views (two or more) on the template's control; answers the chosen view's id. */
+export function useRevealViews(views: readonly RevealViewLabel[]): string {
+  const host = useContext(GameViewsContext);
+  const key = views.map((v) => `${v.id}:${v.label}`).join("|");
+  useEffect(() => {
+    if (!host) return;
+    host.register(views.length > 1 ? [...views] : null);
+    return () => host.register(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [host?.register, key]);
+  const current = host?.current;
+  return current && views.some((v) => v.id === current) ? current : (views[0]?.id ?? "");
+}
+
+/** For the reveal that holds a game's Reveal (AnswerReveal): the host the hook registers with, and its control. */
+export function useGameViewsHost(): {
+  host: GameViewsHost;
+  views: RevealViewLabel[] | null;
+  current: string | null;
+  setCurrent: (id: string) => void;
+} {
+  const [views, setViews] = useState<RevealViewLabel[] | null>(null);
+  const [current, setCurrent] = useState<string | null>(null);
+  const host = useMemo<GameViewsHost>(
+    () => ({
+      register: (next) => {
+        setViews(next);
+        setCurrent((was) => (next && was && next.some((v) => v.id === was) ? was : (next?.[0]?.id ?? null)));
+      },
+      current,
+    }),
+    [current],
+  );
+  return { host, views, current, setCurrent };
+}
+
+/** The provider a reveal wraps its game's Reveal in (AnswerReveal). */
+export const RevealGameViewsProvider = GameViewsContext.Provider;
+
+/**
+ * The stage's size for a game's Reveal (P2, 22 Nov 2026, for A2's Pattern boards, G4): the template's stage box in CSS
+ * px, measured on layout and every resize (never a frame). `{ w: 0, h: 0 }` outside a template or before it is laid out.
+ * The stage's height is what the template gives the board on a puzzle reveal (the space under the score card).
+ */
+const StageSizeContext = createContext<{ w: number; h: number }>({ w: 0, h: 0 });
+export function useRevealStageSize(): { w: number; h: number } {
+  return useContext(StageSizeContext);
 }
 
 /** The views control above the stage: the shared Segmented, driven by the `views` list (no text scraping). */
@@ -91,6 +162,7 @@ export function RevealScreen({
   breakdown,
   root,
   className,
+  viewControl,
   ...rest
 }: {
   kind: "puzzle" | "arcade";
@@ -106,11 +178,15 @@ export function RevealScreen({
   breakdown?: ReactNode;
   root?: React.Ref<HTMLDivElement> | undefined;
   className?: string | undefined;
+  /** A game's own views (useRevealViews): the control above the one stage, which the game draws itself. */
+  viewControl?: { views: RevealViewLabel[]; value: string; onChange: (id: string) => void } | null | undefined;
 } & Record<`data-${string}`, string | boolean | undefined>) {
   const [own, setOwn] = useState(views?.[0]?.id ?? "");
   const current = view ?? own;
   const change = onView ?? setOwn;
   const shown = views?.find((v) => v.id === current) ?? views?.[0];
+  const stageSize = useStageSize();
+  const size = useMemo(() => ({ w: stageSize.w, h: stageSize.h }), [stageSize.w, stageSize.h]);
   return (
     <div ref={root} data-reveal-screen-template={kind} className="reveal-screen">
       {header ? (
@@ -123,7 +199,11 @@ export function RevealScreen({
           {score}
         </div>
         {views && views.length > 1 ? <RevealViews views={views} value={current} onChange={change} /> : null}
-        <div data-reveal-slot="stage" data-reveal-stage="" className="reveal-slot-stage">
+        {!views && viewControl && viewControl.views.length > 1 ? (
+          <RevealViews views={viewControl.views.map((v) => ({ ...v, node: null }))} value={viewControl.value} onChange={viewControl.onChange} />
+        ) : null}
+        <StageSizeContext.Provider value={size}>
+        <div ref={stageSize.ref} data-reveal-slot="stage" data-reveal-stage="" className="reveal-slot-stage">
           {views && views.length > 1
             ? views.map((v) => (
                 <div key={v.id} data-reveal-view={v.id} hidden={v.id !== (shown?.id ?? v.id)} className="reveal-view">
@@ -132,6 +212,7 @@ export function RevealScreen({
               ))
             : stage}
         </div>
+        </StageSizeContext.Provider>
         {facts ? (
           <div data-reveal-slot="facts" className="reveal-slot-facts">
             {facts}
@@ -150,4 +231,66 @@ export function RevealScreen({
       </div>
     </div>
   );
+}
+
+/**
+ * The step-up card (the polish plan's section 6.1, L3; mockup levels3-e-phone.webp): after a star on a level with a level
+ * above it, this level's picture beside the next one's (the lever-picture slot), one line saying what is new and the
+ * next level's Play in gold, with Play again and Back beside it as secondary. Practice only: never in rooms, rated play
+ * or the Daily (AnswerReveal draws it only on practice's reveal).
+ */
+export function StepUpCard({
+  type,
+  level,
+  next,
+  onNext,
+  onPlayAgain,
+  onBack,
+}: {
+  type: string;
+  level: Level;
+  next: Level;
+  onNext: () => void;
+  onPlayAgain?: (() => void) | undefined;
+  onBack?: (() => void) | undefined;
+}) {
+  const words = leverWords(type, next);
+  return (
+    <section data-step-up={next} aria-label={`Step up to ${LEVEL_LABEL[next]}`} className="reveal-step-up">
+      <div className="reveal-step-up-pictures">
+        <span className="reveal-step-up-level">
+          <LeverPicture type={type} level={level} size="s" />
+          <LevelMark level={level} label />
+        </span>
+        <span aria-hidden="true" className="reveal-step-up-arrow">→</span>
+        <span className="reveal-step-up-level">
+          <LeverPicture type={type} level={next} size="s" />
+          <LevelMark level={next} label />
+        </span>
+      </div>
+      <p className="reveal-step-up-line">{words ? `New on ${LEVEL_LABEL[next]}: ${words.charAt(0).toLowerCase()}${words.slice(1)}.` : `${LEVEL_LABEL[next]} is the next step up.`}</p>
+      <Button variant="gold" size={52} block onClick={onNext} data-step-up-play={next}>
+        Play {LEVEL_LABEL[next]}
+      </Button>
+      <div data-practice-reveal-actions className="reveal-step-up-more">
+        {onBack ? (
+          <Button variant="secondary" size={44} onClick={onBack} className="flex-1">
+            Back
+          </Button>
+        ) : null}
+        {onPlayAgain ? (
+          <Button variant="secondary" size={44} onClick={onPlayAgain} className="flex-1">
+            Play again
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/** The level above a level a game offers (Easy → Normal → Hard → Expert), or null at the top. */
+export function levelAbove(type: string, level: Level): Level | null {
+  const offered = levelsOf(type);
+  const i = LEVELS.indexOf(level);
+  return LEVELS.slice(i + 1).find((l) => offered.includes(l)) ?? null;
 }

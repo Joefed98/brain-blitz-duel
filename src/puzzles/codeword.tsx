@@ -21,14 +21,14 @@ import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@
 import { effectCue, stagger, wordFx } from "@/components/puzzles/wordFx";
 
 /** The grid's runs of two or more squares (rows, then columns), as square indices (display only: stage 2's glint). */
-function codewordRuns(cells: readonly number[], size: number): number[][] {
+function codewordRuns(cells: readonly number[], size: number, rows: number = size): number[][] {
   const runs: number[][] = [];
   for (const across of [true, false])
-    for (let a = 0; a < size; a++) {
+    for (let a = 0; a < (across ? rows : size); a++) {
       let run: number[] = [];
-      for (let b = 0; b <= size; b++) {
+      for (let b = 0; b <= (across ? size : rows); b++) {
         const i = across ? a * size + b : b * size + a;
-        if (b < size && (cells[i] ?? 0) > 0) run.push(i);
+        if (b < (across ? size : rows) && (cells[i] ?? 0) > 0) run.push(i);
         else {
           if (run.length >= 2) runs.push(run);
           run = [];
@@ -59,6 +59,7 @@ const CELL: Record<CellLook, string> = {
 /** The numbered grid: black squares, then each white cell's number (corner) and letter. */
 export function Grid({
   size,
+  rows,
   cells,
   letters,
   look,
@@ -66,6 +67,7 @@ export function Grid({
   numbers = true,
 }: {
   size: number;
+  rows?: number | undefined;
   cells: readonly number[];
   /** Letter per number (index n − 1). */
   letters: readonly string[];
@@ -77,7 +79,7 @@ export function Grid({
   return (
     <div
       className="grid h-full w-full rounded-md bg-background p-0.5"
-      style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`, gap: 2, containerType: "size" }}
+      style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows ?? size}, minmax(0, 1fr))`, gap: 2, containerType: "size" }}
     >
       {cells.map((n, i) =>
         n === 0 ? (
@@ -221,7 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const flashNonWords = (runIndexes: readonly number[]) => {
     const cellEls = gridRef.current?.firstElementChild?.children;
     if (!cellEls || !data) return;
-    const runs = codewordRuns(data.cells, data.size);
+    const runs = codewordRuns(data.cells, data.size, data.rows);
     const cells = [...new Set(runIndexes.flatMap((i) => runs[i] ?? []))];
     for (const i of cells) {
       const el = cellEls[i] as HTMLElement | undefined;
@@ -272,7 +274,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     wordCue("codeword.finish");
     const size = data?.size ?? 1;
     const cells = gridRef.current?.firstElementChild?.children;
-    const step = 640 / Math.max(1, 2 * (size - 1));
+    const step = 640 / Math.max(1, size - 1 + ((data?.rows ?? size) - 1));
     const steps: FinishStep[] = (data?.cells ?? []).flatMap((n, i) =>
       n === 0 ? [] : [{ el: cells?.[i], keyframes: goldFlip("Y"), delay: Math.round((Math.floor(i / size) + (i % size)) * step), duration: 460 }],
     );
@@ -321,7 +323,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     effectCue("codeword.ripple");
     stagger(ordered.length, 55, (k) => wordFx("tap", cellEls?.[ordered[k]!], null, { silent: true }));
     const filled = (i: number) => !!after[(data.cells[i] ?? 0) - 1];
-    const completed = codewordRuns(data.cells, size).filter((run) => run.some((i) => data.cells[i] === selected) && run.every(filled));
+    const completed = codewordRuns(data.cells, size, data.rows).filter((run) => run.some((i) => data.cells[i] === selected) && run.every(filled));
     if (completed.length > 0) {
       window.setTimeout(() => {
         effectCue("codeword.word");
@@ -354,9 +356,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   return (
     <div ref={root} data-stage-column="1" data-word-polish="codeword" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
       <div data-game-arena="codeword" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 460px)", aspectRatio: "1 / 1" }}>
+        <div ref={gridRef} style={{ width: data.rows ? `min(100cqw, calc(100cqh * ${data.size} / ${data.rows}), 460px)` : "min(100cqw, 100cqh, 460px)", aspectRatio: data.rows ? `${data.size} / ${data.rows}` : "1 / 1" }}>
           <Grid
             size={data.size}
+            rows={data.rows}
             cells={data.cells}
             letters={letters}
             look={(n) => (n === selected ? "selected" : given.has(n) ? "given" : solved ? "right" : "plain")}
@@ -417,8 +420,9 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const tally = codewordTally(mine, solution, puzzle.givens);
   const given = new Set(puzzle.givens.map((g) => g.n));
   const shown = typeof myExtra?.["wrongEntered"] === "number" ? (myExtra["wrongEntered"] as number) : null;
-  // G2 (21 Nov 2026): the square board at the stage's width (was min(84vw, 340px)).
-  const box = { width: stageWidth(420), height: stageWidth(420) };
+  // G2 (21 Nov 2026): the square board at the stage's width (was min(84vw, 340px)). A level's wider grid (D1: Hard 8 × 7,
+  // Expert 9 × 7) keeps its own shape: the height follows its rows.
+  const box = { width: stageWidth(420), height: puzzle.rows && puzzle.rows !== puzzle.size ? `calc(${stageWidth(420)} * ${puzzle.rows} / ${puzzle.size})` : stageWidth(420) };
   return (
     <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
       <RevealNumbers
@@ -432,13 +436,14 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       <BoardPair
         solution={
           <div style={box}>
-            <Grid size={puzzle.size} cells={puzzle.cells} numbers={false} letters={[...solution]} look={(n) => (given.has(n) ? "given" : "right")} />
+            <Grid size={puzzle.size} rows={puzzle.rows} cells={puzzle.cells} numbers={false} letters={[...solution]} look={(n) => (given.has(n) ? "given" : "right")} />
           </div>
         }
         yours={
           <div style={box}>
             <Grid
               size={puzzle.size}
+              rows={puzzle.rows}
               cells={puzzle.cells}
               numbers={false}
               letters={mine}

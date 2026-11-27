@@ -68,6 +68,10 @@ const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
 const { puzzleTimeLimitMs, typeTimeLimitMs, shownTimeLimitMs } = await import("../src/lib/duel/catalogue");
 const { CATALOGUE_DATA } = await import("../src/lib/duel/catalogue.data");
 const { casesFor, dealEra } = await import("./pattern-overhaul-gravity-record");
+// Changed with Joe's approval, 22 Nov 2026 (routine consequence of D4's Topsy-Turvy gravityRev 9): written for gravityRev 8, so it deals the
+// stamps before (gravityRev 9 is gravityRev 8 with Normal's speed line at 40 s; topsy-line-check proves it).
+const { pinPreTopsyLine } = await import("../src/lib/duel/topsyLine"); // Changed with Joe's approval, 22 Nov 2026
+pinPreTopsyLine(true); // Changed with Joe's approval, 22 Nov 2026
 type GravityPuzzleData = import("../src/lib/duel/types").GravityPuzzleData;
 type GravityDir = import("../src/lib/duel/types").GravityDir;
 

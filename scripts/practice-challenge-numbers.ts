@@ -27,7 +27,7 @@ import { MATCHUP_V12_GOALS, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_
 import { TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_S_MAZES } from "../src/lib/arcade/tilt";
 import { CLASH_QUEUE, CLASH_STD_STREAK } from "../src/lib/arcade/colourClash";
 import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS, CLAY_WIDE_FULL_TICKS } from "../src/lib/arcade/clayShoot";
-import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackGame } from "../src/lib/arcade/whack";
+import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_WIDE_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackQuickGame } from "../src/lib/arcade/whack";
 import { SKYLINE_V9_FULL_AT } from "../src/lib/arcade/skyline";
 import { SLICE_V12_COMBO_FULL } from "../src/lib/arcade/slice";
 import { SNAKE_STD_CORE_MAX, SNAKE_STD_GOLDS, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
@@ -40,6 +40,7 @@ import { TICKS_PER_SECOND } from "../src/lib/arcade/engine";
 import { FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "../src/lib/duel/depth/flash";
 import { NUMHUNT_COUNT } from "../src/lib/duel/types";
 import { ASCEND_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
+import { CHAIN_LEVELS } from "../src/lib/levels/speedLevels";
 import { STD_INTERLOCK, STD_ROUNDABOUT, STD_STRIKEOUT } from "../src/lib/duel/standard/word";
 import { lwJarDrops } from "../src/lib/duel/letterWheel";
 import { readFileSync as readSrc } from "node:fs";
@@ -48,6 +49,8 @@ const BULLSEYE_DEAD_DOC = /whose centre ring is the 10/.test(readSrc("src/lib/ar
 import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
+import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { PIN_V7_JOULZ_EACH } from "../src/lib/arcade/pinball4";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
@@ -111,8 +114,10 @@ const withinS = (type: string, label: string) => Number(/within (\d+) s/.exec(sp
 function whackComboRun(): number {
   let worst = 0;
   for (let seed = 1; seed <= 40; seed++) {
-    const total = (whackGame.init(seed * 7919) as any).schedule.total as number;
-    const maxPips = whackComboMaxPips(total);
+    // Changed with Joe's approval, 22 Nov 2026 (D3): whackRev 5's combo run, nearly all the targets counting as all.
+    const state = whackQuickGame.init(seed * 7919) as any;
+    const total = state.schedule.total as number;
+    const maxPips = whackComboMaxPips(state.hf ? Math.ceil((total * state.hf) / 100) : total);
     let pips = 0;
     let n = 0;
     while (n < total && Math.floor((WHACK_COMBO_POINTS * 100 * pips) / (maxPips * WHACK_COMBO_FULL_PCT)) < WHACK_COMBO_POINTS) {
@@ -136,17 +141,18 @@ function expectations(): Record<string, Expect> {
   const whack42 = whackComboRun();
   return {
     // Speed and finish counts from the live help text.
-    "sudoku.box-clever": { say: [[45, LOGIC_STANDARD.sudoku.fullByS]] },
+    "sudoku.box-clever": { say: [[44, settingsFullByS(gameLevelSettings("sudoku", "hard"))!]] }, // Changed with Joe's approval, 22 Nov 2026
     "numhunt.no-slips": { say: [[24, NUMHUNT_COUNT]] },
     "numhunt.in-the-flow": { say: [[24, NUMHUNT_COUNT], [1, 1]], th: [[24, NUMHUNT_COUNT]] },
     "numhunt.stairway": { say: [[24, NUMHUNT_COUNT]] },
     "chain.unbroken": { say: [[40, helpCount("chain", "links")]] },
     "chain.chain-reaction": { say: [[40, helpCount("chain", "links")]] },
-    "chain.iron-links": { say: [[40, helpCount("chain", "links")]] },
+    // Changed with Joe's approval, 22 Nov 2026 (D3): Hard's chain is 48 links (speedLevels.ts CHAIN_LEVELS).
+    "chain.iron-links": { say: [[48, CHAIN_LEVELS.hard.links]] },
     "reaction.steady-hand": { say: [[50, FLASH_STEADY_TIGHT_MS]], th: [[15, FLASH_STEADY_TIGHT_POINTS]] },
     "stopwatch.in-the-zone": { say: [[10, helpCount("stopwatch", "watches") || 10]], th: [[10, Number(/over the (\w+)/.exec(help("stopwatch"))?.[1] === "ten" ? 10 : NaN)]] },
     "stopwatch.ten-in-a-row": { say: [[10, 10]] },
-    "whack.combo-king": { say: [[47, whack42], [150, ms(WHACK_QUICK_FULL_TICKS)]], th: [[44, WHACK_COMBO_POINTS]] },
+    "whack.combo-king": { say: [[46, whack42], [400, ms(WHACK_QUICK_WIDE_FULL_TICKS)]], th: [[44, WHACK_COMBO_POINTS]] },
     "whack.diamond-geezer": { th: [[1, 1]] },
     "clayshoot.double-trouble": { th: [[1, 1]] },
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): clayRev 10's 400 ms window.

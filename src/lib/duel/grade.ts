@@ -34,6 +34,7 @@ import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
 import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
+import { mazeKeysOf, mazeKeysTaken, mazeKeysWalk } from "./mazeKeys";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn, safeShapeOf } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
@@ -122,7 +123,7 @@ import { checkoutBust } from "./numberOverhaul";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "./wordSearch";
-import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwFreeMissesOf, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
@@ -132,10 +133,10 @@ import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
-import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
+import { decodeTileGrid, scoreTileGrid, tileGridSize, tileGridTiles } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
-import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSlideTokens, markedRowWord, wordSlideSize, wsRows } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved, replayWordSlideFor } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import {
@@ -176,7 +177,7 @@ import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
 import { STRIKEOUT_REV2, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, scoreStrikeout, scoreStrikeout2, so2Rules, so2Tally, soTally, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
-import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
+import { decodeSwapwordFor, replaySwapword, scoreSwapword } from "./swapword";
 import {
   blockPartyCounts,
   flowRouteCounts,
@@ -401,11 +402,12 @@ function gradeUnderRev(
   switch (puzzle.type) {
     case "tilegrid": {
       // The placed grid is re-checked against the tray and the dictionary here.
-      const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
+      // Levels (D1, 21 Nov 2026): a level board's stored side and tile count (tileGridRev 5); Normal's 7 and 15.
+      const verdict = judgeTileGrid(decodeTileGrid(answer, tileGridSize(puzzle)), puzzle.tray);
       // puzzleScoreRev 3: a finish needs every tile of the tray in the grid (a short valid grid is progress).
       isCorrect = verdict.valid && (puzzleScoreRevOf(puzzle) < 3 || verdict.placed === puzzle.tray.length);
       correctCount = verdict.placed;
-      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
+      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20), tileGridTiles(puzzle));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
       break;
     }
@@ -432,14 +434,17 @@ function gradeUnderRev(
     }
     case "wordslide": {
       // Every swipe, Undo and Reset is replayed on the stored grid.
-      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-      const rows = markedRowsSolved(replay.grid);
-      isCorrect = rows === WS_MARKED_ROWS.length;
+      // wordSlideRev 7 (D1, level deals): the stored grid size; Normal and every older round are 5 × 5 as before.
+      const size = wordSlideSize(puzzle);
+      const sizedRows = wsRows(size);
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+      const rows = markedRowsSolved(replay.grid, size);
+      isCorrect = rows === sizedRows.length;
       correctCount = rows;
       // Rev 1: an unfinished grid earns only the word rows the player made (a row still as it started is not counted).
-      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows) : rows;
-      score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
+      const validRows = sizedRows.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size) : rows;
+      score = scoreWordSlide(madeRows, sizedRows.length, ms, timeLimitMs, replay.moves, puzzle.par);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows, validRows };
       break;
     }
@@ -944,7 +949,11 @@ function gradeUnderRev(
       // folded away, graded exactly as the older path answer, and the stars are the ones the trail rolled over.
       const depth = usesMazeDepth(puzzle);
       const cols = mazeColsOf(puzzle);
-      const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols) : null;
+      // D3 (levelRev 2's Hard and Expert, mazeKeys.ts): with gold keys the walk goes on through the exit until every key
+      // is taken, and a finish needs them all; a maze without keys walks exactly as before.
+      const keys = mazeKeysOf(puzzle);
+      const trail = depth ? decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length) : null;
+      const walk = trail ? (keys.length ? mazeKeysWalk(puzzle.cells, puzzle.start, puzzle.exit, trail, cols, keys) : mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, trail, cols)) : null;
       // The drawn route is re-walked through the stored corridors.
       const path = walk ? mazeTrailRoute(walk) : decodeMazePath(answer);
       const verdict = verifyMazePath(
@@ -955,7 +964,9 @@ function gradeUnderRev(
         path,
         cols,
       );
-      isCorrect = verdict.solved;
+      // A keyed maze finishes at the exit with every key taken.
+      const keysTaken = walk && keys.length ? mazeKeysTaken(walk, keys).length : 0;
+      isCorrect = verdict.solved && (keys.length === 0 || (keysTaken === keys.length && walk![walk!.length - 1] === puzzle.exit));
       correctCount = verdict.walked;
       // Rev 1: progress counts route steps beyond the start cell, so standing still is 0.
       const routeLength = Math.max(2, (puzzle.solution ?? []).length);
@@ -963,12 +974,13 @@ function gradeUnderRev(
       const progress = scoreRev1()
         ? Math.max(0, (verdict.progress * routeLength - 1) / (routeLength - 1)) * wasteFactor(verdict.walked, routeLength)
         : verdict.progress;
-      score = scoreMaze(verdict.solved, progress, ms, timeLimitMs);
+      score = scoreMaze(isCorrect, progress, ms, timeLimitMs);
       extraDetail = {
-        solved: verdict.solved,
+        solved: isCorrect,
         progress: Math.round(verdict.progress * 100),
         wasted: verdict.wasted,
         ...(walk ? { stars: mazeStarsTaken(walk, puzzle.stars ?? []), backtracks: mazeTrailBacktracks(walk) } : {}),
+        ...(keys.length ? { keysTaken, keys: keys.length } : {}),
       };
       break;
     }
@@ -2914,7 +2926,7 @@ function gradeUnderRev(
           totalCells: cells.totalCells,
           traces: tally.traces,
           misses: tally.misses,
-          freeMisses: LW_FREE_MISSES,
+          freeMisses: lwFreeMissesOf(puzzle),
           neutral: tally.neutral,
         };
         break;
@@ -2990,7 +3002,7 @@ function gradeUnderRev(
     }
     case "swapword": {
       // Every swap is replayed on the stored scramble, within the swap budget.
-      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution);
+      const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, puzzle.solution);
       const solution = puzzle.solution ?? "";
       const { placed, toPlace, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;

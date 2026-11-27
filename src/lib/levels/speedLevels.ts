@@ -18,6 +18,22 @@ export interface FlashLevel {
   goldLike: number;
   /** How long each gold flash stays up, in ms (Normal 1,500). Stamped as `flashMs` when it differs. */
   flashMs: number;
+  /** D3 (22 Nov 2026): when the first gold comes, fewest and most ms (absent: 4–7 s). */
+  firstGold?: readonly [number, number];
+  /** D3: the gap from one gold to the next, ms (absent: 5–8 s). */
+  goldGap?: readonly [number, number];
+  /** D3: the last trap's lead before its gold, ms (absent: 0.8–2 s). */
+  lead?: readonly [number, number];
+  /** D3: the gap between traps, ms (absent: 0.9–1.6 s). */
+  trapGap?: readonly [number, number];
+  /** D3: how long a trap stays up, ms (absent: 600). Stamped as `trapMs` when it differs. */
+  trapMs?: number;
+  /** D3: no trap before the first gold. */
+  firstClear?: boolean;
+  /** D3: the level's own per-flash curve ([ms, points] knots, falling), stamped as `flashCurve` (tapRev 8). */
+  curve?: readonly (readonly [number, number])[];
+  /** D3: false starts the level forgives (no cost, the steady hand kept), stamped as `flashFree` (tapRev 8). */
+  free?: number;
 }
 
 /** Ascend (numhunt). */
@@ -44,6 +60,12 @@ export interface ChainLevel {
   /** The cycle's length in charms. */
   cycle: number;
   timeLimitMs: number;
+  /** D3 (22 Nov 2026): links per board, a new board every cycle (absent: 5). Stamped in `chainLevel`. */
+  block?: number;
+  /** D3: the finish's full-speed time, s (absent: the stamp's, 30 or 33). Stamped in `chainLevel`. */
+  fullByS?: number;
+  /** D3: wrong taps forgiven (Easy's spare link; absent: none). Stamped in `chainLevel`. */
+  spare?: number;
 }
 
 /** Bonk (whack). All levels keep the 60 s run. */
@@ -59,6 +81,10 @@ export interface BonkLevel {
   hedgehogPct: number;
   /** The gap between pops, in per cent of Normal's (smaller = busier). */
   gapPct: number;
+  /** D3 (22 Nov 2026): burrows across and down (absent: 4). Stamped in `bonkLevel`. */
+  cols?: number;
+  /** D3: the share of the targets, %, that counts as hitting them all (absent: 100). Stamped in `bonkLevel`. */
+  hitsFullPct?: number;
 }
 
 /** Tenfall (tendrop). All levels keep the 90 s run. */
@@ -66,10 +92,17 @@ export interface TenfallLevel {
   targets: number;
   /** The biggest target. */
   maxTarget: number;
-  /** Which operator tiles are dealt: "plusMinus" (Easy), "more" (× and ÷ more often), "all" (every operator evenly). */
-  ops: "plusMinus" | "more" | "all";
+  /**
+   * Which operator tiles are dealt: "plusMinus" (Easy), "more" (÷3 doubled), "times" (×2 on three tiles in ten),
+   * "all" (every operator evenly).
+   */
+  ops: "plusMinus" | "more" | "all" | "times";
   /** The tiles' fall speed, in per cent of Normal's. */
   speedPct: number;
+  /** D3 (22 Nov 2026): the first target, the targets climbing evenly to `maxTarget` (absent: the overhaul's ramp). */
+  minTarget?: number;
+  /** D3: the run's full-speed time, s (tenRev 7: each stage's `parTicks`; absent: Normal's 70 s). */
+  fullByS?: number;
 }
 
 /** Pull! (clayshoot). All levels keep the 60 s run. */
@@ -81,49 +114,91 @@ export interface PullLevel {
   birds: number;
   /** Clay speed, in per cent of Normal's. */
   speedPct: number;
+  /** D3 (22 Nov 2026): where the quick credit counts in full, % of a run's most (clayRev 11; absent: Normal's 85). */
+  quickFullPct?: number;
 }
 
+/**
+ * D3 (22 Nov 2026; docs/polish-plan-final/difficulty-spec.md "Flash"): the lever is the traps before each gold. Each
+ * level scores on its own per-flash curve (tapRev 8, stamped as `flashCurve`) and Hard and Expert forgive a few false
+ * starts (`flashFree`), so the best player at the human limits still reaches 200 on a fifth of Expert runs while an
+ * average player is fooled far more often (scripts/d3-ladder.ts reaction).
+ */
 export const FLASH_LEVELS = {
-  easy: { flashes: [5, 5], decoys: [0, 1], goldLike: 0, flashMs: 1_500 },
-  hard: { flashes: [6, 8], decoys: [2, 3], goldLike: 0.75, flashMs: 1_500 },
-  // Expert: 3–5 decoys, ¾ gold-like (the brief's 2–4 of all kinds stepped too little from Hard; Joe, 16 Nov 2026).
-  expert: { flashes: [8, 8], decoys: [3, 5], goldLike: 0.75, flashMs: 1_000 },
+  // Easy: five golds, the first within 1.5–3 s with no trap before it, at most one plain trap before the others, a
+  // gentler curve (200 by 0.28 s).
+  easy: { flashes: [5, 5], decoys: [0, 1], goldLike: 0, flashMs: 1_500, firstGold: [1_500, 3_000], firstClear: true, curve: [[280, 200], [310, 188], [380, 150], [500, 80], [650, 20], [850, 0]] },
+  // Hard: eight golds, 3–4 traps before each (about 28 a round against Normal's 13), each 0.45 s, 0.6–1 s apart, three
+  // in four gold look-alikes, the gold up 0.9 s; one false start forgiven, 200 by 0.25 s.
+  hard: {
+    flashes: [8, 8], decoys: [3, 4], goldLike: 0.75, flashMs: 900, trapMs: 450, lead: [600, 1_000], trapGap: [600, 1_000], firstGold: [3_000, 5_000], goldGap: [5_000, 6_500], free: 1,
+    curve: [[250, 200], [270, 188], [330, 150], [450, 80], [600, 20], [800, 0]],
+  },
+  // Expert: nine golds, 6–8 traps before each (about 63 a round), each 0.35 s, 0.5–0.65 s apart (under two a second),
+  // nine in ten gold look-alikes, the gold up 0.6 s; three false starts forgiven, 200 by 0.28 s.
+  expert: {
+    flashes: [9, 9], decoys: [6, 8], goldLike: 0.9, flashMs: 600, trapMs: 350, lead: [500, 650], trapGap: [500, 650], firstGold: [4_000, 5_000], goldGap: [5_500, 6_000], free: 3,
+    curve: [[280, 200], [300, 188], [360, 150], [460, 80], [600, 20], [800, 0]],
+  },
 } as const satisfies Record<string, FlashLevel>;
 
+/**
+ * D3 (22 Nov 2026; difficulty-spec.md "Ascend"): the lever is the numbers on the board, 16 / 24 / 32 / 40 (40 is the
+ * phone's ceiling at today's 42 px discs). The search grows with the board, so each level's clock and full-speed time
+ * are set from the best player at the human limits (Hard about 34 s, Expert about 52 s; scripts/d3-ladder.ts numhunt).
+ */
 export const ASCEND_LEVELS = {
-  easy: { count: 16, min: 1, max: 30, moveMs: 0, timeLimitMs: 60_000, descending: false, fullByS: 40 },
-  // Hard and Expert: the brief's 75 s and 90 s clocks let a strong player finish 30 numbers in about half the time for
-  // full points, so no step up (Joe, 16 Nov 2026: a clear step up matters most): a shorter clock and an earlier
-  // full-speed time.
-  hard: { count: 30, min: 10, max: 99, moveMs: 10_000, timeLimitMs: 50_000, descending: false, fullByS: 25 },
-  expert: { count: 30, min: 10, max: 99, moveMs: 8_000, timeLimitMs: 45_000, descending: true, fullByS: 20 },
+  // Easy: sixteen discs, 1 to 16 with no gaps, that never move; full speed by 15 s.
+  easy: { count: 16, min: 1, max: 16, moveMs: 0, timeLimitMs: 60_000, descending: false, fullByS: 15 },
+  // Hard: thirty-two discs from 10 to 99, moving every 10 s, a 42 s clock, full speed by 34 s.
+  hard: { count: 32, min: 10, max: 99, moveMs: 10_000, timeLimitMs: 42_000, descending: false, fullByS: 34 },
+  // Expert: forty discs, highest first, moving every 8 s, a 55 s clock, full speed by 52 s.
+  expert: { count: 40, min: 10, max: 99, moveMs: 8_000, timeLimitMs: 55_000, descending: true, fullByS: 52 },
 } as const satisfies Record<string, AscendLevel>;
 
-/** Normal (today): 40 links, windows 3 / 2.5 / 2 s (to links 13, 26, 40), links 21–25 reversed, five charms, 45 s. */
+/**
+ * Normal (today): 40 links, windows 3 / 2.5 / 2 s (to links 13, 26, 40), links 21–25 reversed, five charms, a board every
+ * five links, 45 s (chainDepthRev 4: speed full by 33 s).
+ *
+ * D3 (22 Nov 2026; difficulty-spec.md "Don't Break the Chain"): the lever is the charms in the cycle, 4 / 5 / 6 / 7, with
+ * a new board every cycle (`block`); a seven-charm cycle uses one shape three times (three shapes can't each appear at
+ * most twice in seven). Easy forgives one wrong tap (`spare`). Each level's full-speed time is set from the best player
+ * at the human limits (scripts/d3-ladder.ts chain).
+ */
 export const CHAIN_LEVELS = {
-  easy: { links: 30, bands: [{ upTo: 10, ms: 3_500 }, { upTo: 20, ms: 3_000 }, { upTo: 30, ms: 2_500 }], reverse: [], cycle: 5, timeLimitMs: 45_000 },
-  hard: { links: 40, bands: [{ upTo: 13, ms: 2_500 }, { upTo: 26, ms: 2_000 }, { upTo: 40, ms: 1_600 }], reverse: [[21, 25], [31, 35]], cycle: 5, timeLimitMs: 45_000 },
-  // Expert as the brief, the last window 1.4 s (1.3 s: only 28 % of runs under human limits finished): about 119 on
-  // average, a clear step below Hard, its best runs about 180 (Joe, 16 Nov 2026: humanly possible to score well on).
-  expert: { links: 50, bands: [{ upTo: 16, ms: 2_000 }, { upTo: 33, ms: 1_600 }, { upTo: 50, ms: 1_400 }], reverse: [[21, 25], [36, 40]], cycle: 6, timeLimitMs: 60_000 },
+  easy: { links: 24, bands: [{ upTo: 8, ms: 6_000 }, { upTo: 16, ms: 5_500 }, { upTo: 24, ms: 5_000 }], reverse: [], cycle: 4, block: 4, spare: 1, timeLimitMs: 60_000, fullByS: 30 },
+  hard: { links: 48, bands: [{ upTo: 16, ms: 2_500 }, { upTo: 32, ms: 2_000 }, { upTo: 48, ms: 1_600 }], reverse: [[19, 24], [37, 42]], cycle: 6, block: 6, timeLimitMs: 60_000, fullByS: 40 },
+  expert: { links: 56, bands: [{ upTo: 19, ms: 2_000 }, { upTo: 38, ms: 1_600 }, { upTo: 56, ms: 1_400 }], reverse: [[15, 21], [29, 35], [43, 49]], cycle: 7, block: 7, timeLimitMs: 70_000, fullByS: 50 },
 } as const satisfies Record<string, ChainLevel>;
 
-/** Normal (today): up 0.9 → 0.6 s (54 → 36 ticks), 3 up at once, 3–5 flips, 10 % hedgehogs. */
+/**
+ * Normal (today): a 4 × 4 lawn, up 0.9 → 0.6 s (54 → 36 ticks), 3 up at once, 3–5 flips, 10 % hedgehogs (whackRev 5: the
+ * combo's quick window full to 0.4 s).
+ *
+ * D3 (22 Nov 2026; difficulty-spec.md "Bonk"): the lever is the burrows on the lawn, 3 × 3 / 4 × 4 / 5 × 5 / 6 × 6
+ * (`cols`, stamped in `bonkLevel`). Joe's option A (22 Nov 2026): whackRev 5 counts 97 % of the targets as all of them
+ * (Easy too); Hard and Expert ask for 98 % (`hitsFullPct`). The realistic elite at the human limits reaches 200 on
+ * 71 / 47 / 43 / 25 % of runs (scripts/d3-ladder.ts whack).
+ */
 export const BONK_LEVELS = {
-  easy: { lifeStart: 66, lifeEnd: 48, maxUp: 2, flips: [2, 2], hedgehogPct: 5, gapPct: 115 },
-  // Hard and Expert shorter and busier than the brief's (0.85 → 0.6 s and 0.8 → 0.55 s): a 0.25 s player still reached
-  // those in time, so neither stepped down from Normal (Joe, 16 Nov 2026: a clear step up matters most).
-  hard: { lifeStart: 43, lifeEnd: 30, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 50 },
-  expert: { lifeStart: 40, lifeEnd: 27, maxUp: 4, flips: [7, 9], hedgehogPct: 20, gapPct: 50 },
+  easy: { cols: 3, lifeStart: 90, lifeEnd: 66, maxUp: 2, flips: [2, 2], hedgehogPct: 5, gapPct: 140 },
+  hard: { cols: 5, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 100, hitsFullPct: 98 },
+  expert: { cols: 6, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [7, 9], hedgehogPct: 20, gapPct: 90, hitsFullPct: 98 },
 } as const satisfies Record<string, BonkLevel>;
 
-/** Normal (today): ten targets up to 140, today's operator mix and speeds. Easy is 80 % speed with no operator needed. */
+/**
+ * Normal (today): ten targets up to 140, today's operator mix and speeds (tenRev 7: speed full by 70 s, gold in full at
+ * three gold tens).
+ *
+ * D3 (22 Nov 2026; difficulty-spec.md "Tenfall"): the lever is the size of the targets from the first one: Easy 10, Normal
+ * about 22, Hard 40 climbing to 250 with ×2 on three tiles in ten, Expert 150 climbing to 400 with every operator. The
+ * full-speed time is set from the best player at the human limits (scripts/d3-ladder.ts tendrop); Expert's eight targets
+ * leave that player's gold line (two gold tens of eight) within reach.
+ */
 export const TENFALL_LEVELS = {
   easy: { targets: 8, maxTarget: 60, ops: "plusMinus", speedPct: 80 },
-  hard: { targets: 10, maxTarget: 200, ops: "more", speedPct: 115 },
-  // Expert eased from the brief's 12 targets up to 300 at +25 % (the human-limits player never finished, about 113):
-  // 11 up to 240 at +15 % averages about 144 (speed-levels-tune.ts).
-  expert: { targets: 11, maxTarget: 240, ops: "all", speedPct: 115 },
+  hard: { targets: 10, minTarget: 40, maxTarget: 250, ops: "times", speedPct: 115, fullByS: 76 },
+  expert: { targets: 8, minTarget: 150, maxTarget: 400, ops: "all", speedPct: 115, fullByS: 75 },
 } as const satisfies Record<string, TenfallLevel>;
 
 /**
@@ -132,14 +207,15 @@ export const TENFALL_LEVELS = {
  */
 export const PULL_LEVELS = {
   easy: { clays: 20, pairs: 3, triples: 0, birds: 6, speedPct: 80 },
-  // Hard and Expert faster and with more birds than the brief's (+10 % / +15 %, 20 / 26 birds: Hard scored as Normal
-  // under human limits): +45 % with 24 birds and +60 % with 32 step down clearly (speed-levels-tune.ts).
-  hard: { clays: 28, pairs: 10, triples: 0, birds: 24, speedPct: 145 },
-  expert: { clays: 30, pairs: 12, triples: 3, birds: 32, speedPct: 160 },
+  // D3 (22 Nov 2026; difficulty-spec.md "Pull!"): the lever is the clays in the air together. Hard flies all thirty in
+  // doubles from the first pull, Expert all thirty-six in triples; each level's quick credit counts in full at its own
+  // line (clayRev 11, `quickFullPct`), set from the best player at the human limits (scripts/d3-ladder.ts clayshoot).
+  hard: { clays: 30, pairs: 15, triples: 0, birds: 24, speedPct: 145, quickFullPct: 80 },
+  expert: { clays: 36, pairs: 12, triples: 12, birds: 32, speedPct: 160, quickFullPct: 66 },
 } as const satisfies Record<string, PullLevel>;
 
 /** A Pull! level's clays as the sim stores them (clayShoot.ts ClayLevel): the groups in order, triples spread through. */
-export function pullLevelClays(level: PullLevel): { clays: number; singles: number; groups: number[]; golds: number; birds: number; speedPct: number; overlap: boolean } {
+export function pullLevelClays(level: PullLevel): { clays: number; singles: number; groups: number[]; golds: number; birds: number; speedPct: number; overlap: boolean; quickFullPct?: number } {
   const groups: number[] = [];
   for (let g = 0; g < level.pairs; g++) groups.push(2);
   // Triples spread evenly through the groups, the first after the opening pairs.
@@ -153,6 +229,7 @@ export function pullLevelClays(level: PullLevel): { clays: number; singles: numb
     birds: level.birds,
     speedPct: level.speedPct,
     overlap: level.birds >= 20,
+    ...(level.quickFullPct !== undefined ? { quickFullPct: level.quickFullPct } : {}),
   };
 }
 
@@ -162,34 +239,34 @@ export function pullLevelClays(level: PullLevel): { clays: number; singles: numb
  */
 export const SPEED_LEVEL_LINES: Readonly<Record<string, Readonly<Partial<Record<"easy" | "hard" | "expert", string>>>>> = {
   reaction: {
-    easy: "Easy: 5 flashes, at most one decoy before each, and no gold-like decoys.",
-    hard: "Hard: 6 to 8 flashes, 2 or 3 decoys before each, most of them gold-like.",
-    expert: "Expert: 8 flashes, 3 to 5 decoys before each, and the gold shows for 1 second only.",
+    easy: "Easy: 5 golds, the first within 3 seconds with no trap before it, and only plain traps.",
+    hard: "Hard: 8 golds, 3 or 4 quick traps before each, most of them gold-like.",
+    expert: "Expert: 9 golds, 6 to 8 fast traps before each, and the gold shows for 0.6 seconds.",
   },
   numhunt: {
-    easy: "Easy: 16 numbers from 1 to 30, and the discs never move.",
-    hard: "Hard: 30 numbers in 50 seconds, and the discs move every 10 seconds.",
-    expert: "Expert: 30 numbers from highest to lowest in 45 seconds, and the discs move every 8 seconds.",
+    easy: "Easy: 16 numbers from 1 to 16, and the discs never move.",
+    hard: "Hard: 32 numbers in 42 seconds, and the discs move every 10 seconds.",
+    expert: "Expert: 40 numbers from highest to lowest in 55 seconds, moving every 8 seconds.",
   },
   chain: {
-    easy: "Easy: 30 links with longer windows, and no reversed run.",
-    hard: "Hard: 40 links with shorter windows, reversed at links 21 to 25 and 31 to 35.",
-    expert: "Expert: 50 links in 60 seconds, six charms to a cycle and two reversed runs.",
+    easy: "Easy: 4 charms to a cycle, 24 links with long windows, and one wrong tap forgiven.",
+    hard: "Hard: 6 charms to a cycle, 48 links, shorter windows and two reversed boards.",
+    expert: "Expert: 7 charms to a cycle, 56 links in 70 seconds and three reversed boards.",
   },
   whack: {
-    easy: "Easy: two up at once, they stay up longer, two rule flips and fewer hedgehogs.",
-    hard: "Hard: more pops, shorter up times, 5 to 7 rule flips and more hedgehogs.",
-    expert: "Expert: four up at once, the shortest up times, 7 to 9 rule flips and a hedgehog in five.",
+    easy: "Easy: a 3 by 3 lawn, two up at once, and they stay up longer.",
+    hard: "Hard: a 5 by 5 lawn, 5 to 7 rule flips and more hedgehogs.",
+    expert: "Expert: a 6 by 6 lawn, 7 to 9 rule flips and a hedgehog in five.",
   },
   tendrop: {
     easy: "Easy: 8 targets up to 60, plus and minus tiles only, falling slowly.",
-    hard: "Hard: 10 targets up to 200, more divide-by-3 tiles, falling faster.",
-    expert: "Expert: 11 targets up to 240, every operator, falling faster still.",
+    hard: "Hard: 10 targets from 40 up to 250, falling faster, with lots of ×2 tiles.",
+    expert: "Expert: 8 targets from 150 up to 400, every operator, falling faster.",
   },
   clayshoot: {
     easy: "Easy: 20 slower clays, 3 doubles and 6 birds.",
-    hard: "Hard: 28 faster clays, 10 doubles and 24 birds, some flying together.",
-    expert: "Expert: 30 of the fastest clays, doubles and triples, and 32 birds.",
+    hard: "Hard: 30 fast clays, every one in a double, and 24 birds.",
+    expert: "Expert: 36 of the fastest clays, every one in a triple, and 32 birds.",
   },
 };
 
@@ -234,14 +311,14 @@ type LevelEdit = { goal?: string; frameGoal?: string; how?: Record<string, Parti
 const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert", LevelEdit>>> = {
   reaction: {
     easy: { how: { "Wait for gold;": { detail: "it comes 5 times." }, "Only a full gold screen": { detail: "counts: the other colours are traps." } } },
-    hard: { how: { "Wait for gold;": { detail: "it comes 6 to 8 times." } } },
-    expert: { how: { "Wait for gold;": { detail: "it comes 8 times and stays for 1 second." }, "Only a full gold screen": { detail: "counts: 3 to 5 traps come before each." } } },
+    hard: { how: { "Wait for gold;": { detail: "it comes 8 times and stays for 0.9 seconds." }, "Only a full gold screen": { detail: "counts: 3 or 4 traps come before each." } } },
+    expert: { how: { "Wait for gold;": { detail: "it comes 9 times and stays for 0.6 seconds." }, "Only a full gold screen": { detail: "counts: 6 to 8 traps come before each." } } },
   },
   numhunt: {
     easy: { goal: "Tap all 16 numbers from smallest to largest.", how: { "All the numbers": null, "The timer above the board": null } },
-    hard: { goal: "Tap all 30 numbers from smallest to largest in 50 s.", how: { "All the numbers": { detail: "move every 10 seconds." }, "The timer above the board": { detail: "counts up to 10 s, then the numbers move and it starts again from 0." } } },
+    hard: { goal: "Tap all 32 numbers from smallest to largest in 42 s.", how: { "All the numbers": { detail: "move every 10 seconds." }, "The timer above the board": { detail: "counts up to 10 s, then the numbers move and it starts again from 0." } } },
     expert: {
-      goal: "Tap all 30 numbers from largest to smallest in 45 s.",
+      goal: "Tap all 40 numbers from largest to smallest in 55 s.",
       frameGoal: "Tap the numbers highest to lowest",
       how: {
         "Find the smallest": { action: "Find the largest" },
@@ -251,22 +328,34 @@ const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert
     },
   },
   chain: {
-    easy: { goal: "Tap 30 charms, following the cycle.", how: { "After link 20,": null, "Reverse:": null, "Keep momentum": { detail: "– 3.5 s for links 1–10, 3 s for 11–20, 2.5 s for 21–30. The first tap is untimed." } } },
-    hard: {
+    easy: {
+      goal: "Tap 24 charms, following the cycle.",
       how: {
-        "After link 20,": { action: "After links 20 and 30,", detail: "go backwards for 5 links." },
-        "Keep momentum": { detail: "– 2.5 s for links 1–13, 2 s for 14–26, 1.6 s for 27–40. The first tap is untimed." },
-        "Reverse:": { detail: "a banner warns before each; links 21–25 and 31–35 run last to first." },
+        "Tap the five charms": { action: "Tap the four charms" },
+        "After link 20,": null,
+        "Reverse:": null,
+        "Keep momentum": { detail: "– 6 s for links 1–8, 5.5 s for 9–16, 5 s for 17–24. The first tap is untimed; one wrong tap is forgiven." },
+        "Every 5 links": { action: "Every 4 links", detail: "the board reshuffles with four new charms." },
+      },
+    },
+    hard: {
+      goal: "Tap 48 charms, following the cycle.",
+      how: {
+        "Tap the five charms": { action: "Tap the six charms" },
+        "After link 20,": { action: "On links 19–24 and 37–42,", detail: "go backwards." },
+        "Keep momentum": { detail: "– 2.5 s for links 1–16, 2 s for 17–32, 1.6 s for 33–48. The first tap is untimed." },
+        "Every 5 links": { action: "Every 6 links", detail: "the board reshuffles with six new charms." },
+        "Reverse:": { detail: "a banner warns before each reversed board; it runs last to first." },
       },
     },
     expert: {
-      goal: "Tap 50 charms, following the cycle.",
+      goal: "Tap 56 charms, following the cycle.",
       how: {
-        "Tap the five charms": { action: "Tap the six charms" },
-        "After link 20,": { action: "After links 20 and 35,", detail: "go backwards for 5 links." },
-        "Keep momentum": { detail: "– 2 s for links 1–16, 1.6 s for 17–33, 1.4 s for 34–50. The first tap is untimed." },
-        "Every 5 links": { detail: "the board reshuffles with six new charms." },
-        "Reverse:": { detail: "a banner warns before each; links 21–25 and 36–40 run last to first." },
+        "Tap the five charms": { action: "Tap the seven charms" },
+        "After link 20,": { action: "On links 15–21, 29–35 and 43–49,", detail: "go backwards." },
+        "Keep momentum": { detail: "– 2 s for links 1–19, 1.6 s for 20–38, 1.4 s for 39–56. The first tap is untimed." },
+        "Every 5 links": { action: "Every 7 links", detail: "the board reshuffles with seven new charms." },
+        "Reverse:": { detail: "a banner warns before each reversed board; it runs last to first." },
       },
     },
   },
@@ -280,7 +369,7 @@ const SPEED_LEVEL_EDITS: Record<string, Partial<Record<"easy" | "hard" | "expert
   },
   clayshoot: {
     easy: { goal: "Shoot all 20 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 6 white birds." } } },
-    hard: { goal: "Shoot all 28 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 24 white birds." } } },
-    expert: { goal: "Shoot all 30 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 32 white birds." }, "Later on, two fly at once": { action: "Later on, two or three fly at once" } } },
+    hard: { goal: "Shoot all 30 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 24 white birds." }, "Later on, two fly at once": { action: "From the first pull, two fly at once" } } },
+    expert: { goal: "Shoot all 36 clays without hitting a bird.", how: { "Don’t shoot": { detail: "the 32 white birds." }, "Later on, two fly at once": { action: "From the first pull, three fly at once" } } },
   },
 };

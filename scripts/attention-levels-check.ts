@@ -43,6 +43,7 @@ import { countUpStageTruth, countUpCounts, scanStageMatches } from "../src/lib/d
 import { mazeCorridorNeighbours, mazeRoute } from "../src/lib/duel/maze";
 import { encodeMazeTrail } from "../src/lib/duel/depth/labyrinth";
 import { mazeFalseTrailLengths } from "../src/lib/duel/maze.server";
+import { mazeKeyTour, mazeKeysOf } from "../src/lib/duel/mazeKeys";
 import { differenceGroups } from "../src/puzzles/spotTheDifference";
 import { SPOT_BONUS_SCALE } from "../src/lib/duel/depth/doubleTake";
 import { EAGLE_ANGLES } from "../src/components/puzzles/refreshIcons";
@@ -133,7 +134,10 @@ for (const level of OFF) {
       check(len >= row.routeMin && len <= row.routeMax, `maze ${level} ${seed}: a route of ${len}`);
       const trails = mazeFalseTrailLengths(p.cells, p.solution!, cols);
       check(trails.filter((t) => t >= 5).length >= row.deadEnds && trails.filter((t) => t >= 11).length >= row.longDeadEnds, `maze ${level} ${seed}: too few false trails`);
-      check(p.par === len - 1, `maze ${level} ${seed}: par ${p.par}, route steps ${len - 1}`);
+      // Changed with Joe's approval, 22 Nov 2026 (D3: levelRev 2's Hard and Expert mazes carry gold keys, and their par is
+      // the walk through every key to the exit; with no keys that walk is the route, as before).
+      const parWalk = mazeKeyTour(p.cells, cols, p.start, mazeKeysOf(p), p.exit).length - 1;
+      check(p.par === parWalk, `maze ${level} ${seed}: par ${p.par}, par walk steps ${parWalk}`);
       if (row.exitHidden) {
         const r = Math.floor(p.exit / cols);
         const c = p.exit % cols;
@@ -268,7 +272,8 @@ function flawless(p: PuzzleData): Step[] {
       push(pairGoldTimed(p) ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips));
     });
   } else if (p.type === "maze") {
-    const route = p.solution!;
+    // Changed with Joe's approval, 22 Nov 2026 (D3: a keyed maze's flawless run walks through every key to the exit).
+    const route = mazeKeyTour(p.cells, p.cols!, p.start, mazeKeysOf(p), p.exit);
     for (let k = 1; k <= route.length; k++) push(encodeMazeTrail(route.slice(0, k), p.cols));
   } else if (p.type === "spotdiff") {
     const taps: number[][] = [[], []];
