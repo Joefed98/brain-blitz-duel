@@ -5,6 +5,7 @@
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, puzzleLevel } from "@/lib/levels/levels";
 import { PUSH_NORMAL_STUCK_HINT, type PushLevelSettings } from "@/lib/levels/pattern/push.levels";
+import { patternLevelFullByS } from "./standard/plLevelSpeed";
 
 function levelSettings(puzzle: { type?: string; level?: unknown } | null | undefined): PushLevelSettings | null {
   if (puzzle?.type !== "push" || puzzle.level === undefined) return null;
@@ -21,5 +22,7 @@ export function stuckHintOn(puzzle: { type?: string; level?: unknown } | null | 
 
 /** The full-speed time of a board dealt at a level, or null (Normal and every puzzle dealt before levels: 45 s). */
 export function pushLevelFullByS(puzzle: { type?: string; level?: unknown } | null | undefined): number | null {
-  return levelSettings(puzzle)?.speedFullByS ?? null;
+  if (puzzle?.type !== "push" || puzzle.level === undefined) return null;
+  // Its stamped time (D4, 22 Nov 2026), else the time its level had when it was dealt (plLevelSpeed.ts).
+  return patternLevelFullByS("push", puzzle);
 }

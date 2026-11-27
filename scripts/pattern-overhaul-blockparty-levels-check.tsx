@@ -75,8 +75,8 @@ const deal = (level: string | undefined, seed: number | undefined) =>
     check(s.solutions.min >= 1, `registry ${level}: a band without a solution`);
   }
   const want: Record<BlockLevel, [number, number, number, number | null, number]> = {
-    easy: [6, 6, 20, null, 60_000],
-    hard: [7, 9, 2, 5, 60_000],
+    easy: [5, 4, 6, null, 60_000], // Changed with Joe's approval, 22 Nov 2026
+    hard: [8, 10, 3, 8, 70_000], // Changed with Joe's approval, 22 Nov 2026
     expert: [8, 11, 1, 2, 70_000], // Joe's spec: 1–3 ways, 90 s; tightened for a clear step above Hard (16 Nov)
   };
   for (const level of BLOCK_LEVELS) {
@@ -84,7 +84,8 @@ const deal = (level: string | undefined, seed: number | undefined) =>
     const [cols, pieces, min, max, clock] = want[level];
     check(s.cols === cols && s.pieces.length === pieces && s.solutions.min === min && s.solutions.max === max && s.timeLimitMs === clock, `registry ${level}: not the agreed settings`);
   }
-  check(blockLevelGeo("hard") === BLOCK_GEOMETRY_D4, "registry: Hard is not Normal's board and pieces");
+  // Changed with Joe's approval, 22 Nov 2026: Hard is Normal's nine pieces and the U on 8 × 8 (D4).
+  check(blockLevelGeo("hard").cols === 8 && blockLevelGeo("hard").pieces.length === BLOCK_GEOMETRY_D4.pieces.length + 1 && blockLevelGeo("hard").pieces.slice(0, 9).every((p, i) => p.name === BLOCK_GEOMETRY_D4.pieces[i]!.name), "registry: Hard isn't Normal's nine pieces and the U on 8 × 8");
 }
 
 /* 2. Every level's deal. */
@@ -189,7 +190,9 @@ if (FULL) {
   check(urls.some((u) => /\/peg\.webp\?/.test(u)) && urls.some((u) => /\/tray-red\.webp\?/.test(u)), "art: the stage draws no stud or tray block");
   for (const level of ["easy", "hard"] as const) {
     const h = renderToStaticMarkup(<BlockPartyPuzzle puzzle={deal(level, 0xabc)} {...props} />);
-    check(h.includes("grid-cols-3") && !h.includes("grid-cols-4"), `stage ${level}: the tray is not three to a row`);
+    // Changed with Joe's approval, 22 Nov 2026: three to a row up to nine pieces, four beyond (the stage's own rule; Hard has ten).
+    const four = blockLevelSettings(level).pieces.length > 9;
+    check(four ? h.includes("grid-cols-4") && !h.includes("grid-cols-3") : h.includes("grid-cols-3") && !h.includes("grid-cols-4"), `stage ${level}: the tray is not ${four ? "four" : "three"} to a row`);
     check((h.match(/(well|peg)\.webp/g) ?? []).length === blockLevelSettings(level).cols ** 2, `stage ${level}: squares drawn`);
   }
   const normal = renderToStaticMarkup(<BlockPartyPuzzle puzzle={deal("normal", 0xabc)} {...props} />);

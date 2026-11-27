@@ -2,7 +2,7 @@ import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-speedatt.css";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -38,6 +38,8 @@ import {
 } from "@/lib/duel/depth/labyrinth";
 import { mazeColsOf, mazeStraightFill } from "@/lib/duel/maze";
 import { mazeExitShown } from "@/lib/duel/attentionLevels";
+import { mazeKeysOf, mazeKeysTaken, mazeKeysWalk } from "@/lib/duel/mazeKeys";
+import { MazeKeysLayer } from "./attentionLevelArt";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect, playSound } from "@/lib/sound";
 import { mazeStandard } from "@/lib/duel/standard/attention";
@@ -120,9 +122,12 @@ export function MazeBoard({
   stars,
   taken,
   exitShown = true,
+  overlay,
 }: {
   /** Expert (stage 3 of the Attention overhaul): false until the trail's head is near the exit (display only). */
   exitShown?: boolean;
+  /** D3 (levelRev 2's Hard and Expert): the keys layer, drawn in the board's SVG under the ball (attentionLevelArt.tsx). */
+  overlay?: ReactNode;
   /** mazeRev 1: the detour stars' cells, and those the ball has taken (drawn as a faint outline). */
   stars?: readonly number[] | undefined;
   taken?: readonly number[] | undefined;
@@ -272,6 +277,7 @@ export function MazeBoard({
           style={{ filter: "drop-shadow(0 0 0.12px var(--primary))" }}
         />
         </g>}
+        {overlay}
         {/* Player: current route head, a larger glowing gold dot. */}
         {(() => {
           const head = path.length ? path[path.length - 1]! : start;
@@ -339,7 +345,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const stars = depth && !usesParMoves(puzzle) ? (puzzle.stars ?? []) : undefined;
   const [classicPath, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
   const [trail, setTrail] = useStageState<number[]>(stateKey, "mazeTrail", () => [start]);
-  const path = useMemo(() => (depth ? mazeTrailRoute(mazeTrailWalk(cells, start, exit, trail, cols)) : classicPath), [depth, classicPath, trail, cells, start, exit, cols]);
+  // D3 (levelRev 2's Hard and Expert, mazeKeys.ts): with keys the trail walks on through the exit until every key is taken.
+  const keys = useMemo(() => (isMaze ? mazeKeysOf(puzzle) : []), [isMaze, puzzle]);
+  const walkOf = (t: number[]) => (keys.length ? mazeKeysWalk(cells, start, exit, t, cols, keys) : mazeTrailWalk(cells, start, exit, t, cols));
+  const path = useMemo(() => (depth ? mazeTrailRoute(walkOf(trail)) : classicPath), [depth, classicPath, trail, cells, start, exit, cols, keys]); // eslint-disable-line react-hooks/exhaustive-deps
+  const keysTaken = useMemo(() => (keys.length ? mazeKeysTaken(walkOf(trail), keys).map((i) => keys[i]!) : []), [keys, trail]); // eslint-disable-line react-hooks/exhaustive-deps
   const takenIdx = useMemo(() => (stars ? mazeStarsTaken(trail, stars) : []), [stars, trail]);
   const taken = useMemo(() => takenIdx.map((i) => stars![i]!), [takenIdx, stars]);
   const submitted = useRef(false);
@@ -369,7 +379,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   };
   useEffect(() => registerFxPreview("maze", () => trace.current(path.length > 1 ? path : (puzzle.type === "maze" ? puzzle.solution ?? [] : []))), [path, puzzle]);
 
-  const solved = path[path.length - 1] === exit;
+  const solved = path[path.length - 1] === exit && keysTaken.length === keys.length;
   const wasted = useMemo(() => {
     if (depth) return mazeTrailBacktracks(trail);
     const seen = new Set<number>();
@@ -385,8 +395,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   // walked, steps back included: the server's `walked` (standard/attention.server.ts mazeRun), from the same walk.
   const par = shownPar(puzzle);
   const walked = useMemo(
-    () => (par !== null && depth ? Math.max(0, mazeTrailWalk(cells, start, exit, trail, cols).length - 1) : 0),
-    [par, depth, cells, start, exit, trail, cols],
+    () => (par !== null && depth ? Math.max(0, walkOf(trail).length - 1) : 0),
+    [par, depth, cells, start, exit, trail, cols, keys], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // The Attention overhaul (stage 2): each step a soft tick, a little higher for every junction passed; a step back a
@@ -527,7 +537,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {/* mazeRev 1: the same board box as before (taller-than-square by k), split into 23 rows. */}
-        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} exitShown={!isMaze || solved || mazeExitShown(puzzle, path[path.length - 1] ?? start, cols)} />
+        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} exitShown={!isMaze || solved || mazeExitShown(puzzle, path[path.length - 1] ?? start, cols)} overlay={keys.length ? <MazeKeysLayer keys={keys} taken={keysTaken} exit={exit} cols={cols} k={(k * cols) / rows} /> : undefined} />
       </div>
 
        <div data-game-controls="pad" data-maze-pad="" className="flex shrink-0 flex-col items-center justify-center">
@@ -548,7 +558,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   const depth = usesMazeDepth(puzzle);
   const cols = mazeColsOf(puzzle);
   const rows = Math.ceil(puzzle.cells.length / cols) || cols;
-  const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(myAnswer ?? "", puzzle.start, cols, puzzle.cells.length), cols) : null;
+  // D3: a keyed maze's walk goes on through the exit until every key is taken (mazeKeys.ts).
+  const revealKeys = mazeKeysOf(puzzle);
+  const revealTrail = decodeMazeTrail(myAnswer ?? "", puzzle.start, cols, puzzle.cells.length);
+  const walk = depth ? (revealKeys.length ? mazeKeysWalk(puzzle.cells, puzzle.start, puzzle.exit, revealTrail, cols, revealKeys) : mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, revealTrail, cols)) : null;
   const mine = walk ? mazeTrailRoute(walk) : decodeMazePath(myAnswer ?? "");
   const verdict = verifyMazePath(
     puzzle.cells,

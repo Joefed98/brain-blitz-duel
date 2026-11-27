@@ -15,8 +15,9 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import type { SafePuzzleData } from "../src/lib/duel/types";
 import { gameLevelSettings } from "../src/lib/levels/gameLevels";
 
-export const SAFE_LEVEL_SEED = { expert: 20261163 } as const;
-export const SAFE_LEVEL_BANK_SIZE = { expert: 200 } as const;
+// D4 (22 Nov 2026): Hard's five dials and Expert's six, each bank under its own seed.
+export const SAFE_LEVEL_SEED = { hard: 20261165, expert: 20261164 } as const;
+export const SAFE_LEVEL_BANK_SIZE = { hard: 200, expert: 200 } as const;
 const WORKERS = 4;
 const OUT = new URL("../src/lib/duel/safeLevelBank.server.json", import.meta.url);
 type BankLevel = keyof typeof SAFE_LEVEL_SEED;
@@ -26,7 +27,13 @@ if (partArg) {
   const [level, k, n, cap] = partArg.slice("--part=".length).split("/") as [BankLevel, string, string, string];
   const settings = gameLevelSettings<SafeLevel>("safe", level)!;
   for (let i = Number(k); i < Number(cap); i += Number(n)) {
-    const p = withSeededRandom(SAFE_LEVEL_SEED[level] + i, () => generateSafeLevel(settings));
+    // A seed whose search finds no card is passed over (D4: the six-dial cards); the bank is still the first N by index.
+    let p: SafePuzzleData;
+    try {
+      p = withSeededRandom(SAFE_LEVEL_SEED[level] + i, () => generateSafeLevel(settings));
+    } catch {
+      continue;
+    }
     console.log(JSON.stringify({ i, puzzle: p }));
   }
   process.exit(0);
@@ -34,7 +41,8 @@ if (partArg) {
 
 async function build(level: BankLevel): Promise<SafePuzzleData[]> {
   const size = SAFE_LEVEL_BANK_SIZE[level];
-  const cap = size + 20;
+  // Twenty spare seeds, sixty from D4 (22 Nov 2026: about one six-dial seed in twelve finds no card).
+  const cap = size + 60;
   const outputs = await Promise.all(
     Array.from({ length: WORKERS }, async (_, k) => {
       const child = Bun.spawn(["bun", import.meta.path, `--part=${level}/${k}/${WORKERS}/${cap}`], { stdout: "pipe", stderr: "inherit" });
@@ -59,7 +67,7 @@ async function build(level: BankLevel): Promise<SafePuzzleData[]> {
 }
 
 if (import.meta.main) {
-  const bank = { expert: await build("expert") };
+  const bank = { hard: await build("hard"), expert: await build("expert") };
   const text = JSON.stringify(bank);
   if (process.argv.includes("--check")) {
     const ok = readFileSync(OUT, "utf8") === text;

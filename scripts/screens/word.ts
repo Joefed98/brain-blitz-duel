@@ -49,5 +49,14 @@ export default function wordScreens(): ThemeScreen[] {
         sizes: ALL_SIZES,
       }),
     ),
+    // Added with Joe's approval, 22 Nov 2026: the other seven games' pages with a level picked (D1's level lines), each
+    // on its longest line.
+    { name: "word: game page, Nucleus Hard", mode: "practice", plain: true, search: { page: "wordsmith" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("hard") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Forage Easy", mode: "practice", plain: true, search: { page: "wordhunt" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("easy") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Roundabout Hard", mode: "practice", plain: true, search: { page: "letterwheel" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("hard") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Strikeout Expert", mode: "practice", plain: true, search: { page: "strikeout" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("expert") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Swapword Hard", mode: "practice", plain: true, search: { page: "swapword" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("hard") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Interlock Expert", mode: "practice", plain: true, search: { page: "tilegrid" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("expert") }, // Added with Joe's approval, 22 Nov 2026
+    { name: "word: game page, Slider Expert", mode: "practice", plain: true, search: { page: "wordslide" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("expert") }, // Added with Joe's approval, 22 Nov 2026
   ];
 }

@@ -19,12 +19,14 @@
  *   bun scripts/letterwheel-levels-check.ts
  */
 import { answerWords, isWord } from "../src/lib/duel/dictionary.server";
+import { STRIKEOUT_WORDS_8_RAW } from "../src/lib/duel/strikeoutWords.server"; // Changed with Joe's approval, 21 Nov 2026
 import { lwJarSize, lwSlotCells, LW_LEVEL_LIMITS } from "../src/lib/duel/letterWheel";
 import { lwBonusDropsAvailable } from "../src/lib/duel/letterWheel.server";
 import { LETTER_WHEEL_LEVEL_BANKS } from "../src/lib/duel/levels/letterwheel.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData } from "../src/lib/duel/types";
 import { WHEEL_REV_COMMON } from "../src/lib/duel/wordOverhaul";
+import { WHEEL_REV_STAR } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 21 Nov 2026
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { LETTERWHEEL_LEVEL_ABOUT, type LetterWheelLevelSettings } from "../src/lib/levels/word/letterwheel";
@@ -47,6 +49,7 @@ for (const level of LEVELS_BEYOND) {
 // 2. The banks.
 const answers = new Set<string>();
 for (let n = 3; n <= 9; n++) for (const w of answerWords(n)) answers.add(w.toUpperCase());
+for (const w of STRIKEOUT_WORDS_8_RAW.split(/\s+/)) if (w) answers.add(w.toUpperCase()); // Changed with Joe's approval, 21 Nov 2026
 for (const level of LEVELS_BEYOND) {
   const lim = LW_LEVEL_LIMITS[level];
   const bank = LETTER_WHEEL_LEVEL_BANKS[level];
@@ -105,7 +108,7 @@ for (const seed of seedsFrom(4101, 12)) {
     t.ok(JSON.stringify(p) === JSON.stringify(dealLevel(TYPE, level, seed)), `${level} ${seed}: the same seed deals the same board`);
     t.ok(puzzleLevel(p) === level, `${level} ${seed}: stamped ${level}`);
     t.ok(puzzleTimeLimitMs(p) === s.timeLimitMs && s.timeLimitMs <= MAX_ROUND_CLOCK_MS, `${level} ${seed}: its own clock, at most 120 s`);
-    t.ok(p.wheelRev === WHEEL_REV_COMMON, `${level} ${seed}: today's stamp (wheelRev ${WHEEL_REV_COMMON})`);
+    t.ok(p.wheelRev === WHEEL_REV_STAR, `${level} ${seed}: today's stamp (wheelRev ${WHEEL_REV_STAR})`); // Changed with Joe's approval, 21 Nov 2026
     const from = LETTER_WHEEL_LEVEL_BANKS[level].some((e) => e.letters === p.letters && JSON.stringify(e.words) === JSON.stringify(p.words));
     t.ok(from, `${level} ${seed}: a board from the level's bank`);
     t.ok(p.jarSize === lwJarSize(lwBonusDropsAvailable(p.letters, p.words ?? [])), `${level} ${seed}: the jar sized from the board's own bonus words`);
@@ -113,7 +116,7 @@ for (const seed of seedsFrom(4101, 12)) {
 }
 
 // 6. The tuning (near-perfect kit, mean on 16 fixed seeds; bands measured on 15 Nov 2026 with a margin).
-const BANDS: Record<string, [number, number]> = { easy: [170, 195], normal: [162, 186], hard: [155, 180], expert: [148, 174] };
+const BANDS: Record<string, [number, number]> = { easy: [170, 195], normal: [162, 186], hard: [155, 180], expert: [140, 165] }; // Changed with Joe's approval, 22 Nov 2026
 const means: Record<string, number> = {};
 const tuneSeeds = seedsFrom(9101, 16);
 for (const level of ["easy", "normal", "hard", "expert"] as const) {

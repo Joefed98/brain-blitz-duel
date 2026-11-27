@@ -20,12 +20,7 @@ const STAND_IN_LEVELS = {
   },
 };
 
-const arcadeHard = async (page: Page) => {
-  await page.locator("[data-practice-side='arcade']").click();
-  await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
-  await page.waitForTimeout(300);
-};
-
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 /** The catalogue's level set to Expert on this device, then the page drawn again. */
 const expertStored = async (page: Page) => {
   await page.evaluate(() => localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: "expert", games: {} })));
@@ -37,9 +32,9 @@ const expertStored = async (page: Page) => {
 export const DIFFICULTY_SCREENS = (): ThemeScreen[] => {
   const data = { __harnessProgress: gamesProgressFixture() };
   return [
-    // The first-time explanation (Joe, 15 Nov 2026): a new device's first look at the selector.
-    { name: "difficulty: catalogue, first-time explanation", mode: "practice", globals: data, sizes: NAV_SIZES },
-    { name: "difficulty: catalogue, Arcade on Hard", mode: "practice", globals: data, sizes: NAV_SIZES, go: arcadeHard },
+    // Changed with Joe's approval, 22 Nov 2026 (P2: the catalogue has no level switch; the first-time explanation is drawn under the game page's level
+    // row, "difficulty: game page with levels"). Removed "difficulty: catalogue, first-time explanation" and
+    // "difficulty: catalogue, Arcade on Hard".
     {
       name: "difficulty: game page with levels",
       mode: "practice",

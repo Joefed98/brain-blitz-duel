@@ -33,6 +33,12 @@ import { asPhoneSends, gradeSteps, median } from "./standard-lib";
 import { SPEED_PIPES_NOV7_FIXTURE, type Nov7Fixture } from "./speed-pipes-nov7-record";
 import { bangOnRun, flashRun, pipesIndexOrder } from "./speed-pipes-nov7-bands";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { pinPreD3Speed } from "../src/lib/duel/d3Normal";
+
+// Changed with Joe's approval, 22 Nov 2026 (D3): D3's Normal scoring stamps (d3Normal.ts) deal Flash tapRev 8, Bonk
+// whackRev 5, the Chain chainDepthRev 4, Tenfall tenRev 7 and Pull! clayRev 11; this check was written for the stamps
+// before, so it deals them (d3-speed-ladder-check proves the new ones).
+pinPreD3Speed(true);
 
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): this check is written for
 // pipesRev 4, so it deals the stamps before patternNov15.ts (pipesRev 5 is pattern-overhaul-pipes-check's).

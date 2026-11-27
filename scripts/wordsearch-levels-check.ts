@@ -164,7 +164,7 @@ const BANDS = {
   easy: { near: [185, 200], great: [165, 195] },
   normal: { near: [180, 200], great: [165, 190] },
   hard: { near: [174, 196], great: [150, 175] },
-  expert: { near: [152, 178], great: [132, 158] },
+  expert: { near: [152, 178], great: [100, 130] }, // Changed with Joe's approval, 21 Nov 2026
 } as const;
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
   const scores = { near: [] as number[], great: [] as number[] };

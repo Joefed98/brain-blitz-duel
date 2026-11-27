@@ -55,6 +55,7 @@ const { UNBLOCK_BANK } = await import("../src/lib/duel/unblockBank.server");
 const { INTRO_MS } = await import("../src/lib/duel/types");
 const { puzzlePrepMs, puzzleTimeLimitMs } = await import("../src/lib/duel/catalogue");
 const { decodeMoves } = await import("../src/lib/duel/unblock");
+const { TOPSY_LINE_REV } = await import("../src/lib/duel/topsyLine"); // Changed with Joe's approval, 22 Nov 2026
 
 type Row = Parameters<typeof acceptIntroDemo>[1] & {};
 
@@ -114,7 +115,8 @@ for (const demo of demos) {
   ok(puzzleInputDemoCompatible(game, row.input_log as never), `${game}: the phone's presentation rule accepts it`);
   ok(!JSON.stringify(row).includes("__"), `${game}: no sealed-only fields`);
   const st = PATTERN_NOV15_STAMPS[game as never] as { key: string; from: number; to: number } | undefined;
-  ok(st && st.key === stamp.key && st.to === stamp.rev, `${game}: the fixture's stamp is the overhaul's (${stamp.key} ${stamp.rev})`);
+  // Changed with Joe's approval, 22 Nov 2026: Topsy-Turvy's demo is on gravityRev 9, the stamp Normal deals since D4 (gravityRev 8's play, Normal's line 40 s).
+  ok(st && st.key === stamp.key && stamp.rev === (game === "gravity" ? TOPSY_LINE_REV : st.to), `${game}: the fixture's stamp is the one Normal deals today (${stamp.key} ${stamp.rev})`); // Changed with Joe's approval, 22 Nov 2026
   ok(row.puzzle[stamp.key] === stamp.rev, `${game}: recorded on ${stamp.key} ${stamp.rev}`);
 
   // 2. Today's intro example (worked out as practiceGenerateFn does).

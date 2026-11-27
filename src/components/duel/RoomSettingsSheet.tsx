@@ -24,7 +24,7 @@ import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { NORMAL, type Level } from "@/lib/levels/levels";
 import { SCORING_MODES, scoringLabel, type ScoringMode } from "@/lib/duel/scoringMode";
-import { Button, Chip, Segmented, Sheet } from "@/design/components";
+import { Button, Chip, LevelMark, Segmented, Sheet } from "@/design/components";
 
 /**
  * The host's room settings (31 Oct 2026; rules in src/lib/duel/roomSettings.ts): three presets over a grid of
@@ -187,6 +187,7 @@ export function RoomSettingsSheet({
           <section aria-label="Difficulty" data-room-level className="flex flex-col gap-2.5">
             <div className="rs-head">
               <h3 className="ap-group-title">Difficulty</h3>
+              <LevelMark level={level} label />
             </div>
             <LevelSwitch
               value={level}
