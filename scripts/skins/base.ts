@@ -32,13 +32,16 @@ const git = (args: string[]) => {
   return { ok: out.status === 0, out: (out.stdout ?? "").trim(), err: (out.stderr ?? "").trim() };
 };
 
-function headCommit(): string {
+/** The pull_request event's head and base commits (the base: main's tip GitHub built the merge commit on), if any. */
+function prEvent(): { head?: string; base?: string } {
   const path = process.env["GITHUB_EVENT_PATH"];
-  if (process.env["GITHUB_EVENT_NAME"] === "pull_request" && path && existsSync(path)) {
-    const sha = (JSON.parse(readFileSync(path, "utf8")) as { pull_request?: { head?: { sha?: string } } }).pull_request?.head?.sha;
-    if (sha) return sha;
-  }
-  return git(["rev-parse", "HEAD"]).out;
+  if (process.env["GITHUB_EVENT_NAME"] !== "pull_request" || !path || !existsSync(path)) return {};
+  const pr = (JSON.parse(readFileSync(path, "utf8")) as { pull_request?: { head?: { sha?: string }; base?: { sha?: string } } }).pull_request;
+  return { head: pr?.head?.sha, base: pr?.base?.sha };
+}
+
+function headCommit(): string {
+  return prEvent().head ?? git(["rev-parse", "HEAD"]).out;
 }
 
 /** How many times a fetch is tried (runner network faults happen) and the waits between tries, in ms. */
@@ -62,6 +65,11 @@ function fetchOrThrow(args: string[], fetched: string[]): void {
   throw new Error(`git fetch failed after ${FETCH_ATTEMPTS} attempts (git ${args.join(" ")}): ${last}. Main's renderers could not be drawn, so the default frames were not compared; this is a network fault, not a drawing difference`);
 }
 
+/** Thrown when git can't name the merge base (as opposed to a fetch that failed): the checks then compare no frame. */
+export class NoMergeBase extends Error {
+  override name = "NoMergeBase";
+}
+
 export interface BaseInfo {
   sha: string;
   head: string;
@@ -78,17 +86,42 @@ export function baseCommit(): BaseInfo {
     if (!git(["cat-file", "-e", `${pinned}^{commit}`]).ok) fetchOrThrow(["fetch", "--no-tags", "--depth=1", "origin", pinned], fetched);
     return { sha: git(["rev-parse", pinned]).out, head, fetched };
   }
+  // 26 Nov 2026 (Joe): a pull_request run also fetches the event's base commit by name (main's tip the merge commit was
+  // built on), and git's own reason is kept whenever merge-base names nothing (it also fails, rather than answering
+  // "none", on a shallow history it can't read), for the message below.
+  const prBase = prEvent().base;
+  let why = "";
   const tryBase = () => {
-    if (!git(["cat-file", "-e", `${head}^{commit}`]).ok) return "";
+    if (!git(["cat-file", "-e", `${head}^{commit}`]).ok) {
+      why = `the head commit ${head.slice(0, 8)} isn't in the checkout`;
+      return "";
+    }
     const mb = git(["merge-base", head, "refs/remotes/origin/main"]);
-    return mb.ok ? mb.out : "";
+    if (mb.ok && mb.out) return mb.out;
+    why = mb.err ? `git merge-base: ${mb.err.split("\n").filter(Boolean).pop()}` : "git merge-base found no common commit";
+    return "";
   };
+  const wants = [head, ...(prBase && prBase !== head ? [prBase] : []), "+refs/heads/main:refs/remotes/origin/main"];
   let sha = tryBase();
   for (let depth = 64; !sha && depth <= 4096; depth *= 4) {
-    fetchOrThrow(["fetch", "--no-tags", `--depth=${depth}`, "origin", head, "+refs/heads/main:refs/remotes/origin/main"], fetched);
+    fetchOrThrow(["fetch", "--no-tags", `--depth=${depth}`, "origin", ...wants], fetched);
     sha = tryBase();
   }
-  if (!sha) throw new Error(`no merge base between ${head.slice(0, 8)} and main within 4,096 commits`);
+  // Still none: once more by date instead of by count (every commit since a year before the head's own date), so a
+  // deep or oddly shaped history can't hide the base from the depth-limited fetches.
+  if (!sha) {
+    const at = Number(git(["log", "-1", "--format=%ct", head]).out) || Math.floor(Date.now() / 1000);
+    const since = new Date((at - 365 * 86_400) * 1000).toISOString().slice(0, 10);
+    fetchOrThrow(["fetch", "--no-tags", `--shallow-since=${since}`, "origin", ...wants], fetched);
+    sha = tryBase();
+  }
+  if (!sha) {
+    const shallow = existsSync(".git/shallow") ? readFileSync(".git/shallow", "utf8").split("\n").filter(Boolean).length : 0;
+    throw new NoMergeBase(
+      `no merge base between ${head.slice(0, 8)} and main (${git(["rev-parse", "--short", "refs/remotes/origin/main"]).out || "not fetched"}) ` +
+        `after fetching 4,096 commits and a year by date (${why || "no reason given"}; ${shallow} shallow boundaries; ${git(["--version"]).out})`,
+    );
+  }
   return { sha, head, fetched };
 }
 

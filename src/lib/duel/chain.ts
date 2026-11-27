@@ -35,9 +35,24 @@ export function chainCycleAt(puzzle: ChainPuzzleData, links: number): ChainRuleI
   return puzzle.cycles?.[chainBoardIndex(links, puzzle)] ?? puzzle.cycle;
 }
 
+/**
+ * Links per board: a D3 level deal's own (`chainLevel.block`, a new board every cycle: 4 on Easy, 6 on Hard, 7 on
+ * Expert), else five (every older round and Normal).
+ */
+export function chainBlockOf(puzzle: ChainPuzzleData | null | undefined): number {
+  const own = (puzzle?.chainLevel as { block?: unknown } | undefined)?.block;
+  return typeof own === "number" && Number.isInteger(own) && own >= 2 && own <= 8 ? own : CHAIN_BLOCK;
+}
+
+/** Wrong taps a D3 level deal forgives (`chainLevel.spare`, Easy's spare link); absent = none (the chain breaks). */
+export function chainSpareOf(puzzle: ChainPuzzleData | null | undefined): number {
+  const own = (puzzle?.chainLevel as { spare?: unknown } | undefined)?.spare;
+  return typeof own === "number" && Number.isInteger(own) && own > 0 && own <= 3 ? own : 0;
+}
+
 /** Each new board starts its new cycle at the first symbol. */
 export function chainRuleStep(puzzle: ChainPuzzleData, links: number): number {
-  return puzzle.cycles ? links % CHAIN_BLOCK : links;
+  return puzzle.cycles ? links % chainBlockOf(puzzle) : links;
 }
 
 /** chainCycleRev 1: five-symbol cycles, reversed on the board from CHAIN_REVERSE_AT. */
@@ -113,7 +128,8 @@ export function chainWindowMs(link: number, puzzle?: ChainPuzzleData): number {
 
 /** The board shown after `links` correct taps. */
 export function chainBoardIndex(links: number, puzzle?: ChainPuzzleData): number {
-  return Math.min(Math.floor(links / CHAIN_BLOCK), Math.floor((chainRules(puzzle).length - 1) / CHAIN_BLOCK));
+  const block = chainBlockOf(puzzle);
+  return Math.min(Math.floor(links / block), Math.floor((chainRules(puzzle).length - 1) / block));
 }
 
 /**
@@ -191,6 +207,8 @@ export function decodeChainAnswer(raw: string): ChainAnswer {
 export interface ChainReplay {
   /** Correct links made before the chain ended. */
   links: number;
+  /** D3's spare link: wrong taps forgiven so far (absent before any). */
+  spared?: number;
   /** Why the chain ended (or "timer" while it is still live). */
   reason: ChainBreak;
   /** Node indices used on each board, in order. */
@@ -206,16 +224,18 @@ export function chainTapVerdict(
   puzzle: ChainPuzzleData,
   replay: ChainReplay,
   tap: ChainTap,
-): "ok" | "wrong" | "momentum" {
+): "ok" | "wrong" | "momentum" | "spare" {
   if (replay.lastT !== null && tap.t - replay.lastT > chainWindowMs(replay.links + 1, puzzle)) {
     return "momentum";
   }
   const board = chainBoardIndex(replay.links, puzzle);
   const node = puzzle.boards[board]?.[tap.node];
   const need = chainRequiredAt(puzzle, replay.links);
-  if (!node || !need) return "wrong";
-  if (replay.used[board]?.includes(tap.node)) return "wrong";
-  return node.shape === need.shape && node.colour === need.colour ? "ok" : "wrong";
+  // D3's spare link (chainSpareOf): a wrong tap while a spare is left is forgiven; the chain goes on.
+  const wrong = (): "wrong" | "spare" => ((replay.spared ?? 0) < chainSpareOf(puzzle) ? "spare" : "wrong");
+  if (!node || !need) return wrong();
+  if (replay.used[board]?.includes(tap.node)) return wrong();
+  return node.shape === need.shape && node.colour === need.colour ? "ok" : wrong();
 }
 
 /** The one place a timed tap list becomes a chain — used on the phone and the server. */
@@ -228,6 +248,10 @@ export function replayChain(puzzle: ChainPuzzleData, answer: ChainAnswer): Chain
     if (tap.t < previousT || tap.t > chainTimeLimitMs(puzzle)) break;
     previousT = tap.t;
     const verdict = chainTapVerdict(puzzle, replay, tap);
+    if (verdict === "spare") {
+      replay.spared = (replay.spared ?? 0) + 1;
+      continue;
+    }
     if (verdict !== "ok") {
       replay.reason = verdict;
       replay.over = true;

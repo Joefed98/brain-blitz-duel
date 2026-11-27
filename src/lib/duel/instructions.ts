@@ -1,4 +1,5 @@
 import { clayQuickWindowText } from "./speedOverhaul";
+import { bonkComboText, bonkHitsText, clayQuickHitsText } from "./d3Normal";
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
@@ -738,7 +739,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
               { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
               // Difficulty levels (16 Nov 2026, iceslide.levels.ts): the speed bonus's time differs by level.
-              { action: "Speed by level:", detail: "full within 20 s on Easy, 40 s on Hard (100 s clock) and 45 s on Expert (120 s clock).", helpOnly: true },
+              // D4 (22 Nov 2026, Joe): each level's own speed line, from iceslide.levels.ts.
+              { action: "Speed by level:", detail: "full within 20 s on Easy, 41 s on Hard and 50 s on Expert (both 100 s clocks).", helpOnly: true },
             ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,
@@ -1688,7 +1690,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: scoreList([
         { label: "Clays", how: "more for each clay hit, a gold one worth double, and a bonus for all 25 with no bird hit", max: bandMapTotal(CLAY_QUICK_HIT_MAP, 150) },
         // clayRev 10 (the Speed overhaul): the wider window; the pinned clayRev 9 keeps its words.
-        { label: "Quick hits", how: `hit each clay within ${clayQuickWindowText().full} of its launch (none after ${clayQuickWindowText().none})`, max: CLAY_QUICK_POINTS },
+        // D3's clayRev 11 (d3Normal.ts): most of them quick is all of it; the pinned stamps keep their words.
+        { label: "Quick hits", how: clayQuickHitsText(clayQuickWindowText()), max: CLAY_QUICK_POINTS },
         { label: "Doubles", how: `hit both clays of each of the ${CLAY_DOUBLES} doubles, more for quick hits`, max: CLAY_DOUBLE_POINTS * CLAY_DOUBLES },
         { label: "Streak", how: "hit all 25 in one unbroken streak, more for quick hits", max: CLAY_STREAK_POINTS },
       ], { penalties: ["Each bird hit costs 10", "After 30 shots, every 20 that hit nothing cost 1"], total: "{max}" as unknown as number }),
@@ -1706,8 +1709,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
       score: scoreList([
-        { label: "Hits", how: "more for every target hit, 15 more for hitting them all; wrong taps come off this part", max: 150 },
-        { label: "Combo", how: `long unbroken runs of very quick hits (none slower than about ${Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)} ms)`, max: WHACK_COMBO_POINTS },
+        // D3's whackRev 5 (d3Normal.ts): nearly all the targets count as all and the wider quick window; the pinned
+        // whackRev 4 keeps its words.
+        { label: "Hits", how: bonkHitsText(), max: 150 },
+        { label: "Combo", how: bonkComboText(Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)), max: WHACK_COMBO_POINTS },
         { label: "Diamonds", how: `${WHACK_DIAMOND_POINTS} for each of the ${WHACK_DIAMONDS} diamonds`, max: WHACK_DIAMOND_POINTS * WHACK_DIAMONDS },
       ], { penalties: ["Each wrong hat or empty tap costs 3 and each hedgehog 5"], total: "{max}" as unknown as number }),
     },

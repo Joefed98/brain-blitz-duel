@@ -10,6 +10,16 @@ export const TR_CELLS = TR_SIZE * TR_SIZE;
 export const TR_MIN_GIVENS = 10;
 export const TR_MAX_GIVENS = 10;
 
+/**
+ * A board's side from its square count (the difficulty levels, D4 22 Nov 2026: Easy 5 × 5, Hard 7 × 7, Expert 8 × 8;
+ * Normal and every board dealt before them 6 × 6). The board's own givens decide it, so a stored board always reads
+ * at the size it was dealt.
+ */
+export function trSide(cells: number): number {
+  const side = Math.round(Math.sqrt(cells));
+  return side > 0 && side * side === cells ? side : TR_SIZE;
+}
+
 export function trAdjacent(a: number, b: number, size = TR_SIZE): boolean {
   if (a === b) return false;
   const dr = Math.abs(Math.floor(a / size) - Math.floor(b / size));
@@ -62,7 +72,7 @@ export function trDecode(answer: string, cells = TR_CELLS): number[] {
  * consistent with the givens (a given cell only at its own step, and a step
  * owned by a given only on that given's cell).
  */
-export function trCanStep(givens: readonly (number | null)[], path: readonly number[], cell: number, size = TR_SIZE): boolean {
+export function trCanStep(givens: readonly (number | null)[], path: readonly number[], cell: number, size = trSide(givens.length)): boolean {
   if (!Number.isInteger(cell) || cell < 0 || cell >= givens.length) return false;
   const step = path.length + 1;
   if (step > givens.length) return false;
@@ -135,7 +145,7 @@ export function trDragPath(givens: readonly (number | null)[], slots: readonly n
 }
 
 /** A full, legal path through every cell that honours every given. */
-export function trComplete(givens: readonly (number | null)[], path: readonly number[], size = TR_SIZE): boolean {
+export function trComplete(givens: readonly (number | null)[], path: readonly number[], size = trSide(givens.length)): boolean {
   if (path.length !== givens.length) return false;
   const seen: number[] = [];
   for (const cell of path) {
@@ -163,7 +173,7 @@ export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: 
 export function trCountSolutions(
   givens: readonly (number | null)[],
   limit = 2,
-  size = TR_SIZE,
+  size = trSide(givens.length),
   onSolution?: (path: number[]) => void,
   /** Filled with the search's steps (the difficulty grade of a level's board, logicLevels.ts). */
   stats?: { nodes: number },

@@ -38,7 +38,7 @@ const STAMPS: Record<string, [string, number]> = {
   pipes: ["pipesRev", 5],
   flow: ["flowRev", 3],
   iceslide: ["slideRev", 5],
-  gravity: ["gravityRev", 8],
+  gravity: ["gravityRev", 9], // Changed with Joe's approval, 22 Nov 2026: gravityRev 9 since D4
   unblock: ["unblockRev", 4],
   laser: ["laserRev", 4],
 };

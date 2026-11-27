@@ -12,6 +12,7 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import {
   chainBoardIndex,
+  chainBlockOf,
   chainRules,
   chainCycleAt,
   chainCycleIndex,
@@ -424,7 +425,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const depth = chainUsesDepth(data);
   const milestones = depth ? chainMilestones(taps, links, chainDepthRevOf(data)) : [];
   previewRef.current = {
-    path: (path.length >= 2 ? path.map((id) => board[id]) : board.slice(0, CHAIN_BLOCK)).filter((n): n is ChainNode => Boolean(n)),
+    path: (path.length >= 2 ? path.map((id) => board[id]) : board.slice(0, chainBlockOf(data))).filter((n): n is ChainNode => Boolean(n)),
     length: rules.length,
   };
 
@@ -435,6 +436,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     const verdict = chainTapVerdict(data, replay, next);
     const nextTaps = [...taps, next];
     setTaps(nextTaps);
+    // D3's spare link (Easy): a forgiven wrong tap is kept in the log and the chain goes on.
+    if (verdict === "spare") return;
     if (verdict !== "ok") {
       finish(verdict, nextTaps);
       return;
@@ -481,7 +484,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
    // The levels (the Speed overhaul): the next reversed run's start (today's link 20, or each of a level's runs).
    const reverseNext = chainReverseStarts(data).find((at) => links < at) ?? null;
    const reverseSoon = !over && reverseNext !== null && links >= reverseNext - (CHAIN_REVERSE_AT - CHAIN_REVERSE_WARN_AT) && links < reverseNext;
-   const changedAt = taps[boardIndex * CHAIN_BLOCK - 1]?.t;
+   const changedAt = taps[boardIndex * chainBlockOf(data) - 1]?.t;
    const cycleHighlight = boardIndex > 0 && changedAt !== undefined && clock - changedAt < CYCLE_HIGHLIGHT_MS && !over;
 
   return (

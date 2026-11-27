@@ -9,6 +9,7 @@
  * the stars ask for a choice). Boards are graded on their stored data alone.
  */
 import { randInt, shuffled } from "./random";
+import { TOPSY_LINE_REV } from "./topsyLine";
 import {
   TOPSY_BALLS,
   TOPSY_BOARDS,
@@ -306,7 +307,8 @@ export function verifyTopsyPuzzle(puzzle: GravityPuzzleData): string | null {
   const noStars = rev >= GRAVITY_REV_TOPSY_NOTES + 2;
   // gravityRev 7 (puzzle polish, 3 Nov 2026, parMoves.ts): gravityRev 6's boards and routes, the par stored.
   // gravityRev 8 (the Pattern overhaul, 15 Nov 2026): gravityRev 7's boards, each tilt limit its fewest tilts + 8.
-  if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > GRAVITY_REV_NOV15 || !puzzle.boards) return "not gravityRev 3 to 8";
+  // gravityRev 9 (D4, 22 Nov 2026, topsyLine.ts): gravityRev 8's boards, limits and par; only Normal's speed line moves.
+  if (puzzle.type !== "gravity" || rev < GRAVITY_REV_TOPSY || rev > TOPSY_LINE_REV || !puzzle.boards) return "not gravityRev 3 to 9";
   // The difficulty levels (16 Nov 2026): a level's round has its own boards, balls and band of fewest tilts.
   const level = topsyLevelSettings(puzzle);
   const boardCount = level?.boards ?? TOPSY_BOARDS;

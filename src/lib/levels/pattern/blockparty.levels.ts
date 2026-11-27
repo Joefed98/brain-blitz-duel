@@ -31,13 +31,15 @@ const OPEN = { open: "any full packing counts; solution counts per level are pro
 
 export const LEVELS_BLOCKPARTY: GameLevels = {
   levels: {
+    // D4 (22 Nov 2026; the spec's Tessellate row): every level adds squares and pieces (25, 49, 64, 64 squares), and the
+    // solution count only backs it up. Easy: a tiny 5 × 5 board and four little pieces (12 squares), 6+ ways to finish
+    // (only 104 different boards have 10+, too few for the bank's 300; 889 have 6+).
     easy: {
       settings: {
-        cols: 6,
-        // Six small pieces (17 squares): the Dot and the Two give many ways to finish.
-        pieces: ["Dot", "Two", "Three", "Corner", "Square", "L"],
-        pegs: 19,
-        solutions: { min: 20, max: null },
+        cols: 5,
+        pieces: ["Two", "Three", "Corner", "Square"],
+        pegs: 13,
+        solutions: { min: 6, max: null },
         layout: "grow",
         humanDepth: null,
         timeLimitMs: 60_000,
@@ -45,17 +47,18 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
       },
       oneSolution: OPEN,
     },
+    // Hard: a bigger 8 × 8 board with Normal's nine pieces and the U (38 squares), 3–8 ways, 70 s. Expert keeps eleven
+    // pieces on 8 × 8 (the spec's 9 × 9 with thirteen needs two new piece renders, A2).
     hard: {
       settings: {
-        cols: 7,
-        // Normal's board and pieces exactly; only the solution count is tighter.
-        pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S"],
-        pegs: 16,
-        solutions: { min: 2, max: 5 },
+        cols: 8,
+        pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S", "U"],
+        pegs: 26,
+        solutions: { min: 3, max: 8 },
         layout: "scatter",
         humanDepth: { min: 2, max: 3 },
-        timeLimitMs: 60_000,
-        speedFullByS: 32,
+        timeLimitMs: 70_000,
+        speedFullByS: 35,
       },
       oneSolution: OPEN,
     },
@@ -66,13 +69,13 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
         pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S", "U", "P"],
         pegs: 21,
         // Joe's spec said 1–3 ways and 90 s; at 90 s (or 75 s) the tuning bots scored Expert as high as Hard, so for a
-        // clear step (16 Nov 2026): 1–2 ways, boards that need three held guesses, 70 s, and full speed by 36 s
-        // (0.84 s a square against Hard's 0.97; the fastest near-perfect kit run finishes in about 39 s).
+        // clear step (16 Nov 2026): 1–2 ways, boards that need three held guesses, 70 s. D4 (22 Nov 2026): Hard's
+        // and Expert's speed lines are set from the elite's finishes under the human limits (pattern-logic-human-tune.ts).
         solutions: { min: 1, max: 2 },
         layout: "scatter",
         humanDepth: { min: 3, max: 3 },
         timeLimitMs: 70_000,
-        speedFullByS: 36,
+        speedFullByS: 37,
       },
       oneSolution: OPEN,
     },

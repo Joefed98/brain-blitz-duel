@@ -25,8 +25,8 @@ import {
   whackGameFor,
   whackRule,
   WHACK_CHECKPOINT_INTERVAL,
-  WHACK_COLS,
   WHACK_GAP_PX,
+  whackLevelCols,
   WHACK_INPUT_TAP,
   WHACK_BOMB,
   WHACK_RED,
@@ -94,6 +94,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // whackRev 1 (scoring targets): the same play, its score lifted.
   // The Speed overhaul's levels: the level's schedule rides on the puzzle (absent: today's).
   const whackGame = whackGameFor(data?.whackRev, data?.bonkLevel);
+  // D3's lawns (bonkLevel.cols): the board's burrows across and down, Normal's 4 by default.
+  const lawnCols = whackLevelCols(data?.bonkLevel);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -118,7 +120,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     playOverlayFx({
       rect: new DOMRect(box.left, box.top - lift, box.width, box.height + lift),
       ms: 1100,
-      draw: ({ ctx, ms, reduced }) => drawBonkFinale(ctx, ms, box.width, box.height, lift, reduced),
+      draw: ({ ctx, ms, reduced }) => drawBonkFinale(ctx, ms, box.width, box.height, lift, reduced, whackLevelCols(data?.bonkLevel)),
     });
   };
   useEffect(() => registerFxPreview("whack", fireFinale), []);
@@ -341,8 +343,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ref={board}
           className="puzzle-board relative grid aspect-square max-h-full w-full"
           style={{
-            gridTemplateColumns: `repeat(${WHACK_COLS}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${WHACK_COLS}, minmax(0, 1fr))`,
+            gridTemplateColumns: `repeat(${lawnCols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${lawnCols}, minmax(0, 1fr))`,
             gap: WHACK_GAP_PX,
             minWidth: 4 * 72 + 3 * WHACK_GAP_PX,
           }}
@@ -354,8 +356,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               board.current,
               event.clientX,
               event.clientY,
-              WHACK_COLS,
-              WHACK_COLS,
+              lawnCols,
+              lawnCols,
             );
             if (hole === null) return;
             pending.current.push({ t: 0, k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0, d: 0 });

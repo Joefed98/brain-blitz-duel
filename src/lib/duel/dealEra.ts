@@ -125,6 +125,13 @@ export const DEAL_PINS = {
   prePyramidPartial: { texts: true },
   /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
   preBallparkBullseyes: { texts: true },
+  /** topsyLine.ts: Topsy-Turvy gravityRev 8 on Normal (full speed by 32 s), before the D4 Normal stamp (22 Nov 2026). */
+  preTopsyLine: { texts: true },
+  /** d3Normal.ts: Flash tapRev 7, Bonk whackRev 4, Pull! clayRev 10, the Chain's and Tenfall's stamps before D3's
+   * Normal scoring stamps (22 Nov 2026). */
+  preD3Speed: { texts: true },
+  /** d3Attention.ts: Labyrinth mazeRev 5, before D3's Normal scoring stamp (speed full by 34 s; 22 Nov 2026). */
+  preD3Maze: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

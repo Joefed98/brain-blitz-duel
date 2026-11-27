@@ -59,29 +59,33 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
       oneSolution: OPEN,
     },
     // Hard: Normal's five crates, 25–32 pushes, the detour kept, no stuck hint.
+    // D4 (22 Nov 2026; the spec's Heave row): the crates climb 3, 5, 6, 7 (Hard today showed Normal's five), the push
+    // minimum rising behind them, between tighter walls. Hard full speed by 61 s, set from the elite's finishes under
+    // the human limits (at Normal's 45 s the elite reached 200 on 1 % of six-crate boards).
     hard: {
       settings: {
-        crates: 5,
-        pushes: { min: 25, max: 32 },
-        innerWalls: { min: 4, max: 10 },
-        perCrate: 3,
-        detour: true,
-        stuckHint: false,
-        speedFullByS: 45,
-        timeLimitMs: 120_000,
-      },
-      oneSolution: OPEN,
-    },
-    // Expert: six crates, 30–40 pushes, the detour kept, no stuck hint.
-    expert: {
-      settings: {
         crates: 6,
-        pushes: { min: 30, max: 40 },
+        pushes: { min: 28, max: 36 },
         innerWalls: { min: 6, max: 12 },
         perCrate: 3,
         detour: true,
         stuckHint: false,
-        speedFullByS: 45,
+        speedFullByS: 61,
+        timeLimitMs: 120_000,
+      },
+      oneSolution: OPEN,
+    },
+    // Expert: six crates, 30–40 pushes, the detour kept, no stuck hint. D4: seven crates, 38–48 pushes, full speed by
+    // 81 s (the elite's finishes under the human limits over the whole bank: a third at 200).
+    expert: {
+      settings: {
+        crates: 7,
+        pushes: { min: 38, max: 48 },
+        innerWalls: { min: 8, max: 14 },
+        perCrate: 3,
+        detour: true,
+        stuckHint: false,
+        speedFullByS: 81,
         timeLimitMs: 120_000,
       },
       oneSolution: OPEN,

@@ -23,7 +23,7 @@ import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { pairSprite } from "@/components/puzzles/attention/attentionArt";
 import { pairClear } from "@/lib/duel/attentionOverhaul";
-import { leveled, pairCardsOf, pairFlipBackMs, pairLevelCols, pairsOf } from "@/lib/duel/attentionLevels";
+import { leveled, pairCardsOf, pairFlipBackMs, pairGoldWindowMs, pairLevelCols, pairsOf } from "@/lib/duel/attentionLevels";
 import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
 import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
@@ -188,6 +188,8 @@ function Stage({
   // pairRev 1 (Depth to 200): the streak multiplier and the gold pair, walked from the same flips as the server.
   const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips, goldMs) : null;
   const timedGold = pairGoldTimed(data);
+  // D3 (levelRev 2's Expert): the level's own gold window; the standard's 30 s everywhere else.
+  const goldWindowMs = pairGoldWindowMs(data) ?? PAIR_GOLD_WINDOW_MS;
   // The scoring standard (pairRev 3): the streak is the run of matches (no multiplier) and the gold pair is worth 15.
   const standard = pairStandard(data);
   const encode = (list: number[], gold: number | null) => (timedGold ? joinPairGoldTime(encodePairFlips(list), gold) : encodePairFlips(list));
@@ -292,14 +294,14 @@ function Stage({
           depth && depth.goldTry !== null && {
             id: "gold",
             label: "Gold",
-            value: <span data-pair-gold-found="" className="pairmatch-gold-found">+{standard ? pairGoldPoints(depth.goldTry, depth.goldMs) : depth.goldBonus}</span>,
+            value: <span data-pair-gold-found="" className="pairmatch-gold-found">+{standard ? pairGoldPoints(depth.goldTry, depth.goldMs, goldWindowMs) : depth.goldBonus}</span>,
             tone: "gold",
           },
           // pairRev 2: the gold pair's window, counting down (display only).
-          depth && depth.goldTry === null && timedGold && now - phaseStartedAt < PAIR_GOLD_WINDOW_MS && {
+          depth && depth.goldTry === null && timedGold && now - phaseStartedAt < goldWindowMs && {
             id: "gold",
             label: "Gold",
-            value: <span data-pair-gold-window="">{Math.max(0, Math.ceil((PAIR_GOLD_WINDOW_MS - (now - phaseStartedAt)) / 1000))}s</span>,
+            value: <span data-pair-gold-window="">{Math.max(0, Math.ceil((goldWindowMs - (now - phaseStartedAt)) / 1000))}s</span>,
           },
         ]}
       />
