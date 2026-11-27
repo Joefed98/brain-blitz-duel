@@ -61,13 +61,14 @@ export function dealSudokuLevel(lv: SudokuLevel, level: Level, bankSeed: number 
   };
 }
 
-export const SAFE_LEVEL_BANK = safeBank as unknown as { expert: SafePuzzleData[] };
+export const SAFE_LEVEL_BANK = safeBank as unknown as { hard: SafePuzzleData[]; expert: SafePuzzleData[] };
 
 export function dealSafeLevel(lv: SafeLevel, level: Level, bankSeed: number | undefined): SafePuzzleData {
-  if (level !== "expert") return generateSafeLevel(lv);
-  const pool = SAFE_LEVEL_BANK.expert;
-  if (!pool.length) throw new Error("Safe Cracker expert bank is empty (bun scripts/safe-level-bank.ts)");
-  const index = bankSeed === undefined ? randomBelow(pool.length) : saltSeed(bankSeed, "safe:expert") % pool.length;
+  // Hard and Expert from their banks (D4, 22 Nov 2026: Hard the old Expert card, Expert six dials); Easy live.
+  if (level !== "hard" && level !== "expert") return generateSafeLevel(lv);
+  const pool = SAFE_LEVEL_BANK[level];
+  if (!pool.length) throw new Error(`Safe Cracker ${level} bank is empty (bun scripts/safe-level-bank.ts)`);
+  const index = bankSeed === undefined ? randomBelow(pool.length) : saltSeed(bankSeed, `safe:${level}`) % pool.length;
   const card = pool[Math.abs(index)]!;
   return { ...card, clues: card.clues.map((c) => ({ ...c })), combination: [...(card.combination ?? [])], timeLimitMs: lv.timeMs };
 }

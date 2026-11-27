@@ -45,6 +45,8 @@ export interface NonoLevel {
   rows: number;
   fill: readonly [number, number];
   logic: "line" | "two";
+  /** With logic "two": the two-line steps a board needs at least (D4, 22 Nov 2026; absent = one). */
+  minProbes?: number;
   lockLines: boolean;
   timeMs: number;
 }

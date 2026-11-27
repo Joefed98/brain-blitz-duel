@@ -138,13 +138,13 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Box Six (sudoku): 150 + speed 40 (45 s) + clean grid 10.
   ch("sudoku", "Ink, not pencil", "Fill the grid without a single wrong digit.", "C", "clean", false, bonus(10), "sudoku.clean"),
   ch("sudoku", "Six by six by speed", "Solve it within 45 s.", "C", "speed", false, speed(40, 45), "sudoku.speed"),
-  ch("sudoku", "Box clever", "Score 200 on a Hard grid: no mistakes, within 45 s.", "H", "perfect", true, score(200)),
+  ch("sudoku", "Box clever", "Score 200 on a Hard grid: no mistakes, within 44 s.", "H", "perfect", true, score(200)),
   // Hanoi (tower): 150 + speed 40 (45 s) + par 10.
   ch("tower", "Monk’s patience", "Move the tower in the fewest possible moves.", "C", "par", false, bonus(10), "tower.par"),
   ch("tower", "Tower sprint", "Move the tower within 45 s.", "C", "speed", false, speed(40, 45), "tower.speed"),
   // Polypotions (tubes): 150 + speed 35 (45 s) + par 15.
   ch("tubes", "Measured pour", "Sort every flask in par pours.", "C", "par", false, bonus(15)),
-  ch("tubes", "Potion master", "Sort a Hard set within 45 s.", "H", "speed", false, speed(35, 45)),
+  ch("tubes", "Potion master", "Sort a Hard set within 40 s.", "H", "speed", false, speed(35, 40)),
   // Safe Cracker (safe): 150 + speed 40 (30 s) + first try 10.
   ch("safe", "First turn", "Open the safe on your first try.", "C", "clean", false, all(FIN, f("openedOn", "eq", 1)), "safe.clean"),
   ch("safe", "Light fingers", "Open the safe within 30 s.", "C", "speed", false, speed(40, 30), "safe.speed"),
@@ -179,7 +179,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Island Link (bridges): 150 + speed 40 (45 s) + clean build 10.
   ch("bridges", "Bridge builder", "Link every island.", "C", "finish", false, all(FIN)),
   ch("bridges", "Chartered engineer", "Link a Hard chain with no wrong bridges.", "H", "clean", false, all(FIN, f("mistakes", "eq", 0))),
-  ch("bridges", "Iron bridge", "Link an Expert chain within 45 s.", "E", "speed", true, speed(40, 45)),
+  ch("bridges", "Iron bridge", "Link an Expert chain within 83 s.", "E", "speed", true, speed(40, 83)),
 
   /* ================================================================ Pattern */
   // Gridlock (unblock): 150 + speed 30 (40 s) + moves 20 (par).
@@ -193,9 +193,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Skid (iceslide): 150 + speed 30 (30 s) + slides 20 (par).
   ch("iceslide", "Ice cool", "Reach the exit in par slides.", "C", "par", false, all(FIN, f("slides", "lte", "@parSlides"))),
   ch("iceslide", "Black ice", "Score 200 on a Hard rink.", "H", "perfect", false, score(200)),
-  // Topsy-Turvy (gravity): 150 + speed 30 (32 s) + tilts 20 (par).
+  // Topsy-Turvy (gravity): 150 + speed 30 (40 s, gravityRev 9) + tilts 20 (par).
   ch("gravity", "Right way up", "Sink every ball in par tilts.", "C", "par", false, bonus(20)),
-  ch("gravity", "Head rush", "Sink every ball within 32 s.", "C", "speed", false, speed(30, 32)),
+  ch("gravity", "Head rush", "Sink every ball within 40 s.", "C", "speed", false, speed(30, 40)),
   // Gradient (tiles): 150 + speed 35 (30 s) + swaps 15 (par).
   ch("tiles", "Smooth blend", "Rebuild the gradient in par swaps.", "C", "par", false, bonus(15), "tiles.par"),
   ch("tiles", "Colour rush", "Rebuild the gradient within 30 s.", "C", "speed", false, speed(35, 30), "tiles.speed"),
@@ -216,7 +216,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Pipeline (pipes): 150 + speed 40 (60 s) + taps 10 (par).
   ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN)),
   ch("pipes", "Plumber’s par", "Connect every pipe in par turns.", "C", "par", false, bonus(10)),
-  ch("pipes", "Mains pressure", "Connect a Hard network within 60 s.", "H", "speed", false, speed(40, 60)),
+  ch("pipes", "Mains pressure", "Connect a Hard network within 70 s.", "H", "speed", false, speed(40, 70)),
   // Heave (push): 150 + speed 25 (45 s) + gold crate 10 + pushes 15 (par).
   ch("push", "Gold standard", "Finish with the gold crate on the gold mark.", "C", "target", false, all(FIN, f("goldHome", "eq", 1))),
   ch("push", "Heavy lifting", "Gold crate home and par pushes.", "C", "par", false, all(FIN, eff(25))),
