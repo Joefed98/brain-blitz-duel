@@ -39,9 +39,13 @@
 [data-skin]:not([data-tab-screen]) :is(h1, h2, h3):not([data-skin-off] *) {
   font-family: var(--jz-font);
   font-weight: 800;
-  font-stretch: var(--jz-width-title);
+  font-stretch: var(--jz-width-body);
   text-transform: none;
   letter-spacing: -0.01em;
+}
+/* A screen's own title (h1) takes the wide face; section headings (h2, h3) stay at body width, so they fit. */
+[data-skin]:not([data-tab-screen]) h1:not([data-skin-off] *) {
+  font-stretch: var(--jz-width-title);
 }
 [data-skin]:not([data-tab-screen]) :is(.uppercase, .font-display, .font-mono, .jz-name):not([data-skin-off], [data-skin-off] *) {
   text-transform: none;

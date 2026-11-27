@@ -167,7 +167,6 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -220,7 +219,6 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
   text-overflow: ellipsis;

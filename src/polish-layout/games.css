@@ -632,7 +632,6 @@
 .gm-section-title {
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
 }
 .gm-section-meta {
   color: var(--jz-text-2);
@@ -782,7 +781,6 @@
 .gm-ch-summary-count {
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   font-variant-numeric: tabular-nums;
 }
 .gm-ch-summary-bar > span {
@@ -888,7 +886,6 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
 }

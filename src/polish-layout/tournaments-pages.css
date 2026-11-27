@@ -93,7 +93,6 @@
 }
 .tn-hero-title {
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
 }
 .tn-facts {
@@ -396,7 +395,6 @@ button.tn-pod-card:focus-visible {
 }
 .dl-hero-title {
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
   white-space: nowrap;
 }
@@ -522,7 +520,6 @@ button.tn-pod-card:focus-visible {
   text-transform: none;
   letter-spacing: 0;
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
   text-overflow: ellipsis;
   white-space: nowrap;

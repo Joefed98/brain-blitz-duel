@@ -241,7 +241,6 @@
 .pf-stat-value {
   color: var(--jz-text);
   font: var(--jz-type-heading);
-  font-stretch: var(--jz-width-title);
   font-variant-numeric: tabular-nums;
 }
 .pf-stat-label {

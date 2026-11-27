@@ -182,7 +182,7 @@
   /* Archivo's width axis as a brand tool (approved 27 Nov 2026): wide and heavy for titles, scores and countdowns,
      normal width for reading text. A `font:` shorthand resets the width, so set it after the shorthand. */
   --jz-width-body: 100%;
-  --jz-width-title: 115%; /* display, title and heading */
+  --jz-width-title: 115%; /* display and title (headings stay at body width, so card titles fit) */
   --jz-width-score: 120%; /* scores, ratings, totals (always tabular-nums) */
   --jz-width-countdown: 125%; /* the 3-2-1 and any count that runs down */
   --jz-width-wordmark: 118%;

@@ -35,10 +35,11 @@
 
 /* ------------------------------------------------ type roles (section 3) */
 /* The one scale: the six roles of tokens.css, plus the score and countdown faces on the same sizes (S1, 27 Nov 2026).
-   Titles, scores and countdowns are wide (Archivo's width axis); reading text is normal width. */
+   Display and title, scores and countdowns are wide (Archivo's width axis); headings and reading text are normal width,
+   so a card's title still fits its card. */
 .jz-display { font: var(--jz-type-display); font-stretch: var(--jz-width-title); }
 .jz-title { font: var(--jz-type-title); font-stretch: var(--jz-width-title); }
-.jz-heading { font: var(--jz-type-heading); font-stretch: var(--jz-width-title); }
+.jz-heading { font: var(--jz-type-heading); font-stretch: var(--jz-width-body); }
 .jz-body { font: var(--jz-type-body); font-stretch: var(--jz-width-body); }
 .jz-label { font: var(--jz-type-label); font-stretch: var(--jz-width-body); }
 .jz-caption { font: var(--jz-type-caption); font-stretch: var(--jz-width-body); }
