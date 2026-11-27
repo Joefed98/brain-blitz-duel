@@ -1,4 +1,5 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { btStarPath } from "./ballTrackColours.renderer";
 import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
 import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -12,7 +13,7 @@ import { balltrackFxFor } from "./arcadeFxGames.renderer";
  * moved from the queue shelf into the stage's HUD pills (src/puzzles/ballTrack.tsx).
  */
 import {
-  BT_BALLS, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
+  BT_BALLS, BT_COLOUR_FIVE, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
   BT_REV, BT_ROWS as BT_BASE_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
   btBallPoint, btEventCountdown, btLatestMove, btMovesOf, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir, btIsGold, btRowsOf, BT_V7_COMBO_FROM,
   type BtBall, type BtCourse, type BtState,
@@ -138,6 +139,8 @@ function drawSwitch(ctx: CanvasRenderingContext2D, cell: number, on: boolean) {
 
 export function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, r: number) {
   ctx.beginPath();
+  // D6's fifth colour (btRev 9 level courses): a purple star (ballTrackColours.renderer.ts).
+  if (kind === BT_COLOUR_FIVE) return btStarPath(ctx, x, y, r);
   const s = BT_SYMBOLS[kind % BT_SYMBOLS.length];
   if (s === "circle") ctx.arc(x, y, r, 0, Math.PI * 2);
   else if (s === "square") ctx.rect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7);

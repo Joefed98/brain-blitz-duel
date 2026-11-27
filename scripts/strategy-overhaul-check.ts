@@ -54,6 +54,10 @@ import { TILT_X_FX, TILT_X_TEXT_Y, WALNUT_TABLE, WALNUT_TABLE_EDGE, TILT_TABLE_S
 import { BT_HOPPER_H, BT_W } from "../src/lib/arcade/ballTrack";
 import { MATCHUP_BOARD_Y, MATCHUP_CELL_PX, MATCHUP_V9_PANEL_Y, MATCHUP_V9_BOARD_H } from "../src/lib/arcade/matchup";
 import { inkBigProved, inkBigVerdict, readInkBigWitnesses, INK_HILLS_WITNESS } from "./ink-big-deal";
+import { pinPreInkD6 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal inkRev 16 (inkRev 15's world on each level's own figures); this check's Rainbow Bridge section was written for inkRev 15, so it deals it.
+pinPreInkD6(true);
 
 let passes = 0;
 const failures: string[] = [];

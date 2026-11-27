@@ -32,6 +32,10 @@ import { POOL_PERCEPTION } from "./arcade-skill-bands/bots/pool";
 import { poolLevelLine } from "../src/puzzles/pool";
 import { playPool, poolRunRaw } from "./pool-levels-tune";
 import { dealAt } from "./level-tune";
+import { pinPrePoolFifth } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Cue Ball's Normal moved to poolRev 5 (Speed from the fifth pot); this check was written for poolRev 4, so it deals it (d6-normal-stamps-check proves poolRev 5).
+pinPrePoolFifth(true);
 
 (globalThis as unknown as { Path2D: unknown }).Path2D = NapiPath2D;
 

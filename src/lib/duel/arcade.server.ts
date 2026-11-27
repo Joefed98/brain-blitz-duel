@@ -18,22 +18,24 @@ import { flipDealSeedV13 } from "./flipDealV13.server";
 import { skylineDealSeedV12 } from "./skylineDealV12.server";
 import { CROSS_REV_DENSE, CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { crossLevelDealSeed } from "./crossLevelDeals.server";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_D6, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_LADDER } from "@/lib/arcade/snake";
 import { snakeLevelDealSeed } from "./snakeLevelDeals.server";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_D6, MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT_D4, MINES_REV_HARD_D4, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
-import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
+import { mahjongBuildClears, MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_DEALT, MAHJONG_REV_LEVELS } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT, SKYLINE_REV_FLOORS } from "@/lib/arcade/skyline";
-import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG, TILT_REV_THREE, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
+import { TILT_DEAL_V13 } from "./tiltDealV13.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
+import { TILT_DEAL_LEVELS_V13 } from "./tiltDealLevelsV13.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER, swingLadderLevel } from "@/lib/arcade/swing";
@@ -69,16 +71,18 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_PAR98, FC_REV_SHARE, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
 import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
 import { TP_EASY_DEALS } from "@/lib/arcade/cards/tripeaks";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
-import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
+import { TP_LEVEL_RULES_V4, TP_REV, TP_REV_EASE, TP_REV_PAR, TP_REV_SHARE, tpV4Deals } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_LEVEL_RULES, FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_LEVEL_RULES_V4, FH_REV, FH_REV_128, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_DECKS } from "./fiveHandsLevelDecks.server";
+import { MAHJONG_EXPERT_DEALS, MAHJONG_HARD_DEALS } from "./mahjongExpertDeals.server";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
-import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
+import { PY_REV, PY_REV_ROWS, PY_REV_SHARE, PY_REV_UNDO_OUT } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
@@ -144,20 +148,36 @@ export function pinCardsPreShare(on: boolean): boolean {
 
 /** FreeCell: a bank deal (its index), proved solvable with a known par; a level deal from its level's own bank. */
 export function generateFreecell(level?: Level): FreecellPuzzleData {
-  // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
-  if (level === "easy" || level === "hard" || level === "expert") return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV };
+  // freecellRev 6 (D6, 23 Nov 2026): rev 5's game, par full within an eighth over par. Checks written for rev 5 pin
+  // freecellPrePar98.
+  const freecellRev = dealPinned("freecellPrePar98") ? FC_REV_SHARE : FC_REV;
+  if (level === "easy" || level === "hard" || level === "expert") {
+    // D6's levels (23 Nov 2026): a freecellRev 6 level deal indexes its D6 bank (FC_LEVEL_RULES_V6: Hard 3 free cells on
+    // 40 cards, Expert 2 on 52). Checks written for the levels before pin d6PreLevels.
+    if (!dealPinned("d6PreLevels") && freecellRev === FC_REV_PAR98) return { type: "freecell", seed: randomBelow(fcLevelBank(level, FC_REV_PAR98).length), freecellRev };
+    // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
+    return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV_SHARE };
+  }
   // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
-  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : FC_REV };
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : freecellRev };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
 export function generateTripeaks(level?: Level): TripeaksPuzzleData {
+  // tripeaksRev 4 (D6, 23 Nov 2026): rev 3's game on easier run, stock par and speed figures. Checks written for rev 3
+  // pin tripeaksPreEase.
+  const tripeaksRev = dealPinned("tripeaksPreEase") ? TP_REV_SHARE : TP_REV;
+  if ((level === "easy" || level === "hard" || level === "expert") && !dealPinned("d6PreLevels") && tripeaksRev === TP_REV_EASE) {
+    // D6's levels (23 Nov 2026): the clock (90 / 45 / 25 s, the run plus the arcade phase's slack on the puzzle), the stock
+    // cut on Hard and Expert, the Normal bank's deals within the level's stock par (TP_LEVEL_RULES_V4, tpV4Deals).
+    return { type: "tripeaks", seed: randomBelow(tpV4Deals(level).length), tripeaksRev, timeLimitMs: TP_LEVEL_RULES_V4[level].seconds! * 1000 + ARCADE_PHASE_SLACK_MS } as TripeaksPuzzleData;
+  }
   // The difficulty levels (15 Nov 2026): Expert deals from its own no-wrap bank; Easy and Hard the Normal bank.
-  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV };
-  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV };
-  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV_SHARE };
+  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV_SHARE };
+  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV_SHARE };
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
-  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : tripeaksRev };
 }
 
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
@@ -167,17 +187,35 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
-  // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
-  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
-  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+  // fiveHandsRev 4 (D6, 22 Nov 2026): rev 3's game, 200 at 112 hand points. Checks written for rev 3 pin fivehandsPre128.
+  const fiveHandsRev = dealPinned("fivehandsPre128") ? FH_REV_FLAT : FH_REV;
+  if (level === "easy" || level === "hard" || level === "expert") {
+    // D6's levels (23 Nov 2026): fiveHandsRev 4 level deals play FH_LEVEL_RULES_V4 (the level's clock and table, 200 at its
+    // own hand points) on a deck from its proved list (FH_LEVEL_DECKS, scripts/fivehands-level-decks.ts: the best
+    // arrangement reaches 200 at a human pace through the grade). Checks written for the levels before pin d6PreLevels.
+    if (!dealPinned("d6PreLevels") && fiveHandsRev === FH_REV_128) {
+      const list = FH_LEVEL_DECKS[level];
+      const at = arcadeSeed();
+      return { type: "fivehands", seed: list[((at % list.length) + list.length) % list.length]!, fiveHandsRev, timeLimitMs: FH_LEVEL_RULES_V4[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+    }
+    // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
+    return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV_FLAT, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+  }
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev };
 }
 
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
-export function generatePyramid(): PyramidPuzzleData {
+export function generatePyramid(level?: Level): PyramidPuzzleData {
   // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
   // pyramidRev 3 (15 Nov 2026): the same deals and parts; a dead end waits for Undo or Reset. Checks written before it pin
   // the game reviews' era (preGameReviewNov15) and get pyramidRev 2.
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: dealPinned("cardsPreShare") ? 1 : dealPinned("preGameReviewNov15") ? PY_REV_SHARE : PY_REV };
+  const before = dealPinned("cardsPreShare") ? 1 : dealPinned("preGameReviewNov15") ? PY_REV_SHARE : PY_REV_UNDO_OUT;
+  // pyramidRev 4 (D6, 23 Nov 2026): Normal's Speed full by 22 s. Checks written for rev 3 pin pyramidPreSpeed22.
+  const pyramidRev = before === PY_REV_UNDO_OUT && !dealPinned("pyramidPreSpeed22") ? PY_REV : before;
+  // D6's levels: a level deal plays pyramidRev 4, the level's rows (PY_LEVEL_RULES_V4); checks written before D6 pin
+  // d6PreLevels and get the level rounds before on pyramidRev 3.
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "pyramid", seed: arcadeSeed(), pyramidRev: !dealPinned("d6PreLevels") && pyramidRev === PY_REV_ROWS ? PY_REV_ROWS : before };
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */
@@ -242,7 +280,7 @@ export function generateBullseye(): BullseyePuzzleData {
   return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_STD };
 }
 
-export function generateMatchup(): MatchupPuzzleData {
+export function generateMatchup(level?: Level): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
   // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
@@ -251,7 +289,11 @@ export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026): two-hit ice at every level, and the levels (the deal
   // stamps `level`; the sim reads it at init). Checks written for matchupRev 12 pin it (pinMatchupPreIce2).
   if (dealPinned("matchupPreIce2")) return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE2 };
+  // matchupRev 14 (D6, 23 Nov 2026): the colours lever and Normal's parts within the realistic elite's reach
+  // (MATCHUP_V14_LEVELS). Checks written for matchupRev 13 pin matchupPreD6; the levels before D6, d6PreLevels.
+  const isLevel = level === "easy" || level === "hard" || level === "expert";
+  const before = dealPinned("matchupPreD6") || (isLevel && dealPinned("d6PreLevels"));
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: before ? MATCHUP_REV_ICE2 : MATCHUP_REV_D6 };
 }
 
 /** Checks written for Gemstone matchupRev 12: deal it as rooms did before two-hit ice (returns the previous setting). */
@@ -379,10 +421,22 @@ export function pinMinesPreLogic(on: boolean): boolean {
  */
 export function generateMahjong(level?: Level): MahjongPuzzleData {
   // The difficulty levels (15 Nov 2026): a level deal is built and proved on the level's layout and faces.
+  // D6 (23 Nov 2026): level deals stamp mahjongRev 3 and play D6's levels (MAHJONG_LEVEL_RULES_V3: 48 / 104 / 136 tiles);
+  // Normal stays mahjongRev 2. Checks written for the levels before pin d6PreLevels.
   const lv = level === "easy" || level === "hard" || level === "expert" ? level : null;
+  const mahjongRev = lv && !dealPinned("d6PreLevels") ? MAHJONG_REV_LEVELS : MAHJONG_REV_DEALT;
+  // D6's Hard and Expert: a deal from its proved list (MAHJONG_HARD_DEALS / MAHJONG_EXPERT_DEALS,
+  // scripts/mahjong-expert-deals.ts: boards five / seven of eight person-like lines clear without a shuffle, each build
+  // order at a human pace 200 through the grade).
+  if ((lv === "hard" || lv === "expert") && mahjongRev === MAHJONG_REV_LEVELS) {
+    const list = lv === "hard" ? MAHJONG_HARD_DEALS : MAHJONG_EXPERT_DEALS;
+    const at = arcadeSeed();
+    const seconds = MAHJONG_LEVEL_RULES_V3[lv].seconds;
+    return { type: "mahjong", seed: list[((at % list.length) + list.length) % list.length]!, mahjongRev, ...(seconds ? { timeLimitMs: seconds * 1000 + ARCADE_PHASE_SLACK_MS } : {}) } as MahjongPuzzleData;
+  }
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed, lv)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
+    if (mahjongBuildClears(seed, lv, mahjongRev)) return { type: "mahjong", seed, mahjongRev };
   }
 }
 
@@ -602,8 +656,11 @@ export function generateInkBridge(level?: string): InkBridgePuzzleData {
   // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
   // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
   if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
-  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: INK_REV_HILLS };
-  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
+  // inkRev 16 (D6, 27 Nov 2026): inkRev 15's world and deals exactly, each part full at the level's own figure
+  // (INK_D6_FIGURES). Checks written for inkRev 15 pin inkPreD6; the levels before D6, d6PreLevels.
+  const before = dealPinned("inkPreD6");
+  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: before || dealPinned("d6PreLevels") ? INK_REV_HILLS : INK_REV_D6 };
+  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: before ? INK_REV_HILLS : INK_REV_D6 };
 }
 
 export function generateBurst(level?: Level): BurstPuzzleData {
@@ -811,6 +868,13 @@ export function generateTilt(level?: Level): TiltPuzzleData {
   // Levels (stage 3, 15 Nov 2026): easy, hard and expert deal tiltRev 12 from their own proved deals
   // (tiltDealLevels.server.ts, scripts/tilt-deal.ts --level: seeds the oracle played to exactly 200 through the server's
   // replay at that level); the deal stamps the level itself. Normal (no level) deals below exactly as before.
+  // D6's levels (23 Nov 2026): on tiltRev 13 a level deals from its own list (TILT_LEVELS_V13, tiltDealLevelsV13.server.ts,
+  // scripts/tilt-level-deal-v13.ts). Checks written for the levels before pin d6PreLevels (or tiltPreThree).
+  if (level && isTiltLevel(level) && !dealPinned("d6PreLevels") && !dealPinned("tiltPreThree")) {
+    const list = TILT_DEAL_LEVELS_V13[level];
+    const at = arcadeSeed();
+    return { type: "tilt", seed: list[((at % list.length) + list.length) % list.length]!, tiltRev: TILT_REV_THREE };
+  }
   if (level && isTiltLevel(level)) {
     const list = TILT_DEAL_LEVELS[level];
     const at = arcadeSeed();
@@ -825,6 +889,12 @@ export function generateTilt(level?: Level): TiltPuzzleData {
   // tiltRev 12 (3 Nov 2026): tiltRev 11's rules with bigger marbles and keys, dealt from its own proved deal
   // (TILT_DEAL_V12, scripts/tilt-deal.ts: bank seeds the oracle played to exactly 200 through the server's replay on 12).
   const pick = arcadeSeed();
+  // tiltRev 13 (D6, 22 Nov 2026, the scoring review's I8): tiltRev 12's first three mazes, dealt from its own proved deal
+  // (TILT_DEAL_V13, scripts/tilt-deal.ts --rev=13). Checks written for tiltRev 12 pin tiltPreThree.
+  if (!dealPinned("tiltPreThree")) {
+    const three = TILT_DEAL_V13[((pick % TILT_DEAL_V13.length) + TILT_DEAL_V13.length) % TILT_DEAL_V13.length]!;
+    return { type: "tilt", seed: three, tiltRev: TILT_REV_THREE };
+  }
   const seed = TILT_DEAL_V12[((pick % TILT_DEAL_V12.length) + TILT_DEAL_V12.length) % TILT_DEAL_V12.length]!;
   return { type: "tilt", seed, tiltRev: TILT_REV_BIG };
 }

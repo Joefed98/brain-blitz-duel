@@ -21,6 +21,8 @@ import type { StdEntry } from "./entry";
 const spec = ARCADE_STANDARD.freecell!.spec!;
 const freecellGame4 = freecellGameFor(4);
 const freecellGame = freecellGameFor(5);
+// Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: freecellRev 6, rev 5's play with par full within an eighth over par).
+const freecellGame6 = freecellGameFor(6);
 const rec = (s: FcState) => Object.fromEntries((freecellStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: FcState) => Object.fromEntries((freecellStdParts(s) ?? []).map((p) => [p.key, p.max]));
 
@@ -44,22 +46,23 @@ function withHome52(home: number, rev: number): FcState {
 export const entry: StdEntry = {
   type: "freecell",
   field: "freecellRev",
-  rev: 5,
-  before: 4,
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: freecellRev 6, rev 5's play with par full within an eighth over par).
+  rev: 6,
+  before: 5,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 150, 299].map((seed) => {
-      const { raw } = freecellFlawless(seed, 20, 5);
-      const r = replayFreecellRun(seed, raw, 5);
-      return { label: `rev-5 bank deal ${seed}'s par line through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
+      const { raw } = freecellFlawless(seed, 20, 6);
+      const r = replayFreecellRun(seed, raw, 6);
+      return { label: `rev-6 bank deal ${seed}'s par line through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
-  played: () => [{ label: "a tap that moved nothing", score: freecellGame.score({ ...freecellGame.init(3), acted: 1, cols: [[], [], [], [], [], [], [], []], home: [0, 0, 0, 0], cells: [-1, -1, -1, -1] }), want: 1 }],
-  idle: () => [{ label: "an untouched init(12)", score: freecellGame.score(freecellGame.init(12)) }],
+  played: () => [{ label: "a tap that moved nothing", score: freecellGame6.score({ ...freecellGame6.init(3), acted: 1, cols: [[], [], [], [], [], [], [], []], home: [0, 0, 0, 0], cells: [-1, -1, -1, -1] }), want: 1 }],
+  idle: () => [{ label: "an untouched init(12)", score: freecellGame6.score(freecellGame6.init(12)) }],
   help: { terms: ["par", "sorted run", "all 40 home"] },
   // Cards home pay two units each, so the core is full at FC_CORE_UNITS_V5 ÷ 2 cards home (all 40).
-  core: { fullAt: FC_CORE_UNITS_V5 / 2, at: (v) => withHome(v), parts: (s) => freecellStdParts(s), finishParts: [] },
+  core: { fullAt: FC_CORE_UNITS_V5 / 2, at: (v) => withHome(v, {}, 6), parts: (s) => freecellStdParts(s), finishParts: [] },
   extra(ok) {
     const part = (s: FcState, key: string) => freecellStdParts(s)!.find((p) => p.key === key)!.points;
     // Rev 4 (stored rounds) keeps its parts exactly (asserted on rev-4 states).
@@ -106,5 +109,11 @@ export const entry: StdEntry = {
     const bestMiss = freecellGame.score(withHome(39, { cols: [[9], [], [], [], [], [], [], []] }));
     const poorestFinish = freecellGame.score(done(60, FC_RUN_TICKS));
     ok(poorestFinish >= bestMiss, `freecell rev 5: the poorest finish (${poorestFinish}) scores at least the best unfinished position (${bestMiss})`);
+    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: freecellRev 6, rev 5's play with par full within an eighth over par).
+    const deal6 = freecellGame6.init(0);
+    ok(JSON.stringify(deal6.cols) === JSON.stringify(deal.cols) && deal6.par === deal.par, "freecell rev 6: rev 5's deal and par");
+    const done6 = (moves: number, tick: number) => withHome(40, { ended: 1, moves, finishTick: tick, par: 20 }, 6);
+    ok(part(done6(22, 600), "par") === FC_PAR_MAX_V5 && part(done6(23, 600), "par") < FC_PAR_MAX_V5 && part(done6(30, 600), "par") === 0, "freecell rev 6: par 20 full at 22 moves (within 9/8 × par), less at 23, 0 at 30 (1.5 × par)");
+    ok(part(done6(20, FC_SPEED_FULL_S_V4 * 60), "speed") === FC_SPEED_MAX_V5 && part(withHome(40, {}, 6), "core") === 105, "freecell rev 6: rev 5's cards and speed");
   },
 };

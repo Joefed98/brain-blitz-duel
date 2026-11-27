@@ -40,7 +40,7 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
   TILT_REV_PAR,
-  TILT_REV_BIG,
+  TILT_REV_BIG, TILT_REV_THREE,
   TILT_REV_STRICT,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
@@ -69,6 +69,9 @@ import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { logsFor, randomLog, scheduleOf } from "./room-identity/tilt";
 import { TILT_BANK } from "../src/lib/duel/tiltBank.server";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 /** Cells on the way into a black hole (between it and the route) or within two cells of one. */
 function nearHoles(m: Maze): Set<number> {
@@ -351,7 +354,8 @@ for (const n of [0, 1, 2]) {
   // tiltRev 9 kept tiltRev 8's units on its lifted curve; since 29 Oct 2026 rooms deal tiltRev 10 on its core's straight line (tilt-standard-check).
   // Since 3 Nov 2026 rooms deal tiltRev 11 on its core's straight line (tilt-rev11-check).
   // Since 3 Nov 2026 tiltRev 12 on the same line (tilt-rev12-check).
-  ok(live.rev === TILT_REV_BIG && live.curve === TILT_V11_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists the dealt tiltRev 12 on its curve (tiltRev 11's line; tiltRev 9 on tiltRev 8's units), tiltRev 6 as its strict revision");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): LIVE_BANDS and the standard entry name the dealt tiltRev 13 (tiltRev 12's first three mazes, on tiltRev 11's core line).
+  ok(live.rev === TILT_REV_THREE && live.curve === TILT_V11_BAND_CURVE && TILT_V9_BAND_CURVE.units.join() === TILT_V8_BAND_CURVE.units.join() && live.strictRev === TILT_REV_STRICT, "LIVE_BANDS lists the dealt tiltRev 13 on its curve (tiltRev 11's line; tiltRev 9 on tiltRev 8's units), tiltRev 6 as its strict revision");
 }
 
 if (failures.length) {

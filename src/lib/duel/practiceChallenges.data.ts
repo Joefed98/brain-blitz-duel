@@ -477,11 +477,12 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("freekick", "Skill shooter", "Score five skill shots.", "C", "target", false, all(line("Skill shots", "gte", 15))),
   ch("freekick", "Top bins", "Score through all four hoops.", "C", "fullset", true, part("Targets", 40)),
   // Apex (racing): pace 160 + clean sectors 40.
-  ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all(line("Clean sectors", "gte", 20))),
+  // D6 (23 Nov 2026): racingRev 5's clean sectors are 10 each (full at 4), racingRev 4's 5 each; four clean either way.
+  ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all({ c: "since", path: "racingRev", from: 5, then: line("Clean sectors", "gte", 40), before: line("Clean sectors", "gte", 20) })),
   // racingRev 4 (the Sports overhaul, 15 Nov 2026): the stored average speed itself on the three circuits, each with its
   // own pace range; older stamps keep the Pace line (110 there is 200 km/h).
   ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all({ c: "since", path: "racingRev", from: 4, then: f("pace10", "gte", 2000), before: line("Pace", "gte", 110) })),
-  ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, part("Clean sectors", 40)),
+  ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, all({ c: "since", path: "racingRev", from: 5, then: f("clean", "gte", 8), before: full("Clean sectors", 40) })),
 
   /* ================================================================ Cards and Board */
   // Five Hands (fivehands): rows plus the picked column, × 1.4, capped at 200.
@@ -491,7 +492,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("fivehands", "High roller", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Free Cell (freecell): cards 105 + par moves 50 + speed 45 (32 s).
   ch("freecell", "All home", "Get all 40 cards home.", "C", "finish", false, part("Cards", 105)),
-  ch("freecell", "By the book", "Finish in par moves.", "C", "par", false, part("Par moves", 50)),
+  ch("freecell", "By the book", "Finish within an eighth over par.", "C", "par", false, part("Par moves", 50)),
   ch("freecell", "Card sharp", "Finish within 32 s.", "C", "speed", true, part("Speed", 45)),
   // Mahjong Solitaire (mahjong): pairs 150 + no shuffles 20 + speed 30 (65 s).
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
@@ -502,15 +503,15 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),
   ch("minesweeper", "Sweep", "Clear the board within 37 s.", "C", "speed", false, part("Speed", 30)),
   ch("minesweeper", "Bomb disposal", "Clear an Expert field.", "E", "finish", true, part("Safe squares", 150)),
-  // Thirteen (pyramid): pyramid cards 140 + cleared 15 + speed 25 (20 s) + pyramid pairs 20.
+  // Thirteen (pyramid): pyramid cards 140 + cleared 15 + speed 25 (22 s since pyramidRev 4, D6; 20 s before) + pyramid pairs 20.
   ch("pyramid", "Lucky thirteen", "Clear the pyramid.", "C", "finish", false, part("Cleared", 15)),
   ch("pyramid", "Paired up", "Make ten pairs from two pyramid cards.", "C", "combo", false, part("Pyramid pairs", 20)),
-  ch("pyramid", "Unlucky for some", "Clear the pyramid within 20 s.", "C", "speed", false, part("Speed", 25)),
+  ch("pyramid", "Unlucky for some", "Clear the pyramid within 22 s.", "C", "speed", false, part("Speed", 25)),
   // Summit (tripeaks): cards 105 + peak tops 30 + longest run 10 + clear 10 + stock par 20 + speed 25 (20 s).
   ch("tripeaks", "Peak bagger", "Clear all three peak tops.", "C", "fullset", false, part("Peak tops", 30)),
-  ch("tripeaks", "Up and down", "Make a run of ten cards.", "C", "streak", false, part("Longest run", 10)),
-  ch("tripeaks", "Base camp", "Clear it within stock par.", "C", "par", false, part("Stock par", 20)),
-  ch("tripeaks", "Summit sprint", "Clear a Hard deal within 20 s.", "H", "speed", true, part("Speed", 25)),
+  ch("tripeaks", "Up and down", "Make a run of six cards.", "C", "streak", false, part("Longest run", 10)),
+  ch("tripeaks", "Base camp", "Clear it within 8 over stock par.", "C", "par", false, part("Stock par", 20)),
+  ch("tripeaks", "Summit sprint", "Clear a Hard deal within 31 s.", "H", "speed", true, part("Speed", 25)),
 
   /* ================================================================ Strategy */
   // Ball Tracker (balltrack): marbles home 140 + gold marbles 25 + combos 20 + boosted marbles 15.
@@ -529,10 +530,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("matchup", "Ice breaker", "Break all ten frozen cells.", "C", "maxout", false, all(full("Ice", 10))),
   ch("matchup", "Goal getter", "Meet all six colour goals.", "C", "fullset", false, all(full("Colour goals", 36))),
   ch("matchup", "Treasure hunter", "Bring all six treasures down on Expert.", "E", "fullset", false, all(full("Treasure", 36))),
-  // Tilt (tilt): mazes 140 + par times 24 + clean run 12 + speed 24 (60 s).
-  ch("tilt", "No falls", "Finish all four mazes without a marble falling.", "C", "clean", false, all(full("Clean run", 12))),
-  ch("tilt", "Par four", "Beat par time in all four mazes.", "C", "par", false, all(full("Par", 24))),
-  ch("tilt", "Marble madness", "Finish all four Hard mazes within 60 s.", "H", "speed", true, all(full("Speed", 24))),
+  // Tilt (tilt): mazes 140 + par times 24 + clean run 12 + speed 24 (tiltRev 13: three mazes, 55 s).
+  ch("tilt", "No falls", "Finish all three mazes without a marble falling.", "C", "clean", false, all(full("Clean run", 12))),
+  ch("tilt", "Par four", "Beat par time in all three mazes.", "C", "par", false, all(full("Par", 24))),
+  ch("tilt", "Marble madness", "Finish all four Hard mazes within 58 s.", "H", "speed", true, all(full("Speed", 24))),
 ];
 /* eslint-enable max-len */
 

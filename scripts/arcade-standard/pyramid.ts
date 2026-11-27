@@ -5,6 +5,8 @@
  * deal's witness (a clear with ten pyramid pairs) through the server's replay on rev 2. Rooms deal pyramidRev 3 since
  * 15 Nov 2026 (rev 2's deals and parts; a dead end waits for Undo): the entry follows the dealt stamp.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3).
+ * Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp): rooms deal pyramidRev 4 (rev 3's deals and play, speed full by 22 s); the
+ * entry follows the dealt stamp, and the rev-2 and rev-1 lines below keep proving those stamps.
  */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { PY_CARDS, PY_CLEAR_MAX, PY_CORE_MAX, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_SPEED_MAX, PY_V2_CLEAR_MAX, PY_V2_CORE_MAX, PY_V2_SPEED_MAX, pyramidGame, pyramidGameFor, pyramidStdParts, type PyState } from "../../src/lib/arcade/cards/pyramid";
@@ -16,6 +18,8 @@ const spec = ARCADE_STANDARD.pyramid!.spec!;
 const rec = (s: PyState) => Object.fromEntries((pyramidStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: PyState) => Object.fromEntries((pyramidStdParts(s) ?? []).map((p) => [p.key, p.max]));
 const game = pyramidGameFor(3);
+/** pyramidRev 4 (D6): the dealt stamp's game. Changed with Joe's approval, 23 Nov 2026. */
+const game4 = pyramidGameFor(4);
 /** A rev-1 state (stored rounds): its own parts. */
 const at1 = (over: Partial<PyState>): PyState => ({ ...pyramidGame.init(5), acted: 1, ...over });
 const removed1 = (v: number): PyState => at1({ removed: v, gone: Array.from({ length: PY_CARDS }, (_, i) => (i >= PY_CARDS - v ? 1 : 0)) });
@@ -25,19 +29,19 @@ const removed = (v: number): PyState => at({ removed: v, gone: Array.from({ leng
 export const entry: StdEntry = {
   type: "pyramid",
   field: "pyramidRev",
-  rev: 3,
-  before: 2,
+  rev: 4, // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
+  before: 3,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 77, 10000, 123456789].map((seed) => {
-      const { raw } = pyramidFlawless(seed, 15, 3);
-      const r = replayPyramidRun(seed, raw, 3);
+      const { raw } = pyramidFlawless(seed, 15, 4); // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
+      const r = replayPyramidRun(seed, raw, 4);
       return { label: `seed ${seed}'s witness through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
-  played: () => [{ label: "a tap on a covered card", score: game.score(at({})), want: 1 }],
-  idle: () => [{ label: "an untouched init(12)", score: game.score(game.init(12)) }],
+  played: () => [{ label: "a tap on a covered card", score: game4.score({ ...game4.init(5), acted: 1 }), want: 1 }], // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
+  idle: () => [{ label: "an untouched init(12)", score: game4.score(game4.init(12)) }],
   help: { terms: ["28", "pair"] },
   core: { fullAt: PY_CARDS, at: (v) => removed(v), parts: (s) => pyramidStdParts(s), finishParts: [] },
   extra(ok) {

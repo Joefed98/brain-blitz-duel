@@ -49,7 +49,17 @@ export const RACING_REV_3 = 3;
  */
 export const RACING_REV_4 = 4;
 /** The revision rooms and practice deal. */
-export const RACING_REV_DEALT = RACING_REV_4;
+/**
+ * racingRev 5 (D6, 23 Nov 2026, Joe's Decision 1 A: a Normal scoring stamp moving only the parts the realistic elite
+ * can't fill): racingRev 4's circuits, car and play exactly; the pace part full at RACING_V5_PACE (each circuit's par
+ * less what the realistic elite gives away, about 11 km/h: the skill-band elite under HUMAN_LIMITS runs a median 2,114,
+ * 2,273 and 1,891 tenths), nothing 69.5 km/h below it as on rev 4; Clean sectors full at RACING_V5_CLEAN_FULL of the 8
+ * (the elite keeps a median 4 clean). Measured on 96 room deals: the elite at 200 0 % → 40 %, the average 90 → 130.
+ * Level deals on rev 5 carry their own figures in racingLevel (pace, spread, cleanFull).
+ */
+export const RACING_REV_5 = 5;
+export const RACING_REV_DEALT = RACING_REV_5;
+export const RACING_V5_CLEAN_FULL = 4;
 /** The race itself: 90 s (on racingRev 2 from lights out). */
 export const RACING_RUN_SECONDS = 90;
 export const RACING_RUN_TICKS = RACING_RUN_SECONDS * TICKS_PER_SECOND;
@@ -175,6 +185,8 @@ export interface RacingLevelSettings {
   aids: number;
   pace?: readonly number[];
   spread?: number;
+  /** D6's levels (racingRev 5): the clean sectors that fill the part (absent: RACING_V5_CLEAN_FULL; rev 4: all 8). */
+  cleanFull?: number;
 }
 
 /** The hairpins' extra peak a level gives a circuit: its `tightBy` entry, else `tight` (0 with no level). */
@@ -834,10 +846,17 @@ export const RACING_V4_PACE: readonly { zero: number; full: number }[] = [
   { zero: 1335, full: 2030 },
 ];
 
-/** The pace range a run is scored on (racingRev 4: its circuit's; racingRev 3: the fixed one). */
+/** racingRev 5's pace part per circuit (tenths of a km/h): rev 4's spread below the realistic elite's par. */
+export const RACING_V5_PACE: readonly { zero: number; full: number }[] = [
+  { zero: 2115 - 695, full: 2115 },
+  { zero: 2275 - 695, full: 2275 },
+  { zero: 1890 - 695, full: 1890 },
+];
+
+/** The pace range a run is scored on (racingRev 5 / 4: its circuit's; racingRev 3: the fixed one). */
 export function racingPaceRange(state: Pick<RacingState, "rev" | "seed"> & { lv?: RacingLevelSettings }): { zero: number; full: number } {
   if (state.rev < RACING_REV_4) return { zero: RACING_V3_PACE_ZERO, full: RACING_V3_PACE_FULL };
-  const base = RACING_V4_PACE[racingCircuitOf(state.seed)]!;
+  const base = (state.rev >= RACING_REV_5 ? RACING_V5_PACE : RACING_V4_PACE)[racingCircuitOf(state.seed)]!;
   // A level's own full pace (racingLevel.pace) and spread (racingLevel.spread; Normal's otherwise).
   if (!state.lv) return base;
   const full = state.lv.pace?.[racingCircuitOf(state.seed)] ?? base.full;
@@ -853,14 +872,28 @@ export const RACING_V4_STD_SPEC: StdSpec = {
   ],
 };
 
+/** racingRev 5's spec: rev 4's parts, the pace at the circuit's new par, clean sectors full at RACING_V5_CLEAN_FULL. */
+export function racingV5Spec(cleanFull: number = RACING_V5_CLEAN_FULL): StdSpec {
+  return {
+    field: "racingRev",
+    rev: RACING_REV_5,
+    parts: [
+      { key: "core", label: "Pace", max: RACING_V3_PACE_MAX, of: RACING_V3_PACE_OF, item: "tenth of a km/h", items: "tenths of a km/h", how: "your average speed, all of it at the circuit's par pace" },
+      { key: "sectors", label: "Clean sectors", max: RACING_V3_SECTORS_MAX, of: cleanFull, item: "clean sector", how: `each sector driven with no grass or wall counts, ${cleanFull} of the ${RACING_SECTORS} for all of it` },
+    ],
+  };
+}
+export const RACING_V5_STD_SPEC: StdSpec = racingV5Spec();
+
 /** A revision's spec (null for an unknown one). */
 export function racingStdSpecFor(rev: number): StdSpec | null {
-  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : rev === RACING_REV_3 ? RACING_V3_STD_SPEC : rev === RACING_REV_4 ? RACING_V4_STD_SPEC : null;
+  return rev === RACING_REV_STD ? RACING_STD_SPEC : rev === RACING_REV_2 ? RACING_V2_STD_SPEC : rev === RACING_REV_3 ? RACING_V3_STD_SPEC : rev === RACING_REV_4 ? RACING_V4_STD_SPEC : rev === RACING_REV_5 ? RACING_V5_STD_SPEC : null;
 }
 
 /** racingRev 3's parts: pace and clean sectors. */
 function racingV3Parts(state: RacingState): StdPart[] {
-  const spec = state.rev >= RACING_REV_4 ? RACING_V4_STD_SPEC : RACING_V3_STD_SPEC;
+  const cleanFull = state.rev >= RACING_REV_5 ? (state.lv?.cleanFull ?? RACING_V5_CLEAN_FULL) : RACING_SECTORS;
+  const spec = state.rev >= RACING_REV_5 ? (cleanFull === RACING_V5_CLEAN_FULL ? RACING_V5_STD_SPEC : racingV5Spec(cleanFull)) : state.rev >= RACING_REV_4 ? RACING_V4_STD_SPEC : RACING_V3_STD_SPEC;
   const range = racingPaceRange(state);
   const dist = clampInt(state.s, 0, RACING_TOTAL);
   const pct = Math.floor((dist * 100) / RACING_TOTAL);
@@ -869,11 +902,11 @@ function racingV3Parts(state: RacingState): StdPart[] {
   const lead = finished ? `2 laps in ${(racingPaceTicks(state) / TICKS_PER_SECOND).toFixed(1)} s` : `${pct}% of 2 laps`;
   return [
     stdPart(spec, "core", stdLine(RACING_V3_PACE_MAX, pace - range.zero, range.full - range.zero), `${lead}, average ${kmh10(pace)} km/h`),
-    stdPart(spec, "sectors", stdLine(RACING_V3_SECTORS_MAX, state.clean, RACING_SECTORS), `${state.clean} of ${RACING_SECTORS} clean`),
+    stdPart(spec, "sectors", stdLine(RACING_V3_SECTORS_MAX, state.clean, cleanFull), `${state.clean} of ${RACING_SECTORS} clean`),
   ];
 }
 
-/** The run's parts (null off racingRev 1 to 4). */
+/** The run's parts (null off racingRev 1 to 5). */
 export function racingStdParts(state: RacingState): StdPart[] | null {
   const spec = racingStdSpecFor(state.rev);
   if (!spec) return null;
@@ -1036,12 +1069,20 @@ export const racingGameV4: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
   ...racingGameV2,
   init: racingInitV4,
 };
+/** racingRev 5: racingRev 4's play; the score reads the state's revision. */
+export function racingInitV5(seed: number): RacingState {
+  return { ...racingInit(seed), rev: RACING_REV_5, offFrom: 0, rec: 0 };
+}
+export const racingGameV5: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
+  ...racingGameV2,
+  init: racingInitV5,
+};
 
 /** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick; 3: the softer gravel and the pace score). */
 export function racingGameFor(rev?: number | null, lv?: RacingLevelSettings | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  if (lv && r >= RACING_REV_4) return racingLevelGame(lv);
-  return r >= RACING_REV_4 ? racingGameV4 : r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
+  if (lv && r >= RACING_REV_4) return racingLevelGame(lv, r >= RACING_REV_5 ? RACING_REV_5 : RACING_REV_4);
+  return r >= RACING_REV_5 ? racingGameV5 : r >= RACING_REV_4 ? racingGameV4 : r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
 }
 
 /** A stored level's settings, whole numbers only (a malformed stamp plays as Normal). */
@@ -1059,18 +1100,20 @@ export function racingLevelOf(raw: unknown): RacingLevelSettings | null {
   const pace = Array.isArray(o["pace"]) && o["pace"].length === RACING_CIRCUITS.length && o["pace"].every((p) => typeof p === "number" && Number.isFinite(p)) ? (o["pace"] as number[]).map((p) => Math.trunc(p)) : null;
   const spread = n("spread");
   const tightBy = Array.isArray(o["tightBy"]) && o["tightBy"].length === RACING_CIRCUITS.length && o["tightBy"].every((t) => typeof t === "number" && Number.isFinite(t)) ? (o["tightBy"] as number[]).map((t) => Math.trunc(t)) : null;
-  return { keep, road, kerb, wall, tight, ...(tightBy ? { tightBy } : {}), aids, ...(pace ? { pace } : {}), ...(spread !== null && spread > 0 ? { spread } : {}) };
+  const cleanFull = n("cleanFull");
+  return { keep, road, kerb, wall, tight, ...(tightBy ? { tightBy } : {}), aids, ...(pace ? { pace } : {}), ...(spread !== null && spread > 0 ? { spread } : {}), ...(cleanFull !== null && cleanFull > 0 ? { cleanFull } : {}) };
 }
 
 const levelGames = new Map<string, ArcadeGame<RacingState, ArcadeInputEvent | null>>();
 /** racingRev 4 at a level: the same game with the level's settings in its state (cached per settings). */
-function racingLevelGame(lv: RacingLevelSettings): ArcadeGame<RacingState, ArcadeInputEvent | null> {
+function racingLevelGame(lv: RacingLevelSettings, rev: number = RACING_REV_4): ArcadeGame<RacingState, ArcadeInputEvent | null> {
   const own = racingLevelOf(lv);
-  if (!own) return racingGameV4;
-  const key = JSON.stringify(own);
+  const v5 = rev >= RACING_REV_5;
+  if (!own) return v5 ? racingGameV5 : racingGameV4;
+  const key = `${v5 ? 5 : 4}:${JSON.stringify(own)}`;
   let game = levelGames.get(key);
   if (!game) {
-    game = { ...racingGameV4, init: (seed: number) => ({ ...racingInitV4(seed), lv: own }) };
+    game = v5 ? { ...racingGameV5, init: (seed: number) => ({ ...racingInitV5(seed), lv: own }) } : { ...racingGameV4, init: (seed: number) => ({ ...racingInitV4(seed), lv: own }) };
     levelGames.set(key, game);
   }
   return game;

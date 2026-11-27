@@ -45,13 +45,24 @@ import { hashInts, isRed, NO_CARD, rankOf, shuffledDeck, suitOf } from "./cards"
 import { FC_DEALS } from "./freecellDeals.data";
 import { FC_DEALS_V4 } from "./freecellDealsV4.data";
 import { FC_DEALS_EASY, FC_DEALS_EXPERT, FC_DEALS_HARD } from "./freecellDealsLevels.data";
+import { FC_DEALS_EXPERT_V6, FC_DEALS_HARD_V6 } from "./freecellDealsLevelsV6.data";
 
-/** The dealt revision (rev 5: the core to all 40 home); rev 4 runs replay on freecellGameV4, rev 3 on V3, rev 2 on V2, rev 1 on V1. */
-export const FC_REV = 5;
+/**
+ * The dealt revision (rev 6: rev 5 with par full within an eighth over par; rev 5: the core to all 40 home); rev 5 runs
+ * replay on freecellGameV5, rev 4 on V4, rev 3 on V3, rev 2 on V2, rev 1 on V1.
+ */
+export const FC_REV = 6;
 export const FC_REV_UNDO = 2;
 export const FC_REV_EASY = 3;
 export const FC_REV_SHORT = 4;
 export const FC_REV_SHARE = 5;
+/**
+ * freecellRev 6 (D6, 23 Nov 2026, Joe's Decision 1 A: a Normal scoring stamp moving only the part the realistic elite
+ * can't fill): rev 5's deals, bank, play, cards and speed; Par moves full within an eighth over the deal's par (9/8 ×
+ * par, was par itself), still nothing at one and a half times par. Measured on 96 room deals (the skill-band bots under
+ * HUMAN_LIMITS): the elite at 200 8 % → 45 %, the average 115 → 120. Level deals on rev 6 play FC_LEVEL_RULES_V6.
+ */
+export const FC_REV_PAR98 = 6;
 /** freecellRev 4's deal: Ace to 10 in each suit, five to a column. */
 export const FC_SHORT_TOP_RANK = 10;
 export const FC_SHORT_CARDS = 40;
@@ -143,6 +154,7 @@ export const FC_V5_BAND_CURVE = bandCurve([0, FC_CORE_UNITS_V5], [0, FC_CORE_MAX
 function fcSpec(rev: number): StdSpec {
   const easy = rev >= FC_REV_EASY;
   if (rev >= FC_REV_SHARE) {
+    const par98 = rev >= FC_REV_PAR98;
     return {
       field: "freecellRev",
       rev,
@@ -151,7 +163,7 @@ function fcSpec(rev: number): StdSpec {
           key: "core", label: "Cards", max: FC_CORE_MAX_V5, of: FC_CORE_UNITS_V5,
           how: "every card home scores, a card in a sorted run on the columns half as much; all 40 home for all of it",
         },
-        { key: "par", label: "Par moves", max: FC_PAR_MAX_V5, of: 1, how: "finish in the deal’s fewest moves (par) for all of it, nothing at one and a half times par" },
+        { key: "par", label: "Par moves", max: FC_PAR_MAX_V5, of: 1, how: par98 ? "finish within an eighth over the deal’s fewest moves (par) for all of it, nothing at one and a half times par" : "finish in the deal’s fewest moves (par) for all of it, nothing at one and a half times par" },
         { key: "speed", label: "Speed", max: FC_SPEED_MAX_V5, of: 1, how: `finish within ${FC_SPEED_FULL_S_V4} s for all of it, falling to 0 at the buzzer` },
       ],
     };
@@ -188,6 +200,7 @@ function fcSpec(rev: number): StdSpec {
 /** The dealt revision's spec (the help, LIVE_BANDS, the reveal); revs 1 and 2 score on FC_STD_SPEC_V1's parts, rev 3 on V3's, rev 4 on V4's. */
 export const FC_STD_SPEC: StdSpec = fcSpec(FC_REV);
 export const FC_STD_SPEC_V4: StdSpec = fcSpec(FC_REV_SHORT);
+export const FC_STD_SPEC_V5: StdSpec = fcSpec(FC_REV_SHARE);
 export const FC_STD_SPEC_V1: StdSpec = fcSpec(2);
 export const FC_STD_SPEC_V3: StdSpec = fcSpec(FC_REV_EASY);
 
@@ -514,6 +527,9 @@ function initV4(seed: number): FcState {
 function initV5(seed: number): FcState {
   return initUndo(seed, FC_REV_SHARE);
 }
+function initV6(seed: number): FcState {
+  return initUndo(seed, FC_REV_PAR98);
+}
 
 function step(state: FcState, input: ArcadeInputEvent | null): FcState {
   if (state.ended) return state;
@@ -658,13 +674,16 @@ export function freecellStdParts(state: FcState): StdPart[] | null {
   const done = state.ended === 1;
   const r = state.rev ?? 1;
   if (r >= FC_REV_SHARE) {
-    // Rev 5: par 0 at 1.5 × par (in halves, so the line is whole numbers), both lines in whole-number maths.
-    const par5 = done ? stdSpeedInt(FC_PAR_MAX_V5, 2 * state.moves, 2 * state.par, 3 * state.par) : 0;
+    // Rev 5: par 0 at 1.5 × par (in halves, so the line is whole numbers), both lines in whole-number maths. Rev 6: par
+    // full at 9/8 × par (in eighths), 0 at 1.5 × par as rev 5.
+    const r6 = r >= FC_REV_PAR98;
+    const par5 = !done ? 0 : r6 ? stdSpeedInt(FC_PAR_MAX_V5, 8 * state.moves, 9 * state.par, 12 * state.par) : stdSpeedInt(FC_PAR_MAX_V5, 2 * state.moves, 2 * state.par, 3 * state.par);
     const speed5 = done ? stdSpeedInt(FC_SPEED_MAX_V5, state.finishTick, FC_SPEED_FULL_S_V4 * 60, FC_RUN_TICKS) : 0;
+    const spec5 = r6 ? FC_STD_SPEC : FC_STD_SPEC_V5;
     return [
-      stdPart(FC_STD_SPEC, "core", stdLine(FC_CORE_MAX_V5, units, FC_CORE_UNITS_V5), `${home} home · ${sorted} in sorted runs`),
-      stdPart(FC_STD_SPEC, "par", par5, done ? `${state.moves} moves, par ${state.par}` : "not finished"),
-      stdPart(FC_STD_SPEC, "speed", speed5, done ? `finished in ${(state.finishTick / 60).toFixed(1)} s` : "not finished"),
+      stdPart(spec5, "core", stdLine(FC_CORE_MAX_V5, units, FC_CORE_UNITS_V5), `${home} home · ${sorted} in sorted runs`),
+      stdPart(spec5, "par", par5, done ? `${state.moves} moves, par ${state.par}` : "not finished"),
+      stdPart(spec5, "speed", speed5, done ? `finished in ${(state.finishTick / 60).toFixed(1)} s` : "not finished"),
     ];
   }
   const short = r >= FC_REV_SHORT;
@@ -743,13 +762,15 @@ export const freecellGameV4: ArcadeGame<FcState, ArcadeInputEvent | null> = { ..
 
 /** freecellRev 5's game: rev 4's deal and play, scored on rev 5's parts. */
 export const freecellGameV5: ArcadeGame<FcState, ArcadeInputEvent | null> = { ...freecellGameV2, init: initV5 };
+/** freecellRev 6: rev 5's play; the score reads the state's revision. */
+export const freecellGameV6: ArcadeGame<FcState, ArcadeInputEvent | null> = { ...freecellGameV2, init: initV6 };
 
 /** The checks and tools that play "FreeCell" without a stamp mean rev 1: freecellGameV1. */
 export const freecellGame = freecellGameV1;
 
 export function freecellGameFor(rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  return r >= FC_REV_SHARE ? freecellGameV5 : r >= FC_REV_SHORT ? freecellGameV4 : r >= FC_REV_EASY ? freecellGameV3 : r >= FC_REV_UNDO ? freecellGameV2 : freecellGameV1;
+  return r >= FC_REV_PAR98 ? freecellGameV6 : r >= FC_REV_SHARE ? freecellGameV5 : r >= FC_REV_SHORT ? freecellGameV4 : r >= FC_REV_EASY ? freecellGameV3 : r >= FC_REV_UNDO ? freecellGameV2 : freecellGameV1;
 }
 
 /* ================================ Difficulty levels (15 Nov 2026) ================================ */
@@ -791,6 +812,8 @@ export interface FcLevelRules {
   speedFullS: number;
   /** Par moves reach 0 at this many quarters of par (Normal: 6, one and a half times par). */
   parZeroQuarters: number;
+  /** D6's levels (freecellRev 6): Par moves full at this many eighths of par (8: at par, Normal's 9). */
+  parFullEighths?: number;
 }
 
 export const FC_HINT_COST = 5;
@@ -801,39 +824,74 @@ export const FC_LEVEL_RULES: Readonly<Record<FcLevelName, FcLevelRules>> = {
   expert: { lv: FC_LV_EXPERT, topRank: 13, cells: 3, undoFree: false, undoLimit: 3, hintCost: 0, hintLimit: 1, speedFullS: 25, parZeroQuarters: 5 },
 };
 
-export function fcLevelRulesOf(state: Pick<FcState, "lv">): FcLevelRules | null {
-  switch (state.lv) {
-    case FC_LV_EASY: return FC_LEVEL_RULES.easy;
-    case FC_LV_HARD: return FC_LEVEL_RULES.hard;
-    case FC_LV_EXPERT: return FC_LEVEL_RULES.expert;
-    default: return null;
-  }
+/**
+ * D6's levels (23 Nov 2026, the polish plan's difficulty spec: the lever is free cells; Joe's ladder test): a level deal
+ * on freecellRev 6 plays these rules (the state carries rev 6; a level state on rev 5 keeps FC_LEVEL_RULES exactly). Hard
+ * and Expert carry no hints (the spec's rule 5: an aid Normal lacks goes).
+ *
+ *   Easy    as today: 32 cards (Ace to 8), 5 free cells, Undo free and unlimited, free hints with the idle glow.
+ *   Hard    Normal's 40 cards (Ace to 10) on 3 free cells, so the missing cell is the one change (FC_DEALS_HARD_V6:
+ *           Normal's bank seeds the solver proves with 3 cells); Undo unlimited, a move; no hints.
+ *   Expert  48 cards (Ace to Queen) on 2 free cells, only the deals the solver proves in 38 moves or fewer
+ *           (FC_DEALS_EXPERT_V6; 52 cards on 2 cells averaged 18 for the average player, a cliff, Joe 23 Nov 2026); 3
+ *           undos; no hints.
+ *
+ * Par moves and speed per level, set from 96 room deals (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS):
+ * Easy full within an eighth over par, nothing at twice par, speed by 60 s; Hard within an eighth, nothing at 1.5 ×,
+ * speed by 33 s; Expert within a quarter, nothing at 1.5 ×, speed by 40 s (the elite's two-cell clears take 38–47 s).
+ */
+export const FC_LEVEL_RULES_V6: Readonly<Record<FcLevelName, FcLevelRules>> = {
+  easy: { ...FC_LEVEL_RULES.easy, parFullEighths: 9 },
+  hard: { lv: FC_LV_HARD, topRank: FC_SHORT_TOP_RANK, cells: 3, undoFree: false, undoLimit: -1, hintCost: 0, hintLimit: 0, speedFullS: 33, parZeroQuarters: 6, parFullEighths: 9 },
+  expert: { lv: FC_LV_EXPERT, topRank: 12, cells: 2, undoFree: false, undoLimit: 3, hintCost: 0, hintLimit: 0, speedFullS: 40, parZeroQuarters: 6, parFullEighths: 10 },
+};
+
+/** A level's rules on a revision (rev 6: D6's; earlier: the levels before). */
+export function fcLevelRulesFor(rev: number | null | undefined, level: FcLevelName): FcLevelRules {
+  return (rev ?? 0) >= FC_REV_PAR98 ? FC_LEVEL_RULES_V6[level] : FC_LEVEL_RULES[level];
 }
 
-/** The deal bank of each level ([deal seed, par]; freecellDealsLevels.data.ts). */
+export function fcLevelRulesOf(state: Pick<FcState, "lv"> & { rev?: number }): FcLevelRules | null {
+  const level: FcLevelName | null = state.lv === FC_LV_EASY ? "easy" : state.lv === FC_LV_HARD ? "hard" : state.lv === FC_LV_EXPERT ? "expert" : null;
+  return level ? fcLevelRulesFor(state.rev, level) : null;
+}
+
+/** Whether a level state has the Hint button (D6's Hard and Expert have none). Display and input mapping only. */
+export function fcHintButtonOn(state: Pick<FcState, "lv"> & { rev?: number }): boolean {
+  const r = fcLevelRulesOf(state);
+  return Boolean(r) && r!.hintLimit !== 0;
+}
+
+/** The deal bank of each level ([deal seed, par]; freecellDealsLevels.data.ts, D6's freecellDealsLevelsV6.data.ts). */
 const FC_LEVEL_BANKS: Readonly<Record<FcLevelName, readonly (readonly [number, number])[]>> = {
   easy: FC_DEALS_EASY,
   hard: FC_DEALS_HARD,
   expert: FC_DEALS_EXPERT,
 };
+const FC_LEVEL_BANKS_V6: Readonly<Record<FcLevelName, readonly (readonly [number, number])[]>> = {
+  easy: FC_DEALS_EASY,
+  hard: FC_DEALS_HARD_V6,
+  expert: FC_DEALS_EXPERT_V6,
+};
 
-export function fcLevelBank(level: FcLevelName): readonly (readonly [number, number])[] {
-  return FC_LEVEL_BANKS[level];
+export function fcLevelBank(level: FcLevelName, rev: number | null = FC_REV_SHARE): readonly (readonly [number, number])[] {
+  return ((rev ?? 0) >= FC_REV_PAR98 ? FC_LEVEL_BANKS_V6 : FC_LEVEL_BANKS)[level];
 }
 
 /** The bank entry a level deal's seed names (the seed is the index; any integer maps onto the bank). */
-export function fcLevelDealOf(seed: number, level: FcLevelName): { index: number; dealSeed: number; par: number } {
-  const bank = FC_LEVEL_BANKS[level];
+export function fcLevelDealOf(seed: number, level: FcLevelName, rev: number | null = FC_REV_SHARE): { index: number; dealSeed: number; par: number } {
+  const bank = fcLevelBank(level, rev);
   const n = bank.length;
   const index = ((Math.trunc(seed) % n) + n) % n;
   const [dealSeed, par] = bank[index]!;
   return { index, dealSeed, par };
 }
 
-/** A level state from a deal seed and par (the bank script and the checks use it directly). */
-export function fcLevelInitFrom(level: FcLevelName, dealSeed: number, par: number, deal = 0): FcState {
-  const rules = FC_LEVEL_RULES[level];
-  const base = fcInitFrom(dealSeed, par, deal, FC_REV_SHARE, rules.topRank, rules.cells);
+/** A level state from a deal seed and par (the bank script and the checks use it directly); `rev` 6 is D6's levels. */
+export function fcLevelInitFrom(level: FcLevelName, dealSeed: number, par: number, deal = 0, rev: number = FC_REV_SHARE): FcState {
+  const r6 = rev >= FC_REV_PAR98;
+  const rules = fcLevelRulesFor(rev, level);
+  const base = fcInitFrom(dealSeed, par, deal, r6 ? FC_REV_PAR98 : FC_REV_SHARE, rules.topRank, rules.cells);
   const state: FcState = {
     ...base, hist: [], undos: 0, resets: 0, note: 0, noteNeed: 0, noteCells: 0, noteTick: 0,
     lv: rules.lv, cards: 4 * rules.topRank, hints: 0, hintTick: 0,
@@ -841,9 +899,9 @@ export function fcLevelInitFrom(level: FcLevelName, dealSeed: number, par: numbe
   return { ...state, start: fcPack(state) };
 }
 
-function initLevel(seed: number, level: FcLevelName): FcState {
-  const d = fcLevelDealOf(seed, level);
-  return fcLevelInitFrom(level, d.dealSeed, d.par, d.index);
+function initLevel(seed: number, level: FcLevelName, rev: number): FcState {
+  const d = fcLevelDealOf(seed, level, rev);
+  return fcLevelInitFrom(level, d.dealSeed, d.par, d.index, rev);
 }
 
 /** Whether a level state may still ask for a hint. */
@@ -875,19 +933,22 @@ function stepLevel(state: FcState, input: ArcadeInputEvent | null): FcState {
   return next;
 }
 
-/** A level's spec (the help and the reveal; the parts of every level sum to 200). */
-export function fcLevelSpec(level: FcLevelName): StdSpec {
-  const rules = FC_LEVEL_RULES[level];
+const quarterWords = (q: number) => (q === 8 ? "twice" : q === 6 ? "one and a half times" : q === 5 ? "one and a quarter times" : `${q / 4} times`);
+const eighthWords = (e: number) => (e === 8 ? "in the deal’s fewest moves (par)" : e === 9 ? "within an eighth over the deal’s fewest moves (par)" : e === 10 ? "within a quarter over the deal’s fewest moves (par)" : `within ${e / 8} times the deal’s fewest moves (par)`);
+
+/** A level's spec (the help and the reveal; the parts of every level sum to 200); `rev` 6 is D6's levels. */
+export function fcLevelSpec(level: FcLevelName, rev: number | null = FC_REV_SHARE): StdSpec {
+  const rules = fcLevelRulesFor(rev, level);
   const cards = 4 * rules.topRank;
   return {
     field: "freecellRev",
-    rev: FC_REV_SHARE,
+    rev: (rev ?? 0) >= FC_REV_PAR98 ? FC_REV_PAR98 : FC_REV_SHARE,
     parts: [
       {
         key: "core", label: "Cards", max: FC_CORE_MAX_V5, of: 2 * cards,
         how: `every card home scores, a card in a sorted run on the columns half as much; all ${cards} home for all of it${rules.hintCost ? `; each hint costs ${rules.hintCost}` : ""}`,
       },
-      { key: "par", label: "Par moves", max: FC_PAR_MAX_V5, of: 1, how: `finish in the deal’s fewest moves (par) for all of it, nothing at ${rules.parZeroQuarters === 8 ? "twice" : rules.parZeroQuarters === 6 ? "one and a half times" : "one and a quarter times"} par` },
+      { key: "par", label: "Par moves", max: FC_PAR_MAX_V5, of: 1, how: `finish ${eighthWords(rules.parFullEighths ?? 8)} for all of it, nothing at ${quarterWords(rules.parZeroQuarters)} par` },
       { key: "speed", label: "Speed", max: FC_SPEED_MAX_V5, of: 1, how: `finish within ${rules.speedFullS} s for all of it, falling to 0 at the buzzer` },
     ],
   };
@@ -896,7 +957,7 @@ export function fcLevelSpec(level: FcLevelName): StdSpec {
 function fcLevelParts(state: FcState): StdPart[] {
   const rules = fcLevelRulesOf(state)!;
   const level: FcLevelName = rules.lv === FC_LV_EASY ? "easy" : rules.lv === FC_LV_HARD ? "hard" : "expert";
-  const spec = fcLevelSpec(level);
+  const spec = fcLevelSpec(level, state.rev);
   const cards = fcCardsOf(state);
   const home = fcHomeCount(state);
   const sorted = fcSortedCards(state.cols);
@@ -904,7 +965,8 @@ function fcLevelParts(state: FcState): StdPart[] {
   const hints = state.hints ?? 0;
   const cost = rules.hintCost * hints;
   const core = Math.max(0, stdLine(FC_CORE_MAX_V5, 2 * home + sorted, 2 * cards) - cost);
-  const par = done ? stdSpeedInt(FC_PAR_MAX_V5, 4 * state.moves, 4 * state.par, rules.parZeroQuarters * state.par) : 0;
+  // In eighths of par (whole numbers): full at parFullEighths (8 before D6: at par), 0 at parZeroQuarters quarters.
+  const par = done ? stdSpeedInt(FC_PAR_MAX_V5, 8 * state.moves, (rules.parFullEighths ?? 8) * state.par, 2 * rules.parZeroQuarters * state.par) : 0;
   const speed = done ? stdSpeedInt(FC_SPEED_MAX_V5, state.finishTick, rules.speedFullS * 60, FC_RUN_TICKS) : 0;
   const hintText = cost ? ` · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : "";
   return [
@@ -914,15 +976,17 @@ function fcLevelParts(state: FcState): StdPart[] {
   ];
 }
 
-const LEVEL_GAMES = new Map<FcLevelName, ArcadeGame<FcState, ArcadeInputEvent | null>>();
+const LEVEL_GAMES = new Map<string, ArcadeGame<FcState, ArcadeInputEvent | null>>();
 
-/** A level's game: rev 5's play on the level's deal, cells, undo and hints. */
-export function freecellLevelGame(level: FcLevelName): ArcadeGame<FcState, ArcadeInputEvent | null> {
-  let g = LEVEL_GAMES.get(level);
+/** A level's game: rev 5's play on the level's deal, cells, undo and hints (`rev` 6: D6's levels, FC_LEVEL_RULES_V6). */
+export function freecellLevelGame(level: FcLevelName, rev: number | null = FC_REV_SHARE): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  const r = (rev ?? 0) >= FC_REV_PAR98 ? FC_REV_PAR98 : FC_REV_SHARE;
+  const key = `${level}:${r}`;
+  let g = LEVEL_GAMES.get(key);
   if (!g) {
     g = {
       ...freecellGameV5,
-      init: (seed) => initLevel(seed, level),
+      init: (seed) => initLevel(seed, level, r),
       step: stepLevel,
       inputRanges: [
         inputRange(FC_INPUT_TAP, [0, 13], [0, 51]),
@@ -932,12 +996,12 @@ export function freecellLevelGame(level: FcLevelName): ArcadeGame<FcState, Arcad
         inputRange(FC_INPUT_HINT),
       ],
     };
-    LEVEL_GAMES.set(level, g);
+    LEVEL_GAMES.set(key, g);
   }
   return g;
 }
 
 /** The game a puzzle plays: its level's (a level deal) or its revision's (Normal). */
 export function freecellGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<FcState, ArcadeInputEvent | null> {
-  return level === "easy" || level === "hard" || level === "expert" ? freecellLevelGame(level) : freecellGameFor(rev);
+  return level === "easy" || level === "hard" || level === "expert" ? freecellLevelGame(level, rev ?? null) : freecellGameFor(rev);
 }

@@ -56,6 +56,10 @@ import { GAME_LEVELS, levelsOf } from "../src/lib/levels/gameLevels";
 import { modeLevel } from "../src/lib/levels/modes";
 import { MAX_ROUND_CLOCK_MS } from "../src/lib/levels/levels";
 import { inkBigProved, inkBigSubmission, inkBigVerdict, inkLevelDealFile, inkLevelWitnessFile, readInkBigDeal, type InkWitness } from "./ink-big-deal";
+import { pinPreInkD6 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal inkRev 16 (inkRev 15's world on each level's own figures); this check was written for inkRev 15, so it deals it (d6-strategy-levels-check proves inkRev 16).
+pinPreInkD6(true);
 
 const failures: string[] = [];
 let checks = 0;

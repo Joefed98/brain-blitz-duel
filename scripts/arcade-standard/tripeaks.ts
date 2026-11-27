@@ -18,6 +18,10 @@ import type { StdEntry } from "./entry";
 const spec = ARCADE_STANDARD.tripeaks!.spec!;
 const game2 = tripeaksGameFor(2);
 const game = tripeaksGameFor(3);
+// Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: tripeaksRev 4, rev 3's play with the run full at 6, stock par within par + 8, speed by 25 s).
+const game4 = tripeaksGameFor(4);
+const at4 = (over: Partial<TpState>): TpState => ({ ...game4.init(5), acted: 1, ...over });
+const cleared4 = (v: number): TpState => at4({ clearedCount: v, cleared: Array.from({ length: 28 }, (_, i) => (i >= 28 - v ? 1 : 0)) });
 const rec = (s: TpState) => Object.fromEntries((tripeaksStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: TpState) => Object.fromEntries((tripeaksStdParts(s) ?? []).map((p) => [p.key, p.max]));
 /** A rev-2 state (stored rounds): its own parts. */
@@ -29,21 +33,22 @@ const cleared = (v: number): TpState => at({ clearedCount: v, cleared: Array.fro
 export const entry: StdEntry = {
   type: "tripeaks",
   field: "tripeaksRev",
-  rev: 3,
-  before: 2,
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: tripeaksRev 4, rev 3's play with the run full at 6, stock par within par + 8, speed by 25 s).
+  rev: 4,
+  before: 3,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 150, 299].map((seed) => {
-      const { raw } = tripeaksFlawless(seed, 15, 3);
-      const r = replayTripeaksRun(seed, raw, 3);
+      const { raw } = tripeaksFlawless(seed, 15, 4);
+      const r = replayTripeaksRun(seed, raw, 4);
       return { label: `bank deal ${seed}'s stock-par line through the server replay`, score: r.score, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
-  played: () => [{ label: "a tap on a covered card", score: game.score(at({})), want: 1 }],
-  idle: () => [{ label: "an untouched init(12)", score: game.score(game.init(12)) }],
+  played: () => [{ label: "a tap on a covered card", score: game4.score(at4({})), want: 1 }],
+  idle: () => [{ label: "an untouched init(12)", score: game4.score(game4.init(12)) }],
   help: { terms: ["28", "run", "par"] },
-  core: { fullAt: 28, at: (v) => cleared(v), parts: (s) => tripeaksStdParts(s), finishParts: [] },
+  core: { fullAt: 28, at: (v) => cleared4(v), parts: (s) => tripeaksStdParts(s), finishParts: [] },
   extra(ok) {
     const part = (s: TpState, key: string) => tripeaksStdParts(s)!.find((p) => p.key === key)!.points;
     // Rev 2 (stored rounds) keeps its six parts exactly (asserted on rev-2 states).
@@ -77,5 +82,10 @@ export const entry: StdEntry = {
     const bestMiss = game.score({ ...cleared(27), peaks: 3, bestRun: 27 });
     const poorestClear = game.score({ ...done(TP_RUN_TICKS, 23), peaks: 3, bestRun: 1 });
     ok(poorestClear >= bestMiss, `tripeaks rev 3: the poorest clear (${poorestClear}) scores at least the best run that misses one (${bestMiss})`);
+    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: tripeaksRev 4, rev 3's play with the run full at 6, stock par within par + 8, speed by 25 s).
+    const done4 = (tick: number, turns = 10, run = 6) => at4({ clearedCount: 28, cleared: new Array(28).fill(1), peaks: 3, ended: 1, finishTick: tick, turns, stockPar: 10, bestRun: run });
+    ok(part(done4(600, 18), "par") === TP_V2_PAR_MAX && part(done4(600, 19), "par") < TP_V2_PAR_MAX && part(done4(600, 23), "par") === 0, "tripeaks rev 4: stock par 10 full at 18 turns (par + 8), less at 19, 0 at 23");
+    ok(part(done4(600, 10, 6), "run") === 10 && part(done4(600, 10, 3), "run") === 5 && part(done4(25 * 60), "speed") === TP_V3_SPEED_MAX && part(done4(26 * 60), "speed") < TP_V3_SPEED_MAX, "tripeaks rev 4: the run full at 6 (3 pays 5), speed full by 25 s");
+    ok(JSON.stringify({ ...game4.init(7), rev: 3 }) === JSON.stringify(game.init(7)), "tripeaks rev 4: rev 3's deals and pars");
   },
 };

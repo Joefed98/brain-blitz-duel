@@ -41,11 +41,18 @@ import { encodeMahjongRun } from "../src/lib/duel/mahjong";
 import { tripeaksParSolution } from "./cards/solutions";
 import { fhBest } from "./cards/fiveHandsBest";
 import { readFileSync } from "node:fs";
+import { pinPreD6Levels, pinPreFiveHands128, pinPreFreecellPar98, pinPreTripeaksEase } from "../src/lib/duel/d6Normal";
 
 const SEEDS = Number(process.argv.find((a) => a.startsWith("--seeds="))?.slice(8) ?? (process.env.CHECKS_FULL ? 300 : 60));
 const LEVELS = ["easy", "hard", "expert"] as const;
 type L = (typeof LEVELS)[number];
 const GAMES: PuzzleType[] = ["freecell", "mahjong", "tripeaks", "fivehands", "pyramid"];
+
+// Changed with Joe's approval, 23 Nov 2026 (D6's levels): this check was written for the levels before D6, so it deals them (d6PreLevels, and the Normal stamps before D6's); d6-cards-levels-check proves D6's levels.
+pinPreD6Levels(true);
+pinPreFreecellPar98(true);
+pinPreTripeaksEase(true);
+pinPreFiveHands128(true);
 
 let passed = 0;
 const failures: string[] = [];
@@ -101,20 +108,21 @@ console.log("1. The registry mirrors the sims; every level's clock is at most 12
   for (const g of GAMES) check(levelsOf(g).join(",") === "easy,normal,hard,expert", `${g}: offers Easy, Normal, Hard and Expert`);
   const reg = GAME_LEVELS as Record<string, { levels: Record<string, { settings: Record<string, unknown> }> }>;
   for (const l of LEVELS) {
-    const fc = FC.FC_LEVEL_RULES[l];
+    // Changed with Joe's approval, 23 Nov 2026 (D6's levels): the registry mirrors the levels dealt today (D6's tables).
+    const fc = FC.FC_LEVEL_RULES_V6[l];
     const fs = reg.freecell!.levels[l]!.settings;
     check(fs.cards === 4 * fc.topRank && fs.cells === fc.cells, `freecell ${l}: registry cards and cells match the sim (${fs.cards}, ${fs.cells})`);
-    const mj = MJ.MAHJONG_LEVEL_RULES[l];
+    const mj = MJ.MAHJONG_LEVEL_RULES_V3[l];
     const ms = reg.mahjong!.levels[l]!.settings;
     check(ms.tiles === mj.layout.tiles && ms.layers === mj.layout.layers && ms.quads === mj.quads && ms.shuffleCost === mj.shuffleCost, `mahjong ${l}: registry tiles, layers, faces dealt four times and shuffle cost match the sim`);
-    const tp = TP.TP_LEVEL_RULES[l];
+    const tp = TP.TP_LEVEL_RULES_V4[l];
     const ts = reg.tripeaks!.levels[l]!.settings;
     const fhTable = reg.fivehands!.levels[l]!.settings;
     if (l !== "easy") check(fhTable.pair === FH.fhRowHand([0, 13, 1, 2, 3], FH.FH_LEVEL_RULES[l].tableRev).points, `fivehands ${l}: registry pair value matches the level's table`);
     check(ts.glow === tp.glow && ts.wrap === tp.wrap && ts.undos === tp.undoLimit && ts.speedFullS === tp.speedFullS, `tripeaks ${l}: registry glow, wrap, undos and speed match the sim`);
-    const fh = FH.FH_LEVEL_RULES[l];
+    const fh = FH.FH_LEVEL_RULES_V4[l];
     const hs = reg.fivehands!.levels[l]!.settings;
-    check(hs.multiplier === fh.num / fh.den && hs.seconds === fh.seconds && hs.preview === fh.preview, `fivehands ${l}: registry multiplier, clock and preview match the sim`);
+    check(hs.fullAt === fh.full && hs.seconds === fh.seconds && hs.preview === fh.preview, `fivehands ${l}: registry figure, clock and preview match the sim`);
     const py = PY.PY_LEVEL_RULES[l];
     const ps = reg.pyramid!.levels[l]!.settings;
     check(ps.passes === py.passes && ps.glow === py.glow, `pyramid ${l}: registry passes and glow match the sim`);
@@ -171,7 +179,8 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     }
     check(banks[l].length >= 100 && ok === banks[l].length, `freecell ${l}: all ${banks[l].length} bank deals replay their solution to all home in par moves (${ok})`);
     const flawless = play(FC.freecellLevelGame(l), 0, fcLine(l, 0).map((m) => mv(FC.FC_INPUT_MOVE, m[0], m[1], m[2])), 12, FC.fcCheckpoint as never, encodeFreecellRun as never);
-    const p = { type: "freecell", seed: 0, freecellRev: FC.FC_REV, level: l } as unknown as PuzzleData;
+    // Changed with Joe's approval, 23 Nov 2026 (D6): the level puzzle on the stamp the level was built for (before D6's Normal stamps).
+    const p = { type: "freecell", seed: 0, freecellRev: FC.FC_REV_SHARE, level: l } as unknown as PuzzleData;
     const g = gradeAnswer(p, flawless.raw, 0);
     check(g.score === 200 && !(g.extra as { flagged?: boolean }).flagged, `freecell ${l}: the par line at a human pace scores 200 through the grade (${g.score})`);
   }
@@ -199,7 +208,8 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     const d = TP.tpLevelDealOf(seed, l);
     const line = l === "expert" ? tpxLines[0]! : l === "hard" ? tphLines[0]! : tripeaksParSolution(d.index);
     const flawless = play(TP.tripeaksLevelGame(l), seed, line.map((a) => mv(TP.TP_INPUT_TAP, a)), 15, TP.tpCheckpoint as never, encodeTripeaksRun as never);
-    const p = { type: "tripeaks", seed, tripeaksRev: TP.TP_REV, level: l } as unknown as PuzzleData;
+    // Changed with Joe's approval, 23 Nov 2026 (D6): the level puzzle on the stamp the level was built for (before D6's Normal stamps).
+    const p = { type: "tripeaks", seed, tripeaksRev: TP.TP_REV_SHARE, level: l } as unknown as PuzzleData;
     const g = gradeAnswer(p, flawless.raw, 0);
     check(g.score === 200, `tripeaks ${l}: the stock-par line at a human pace scores 200 through the grade (${g.score})`);
   }
@@ -242,7 +252,7 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     check(ok === SEEDS, `pyramid ${l}: ${SEEDS} built deals clear by their witness, ${r.kingsMin}–${r.kingsMin + r.kingsSpan - 1} Kings, no quick player clears them (${ok})`);
     const seed = 404;
     const flawless = play(PY.pyramidLevelGame(l), seed, PY.pyLevelDeal(seed, l).witness.map((a) => mv(PY.PY_INPUT_TAP, a)), 15, PY.pyCheckpoint as never, encodePyramidRun as never);
-    const p = { type: "pyramid", seed, pyramidRev: PY.PY_REV, level: l } as unknown as PuzzleData;
+    const p = { type: "pyramid", seed, pyramidRev: 3, level: l } as unknown as PuzzleData; // Changed with Joe's approval, 23 Nov 2026 (D6: rooms deal pyramidRev 4; the levels before D6 were pyramidRev 3)
     const g = gradeAnswer(p, flawless.raw, 0);
     check(g.score === 200, `pyramid ${l}: the witness at a human pace scores 200 through the grade (${g.score})`);
     check(PY.pyramidLevelGame(l).init(seed).passes === r.passes, `pyramid ${l}: ${r.passes} pass${r.passes === 1 ? "" : "es"} through the stock`);
@@ -268,7 +278,8 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     const best = fhBest(seed, r.tableRev);
     const taps = [...best.taps.map((row) => mv(FH.FH_INPUT_PLACE, row)), mv(FH.FH_INPUT_PICK, best.column)];
     const flawless = play(FH.fiveHandsLevelGame(l), seed, taps, 20, FH.fhCheckpoint as never, encodeFiveHandsRun as never);
-    const p = { type: "fivehands", seed, fiveHandsRev: FH.FH_REV, level: l, timeLimitMs: r.seconds * 1000 + 3000 } as unknown as PuzzleData;
+    // Changed with Joe's approval, 23 Nov 2026 (D6): the level puzzle on the stamp the level was built for (before D6's Normal stamps).
+    const p = { type: "fivehands", seed, fiveHandsRev: FH.FH_REV_FLAT, level: l, timeLimitMs: r.seconds * 1000 + 3000 } as unknown as PuzzleData;
     const g = gradeAnswer(p, flawless.raw, 0);
     check(g.score === 200, `fivehands ${l}: the best arrangement on deck ${seed} scores 200 through the grade (${g.score})`);
   }

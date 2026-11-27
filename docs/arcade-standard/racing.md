@@ -477,3 +477,22 @@ Ridge Loop's own hairpins (`tightBy`, one entry per circuit, in place of `tight`
 `racingTightFor`, and it is in the checksum when present). Its gravel, walls, missing aids, par pace (1964, the oracle's
 on the tighter hairpins, so a little easier to reach) and spread are unchanged. The Expert deal re-proved: all 300 seeds
 reach 200 through the server replay with the new settings (0 dropped).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** racingRev 5 (Normal: pace and clean sectors within the realistic elite's reach).
+- **The lever:** the road's width: 130 / 100 (Normal) / 85 / 72 % of Normal's.
+- **Average player, Easy / Normal / Hard / Expert:** 147 / 130 / 82 / 58.
+- **The elite at 200:** 73 / 40 / 31 / 27 %.
+- **The level lines:** a racingRev 5 round at a level shows D6's own line on the intro and the "?" help (`RACING_D6_NOTES`
+  in `src/lib/levels/levelNotes.ts`: the narrower road, the gravel keeping 80 / 50 / 35 % of your speed); a racingRev 4
+  round keeps its own (`LEVEL_NOTES.racing`).
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

@@ -14,6 +14,7 @@ import {
   RACING_REV_2,
   RACING_REV_3,
   RACING_REV_DEALT,
+  RACING_REV_5,
   racingPace10,
   RACING_STICK_MAX,
   RACING_WORLD_H,
@@ -44,7 +45,7 @@ import { canvasRatio } from "@/lib/battery";
 import { racingFinishHoldMs } from "@/lib/arcade/racingFx.renderer";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { puzzleLevel } from "@/lib/levels/levels";
-import { levelNote } from "@/lib/levels/levelNotes";
+import { levelNote, RACING_D6_NOTES } from "@/lib/levels/levelNotes";
 
 const STILL = 200;
 
@@ -259,8 +260,13 @@ export const racingPuzzle: PuzzleDefinition = {
   timeLimitMs: RACING_TIME_MS,
   revealMs: 6_000,
   generate: () => ({ type: "racing", seed: 1, racingRev: RACING_REV_DEALT }) satisfies RacingPuzzleData,
-  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line).
-  introLine: (puzzle) => levelNote("racing", puzzleLevel(puzzle)),
+  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line);
+  // racingRev 5's levels (D6) have their own lines.
+  introLine: (puzzle) => {
+    const level = puzzleLevel(puzzle);
+    if (level !== "normal" && puzzle.type === "racing" && puzzle.racingRev === RACING_REV_5) return RACING_D6_NOTES[level];
+    return levelNote("racing", level);
+  },
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

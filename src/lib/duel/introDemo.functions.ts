@@ -8,12 +8,12 @@ import { BASTION_REV_DEALT, BASTION_REV_LEVELS } from "@/lib/arcade/bastionTank"
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
 import { SWING_REV_LADDER } from "@/lib/arcade/swing"; // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19: the demo is recorded on it)
-import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
+import { INK_REV_D6, INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
-import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG, TILT_REV_THREE } from "@/lib/arcade/tilt";
 import { CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
 import { MOON_MID_REV } from "@/lib/arcade/ricochetNinja";
@@ -32,7 +32,7 @@ import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_FAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_D6 } from "@/lib/arcade/matchup";
 import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
@@ -261,7 +261,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // inkRev 13 (Nov 2026: clovers, ink par, more birds, no stars or silver coins) deals other levels: only a demo recorded
   // on inkRev 13 plays (the still shows until then). inkRev 14 (3 Nov 2026) draws a bigger coin, clovers and birds on other
   // levels: only a demo recorded on inkRev 14 plays.
-  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_HILLS) return null;
+  // D6: inkRev 16 is inkRev 15's world and play (only the scoring moved), so an inkRev 15 demo still shows the round.
+  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_HILLS && demo.puzzle.inkRev !== INK_REV_D6) return null;
   // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
   // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
   // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
@@ -304,7 +305,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // tiltRev 10 (29 Oct 2026, the arcade scoring standard) adds a fourth maze: only a demo recorded on 10 plays.
   // tiltRev 11 (3 Nov 2026) takes the gold stars away and its HUD shows the par: only a demo recorded on 11 plays.
   // tiltRev 12 (3 Nov 2026) draws bigger marbles, cups and keys in walnut and brass: only a demo recorded on 12 plays.
-  if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_BIG) return null;
+  // tiltRev 13 (D6, 23 Nov 2026) plays three of tiltRev 12's four mazes: only a demo recorded on 13 plays.
+  if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_THREE) return null;
   // Roofbound flipRev 8 (expansion E7, docs/expansions/x200-flip.md): a taller cave whose height changes, moving spikes,
   // trails, checkpoints, speed zones and sweet spots. An older demo would show the short corridor (and none of them),
   // so Roofbound's stays stopped (the intro shows its still) until one is recorded on flipRev 8. flipRev 9 (27 Oct 2026)
@@ -406,7 +408,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still. matchupRev 11 (the arcade scoring
   // standard: four treasures that swap, four goal levels) moves it on again, and matchupRev 12 (six goals shown at once,
   // six treasures) again, and matchupRev 13 (two-hit ice, levels) again: only a demo recorded on matchupRev 13 plays.
-  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE2) return null;
+  // matchupRev 14 (D6, 23 Nov 2026): Normal's parts moved, so only a demo recorded on 14 plays.
+  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_D6) return null;
   // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
   // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
   // is recorded on snipRev 11.

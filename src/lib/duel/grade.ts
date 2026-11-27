@@ -63,7 +63,7 @@ import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
-import { racingPace10, RACING_REV_4, type RacingState } from "@/lib/arcade/racing";
+import { racingPace10, RACING_REV_4, RACING_REV_5, type RacingState } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { replayMinigolfPuzzle } from "./minigolf";
 import { replayPoolRun } from "./pool";
@@ -1554,7 +1554,7 @@ function gradeUnderRev(
         score = run.score;
         extraDetail = {
           golfRev: puzzle.golfRev ?? 1,
-          ...(puzzle.golfRev === 3 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
+          ...(puzzle.golfRev === 3 || puzzle.golfRev === 4 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
           holed: run.holed,
           strokes: run.strokes,
           atPar: run.pars,
@@ -1652,6 +1652,9 @@ function gradeUnderRev(
         // Apex racingRev 4 (the Sports overhaul, 15 Nov 2026; display data only, nothing scores or ranks from it): the
         // run's average speed in tenths of a km/h, so "Average 200 km/h" means 200 km/h on all three circuits.
         ...(puzzle.type === "racing" && rev >= RACING_REV_4 ? { pace10: racingPace10((run as unknown as { state: RacingState }).state) } : {}),
+        // D6 (23 Nov 2026; display data only): racingRev 5's clean sectors counted (the part is full at fewer than all
+        // eight, so a practice challenge reads the count itself).
+        ...(puzzle.type === "racing" && rev >= RACING_REV_5 ? { clean: (run as unknown as { state: RacingState }).state.clean } : {}),
       };
       break;
     }

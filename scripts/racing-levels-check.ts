@@ -60,7 +60,14 @@ function ok(cond: unknown, label: string): void {
 }
 
 const LEVELS3 = ["easy", "hard", "expert"] as const;
-const settings = (l: (typeof LEVELS3)[number]) => gameLevelSettings<Lv>("racing", l)!;
+// Changed with Joe's approval, 23 Nov 2026 (D6): this check was written for racingRev 4 and the levels before D6, so it
+// deals them (racingPreFive, d6PreLevels) and reads their settings (RACING_LEVELS_BEFORE_D6, the copy those deals stamp;
+// the registry now holds D6's); d6-sports-levels-check proves racingRev 5 and D6's levels.
+const { pinPreD6Levels, pinPreRacingFive } = await import("../src/lib/duel/d6Normal");
+const { RACING_LEVELS_BEFORE_D6 } = await import("../src/lib/duel/sports.server");
+pinPreD6Levels(true);
+pinPreRacingFive(true);
+const settings = (l: (typeof LEVELS3)[number]) => RACING_LEVELS_BEFORE_D6[l] as Lv;
 const deal = (level: Level, n: number): Puzzle => withSeededRandom(1000 + n, () => generatePuzzle("racing", level === "normal" ? {} : { level })) as Puzzle;
 
 /* 1. The registry. */
@@ -82,7 +89,8 @@ for (let n = 0; n < 12; n++) {
   const p = deal("normal", n);
   const before = withSeededRandom(1000 + n, () => racingDealSeedV4(arcadeSeed()));
   const asNormal = withSeededRandom(1000 + n, () => generatePuzzle("racing", { level: "normal" }));
-  ok(p.seed === before && p.racingRev === R.RACING_REV_DEALT && !("level" in p) && !("racingLevel" in p) && JSON.stringify(asNormal) === JSON.stringify(p), `Normal deal ${n}: racingRev 4's draw exactly (no level fields)`);
+  // Changed with Joe's approval, 23 Nov 2026 (D6): under racingPreFive the Normal deal is racingRev 4 (rooms deal racingRev 5).
+  ok(p.seed === before && p.racingRev === R.RACING_REV_4 && !("level" in p) && !("racingLevel" in p) && JSON.stringify(asNormal) === JSON.stringify(p), `Normal deal ${n}: racingRev 4's draw exactly (no level fields)`);
 }
 
 /* 3. Levels deal and stamp; clocks; modes. */

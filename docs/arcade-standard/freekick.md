@@ -626,3 +626,19 @@ game's shape, not the fit: both levels lose mostly a late, small corner hoop.
 from the practice screen (`bun scripts/shots/freekick-draw-shots.ts --url=<origin>`): 1 drawing the shot (the live
 line), 2 the drawn line kept with the marker and the curl dots, 3 the power bar held, 4 the shrunken corner target on
 the tenth kick, 5 the reveal.
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** none (Normal stays freekickRev 6; levels on freekickRev 7).
+- **The lever:** players in the wall: 2 / 3–5 (Normal) / 5 / 7.
+- **Average player, Easy / Normal / Hard / Expert:** 153.2 / 85.4 / 58.8 / 47.2.
+- **The elite at 200:** 83 / 38 / 29 / 23 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

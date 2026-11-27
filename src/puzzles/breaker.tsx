@@ -48,6 +48,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still (brkRev 9; text brkRev 11): the wall with its gold bricks behind armour, a shot up a cleared lane (combos pay nothing since brkRev 11). */
 /**
@@ -70,6 +71,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: BreakerPuzzleData | null = puzzle.type === "breaker" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // One game object per stamp and level (a level wraps init; a new object each render would restart the run).
@@ -227,7 +229,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) art.draw(context, state.current, size);
+      if (size && context) hudDraw(() => art.draw(context, state.current, size));
 
       frameTiming.rendered();
 

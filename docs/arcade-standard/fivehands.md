@@ -194,3 +194,19 @@ step from Normal) make the rows' made hands matter, not just pairs. The deck is 
 **For Joe's scoring review:** Normal is unchanged (fiveHandsRev 3). On 40 deals the elite bot averages about 154–161 on
 Normal and 172–177 on Easy, and a player held to human limits 136 and 154; Normal is the hardest Normal of the five card
 games for a strong player, left as it is on purpose (Joe, 16 Nov 2026).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** fiveHandsRev 4 (Normal: hand points full at 112 against the elite median; × 1.4 and the bonus column kept).
+- **The lever:** time for the twenty cards: 90 / 60 (Normal) / 42 / 30 s.
+- **Average player, Easy / Normal / Hard / Expert:** 170 / 147 / 71 / 33.
+- **The elite at 200:** 79 / 43 / 35 / 21 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

@@ -33,7 +33,6 @@ import {
   type BtCourse,
   type BtLayout,
 } from "../src/lib/arcade/ballTrack";
-import { gameLevelSettings } from "../src/lib/levels/gameLevels";
 import type { Level } from "../src/lib/levels/levels";
 import { routeTo } from "./ball-track-bank";
 import { boostedOracle, replayedBtStd } from "./arcade-standard/balltrack";
@@ -53,8 +52,18 @@ export interface BtLevelSettings {
   /** Combo landings that fill the combos part, stored on the course as `combo`; 20 (BT_V8_COMBOS_FULL) when left out. */
   comboFull?: number;
 }
+/**
+ * Changed with Joe's approval, 27 Nov 2026 (D6): GAME_LEVELS.balltrack now holds btRev 9's levels (BT_D6_LEVELS,
+ * scripts/balltrack-d6-deal.ts); the stage-3 lists (btRev 8) were built from these settings, kept here exactly as the
+ * registry held them, so this builder and balltrack-levels-check read what built them.
+ */
+const STAGE3_SETTINGS: Readonly<Record<BtLevel, BtLevelSettings>> = {
+  easy: { balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, comboFull: 10 },
+  hard: { balls: 42, dropTicks: 72, moves: 8, golds: 7, boosts: 3 },
+  expert: { balls: 42, dropTicks: 66, moves: 12, golds: 7, boosts: 2 },
+};
 export function btLevelSettings(level: BtLevel): BtLevelSettings {
-  const s = gameLevelSettings<BtLevelSettings>("balltrack", level);
+  const s = STAGE3_SETTINGS[level];
   if (!s) throw new Error(`balltrack has no ${level} level`);
   return s;
 }

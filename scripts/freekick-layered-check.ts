@@ -35,6 +35,8 @@ import {
   FK_LEVELS,
   FK_LEVEL_SETTINGS,
   FK_LEVEL_SETTINGS_V6,
+  FK_LEVEL_SETTINGS_V7,
+  FK_V7_FULL,
   FK_OUT_GOAL,
   freekickStdParts,
   FK_V6_EASE,
@@ -43,6 +45,7 @@ import {
   fkLevelSettings,
   fkV5Skill,
   FREEKICK_REV_6,
+  FREEKICK_REV_7,
   FK_M,
   FK_OUT_NONE,
   FK_OUT_WALL,
@@ -254,13 +257,15 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, g
   for (const level of ["easy", "hard", "expert"] as const) {
     const mirror = gameLevelSettings<Record<string, unknown>>("freekick", level)!;
     // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): the registry mirrors the dealt stamp's (freekickRev 6's) table.
-    const own = FK_LEVEL_SETTINGS_V6[level] as unknown as Record<string, unknown>;
+    // Changed with Joe's approval, 27 Nov 2026 (D6): the registry mirrors freekickRev 7's level table and its Targets and Skill shots figures.
+    const own = { ...FK_LEVEL_SETTINGS_V7[level], targetsFull: FK_V7_FULL[level].targets, skillFull: FK_V7_FULL[level].skill } as unknown as Record<string, unknown>;
     for (const key of Object.keys(mirror)) ok(JSON.stringify(mirror[key]) === JSON.stringify(own[key]), `freekick ${level}: the registry's ${key} matches the sim's`);
   }
   ok(FK_LEVEL_SETTINGS.normal.speed === FK_LEVEL_SETTINGS.easy.speed && FK_LEVEL_SETTINGS.normal.react === FK_LEVEL_SETTINGS.easy.react, "Normal's keeper is Easy's (the one-step ease)");
   const dealt = generatePuzzle("freekick", { bankSeed: 7, level: "expert" });
   // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): rooms deal freekickRev 6.
-  ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_6, "the deal at Expert is stamped expert on rev 6");
+  // Changed with Joe's approval, 27 Nov 2026 (D6): the levels deal freekickRev 7.
+  ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_7, "the deal at Expert is stamped expert on rev 7");
   ok(!("level" in (generatePuzzle("freekick", { bankSeed: 7 }) as object)), "the deal at Normal carries no level");
 }
 

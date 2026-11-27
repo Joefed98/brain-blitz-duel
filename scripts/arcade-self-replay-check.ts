@@ -25,6 +25,7 @@ import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
 import { homerunDealSeedV5 } from "../src/lib/duel/homerunDealV5.server";
 import { freekickDealSeedV5 } from "../src/lib/duel/freekickDealV5.server";
 import { freekickDealSeedV6 } from "../src/lib/duel/freekickDealV6.server";
+import { freekickDealSeedV7 } from "../src/lib/duel/freekickDealV7.server";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -69,7 +70,7 @@ import {
 import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV, CROSS_REV2 } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
-import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV, MATCHUP_REV2 } from "@/lib/arcade/matchup";
+import { matchupCheckpoint, matchupD6GameFor, matchupGame, matchupGameFor, MATCHUP_REV, MATCHUP_REV2, MATCHUP_REV_D6 } from "@/lib/arcade/matchup";
 import { rallyCheckpoint, rallyGame, rallyGameFor, RALLY_REV } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame, skylineGameFor, SKYLINE_REV } from "@/lib/arcade/skyline";
@@ -112,7 +113,8 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { swingCheckpoint, swingGame } from "@/lib/arcade/swing";
-import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, TILT_REV } from "@/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, tiltLevelGameV13, TILT_REV } from "@/lib/arcade/tilt";
+import { TILT_DEAL_LEVELS_V13 } from "../src/lib/duel/tiltDealLevelsV13.server";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
@@ -203,7 +205,7 @@ import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
 import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
-import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
+import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_THREE, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17): ORBIT_REV_LOST and initLostFrom for the orbit/lost entries.
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom, initLostFrom } from "@/lib/arcade/orbitRev3"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17: initLostFrom)
@@ -237,6 +239,13 @@ import { FLIP_LADDER_DEALS } from "@/lib/duel/flipLadderDeals.server"; // Change
 import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
+// Changed with Joe's approval, 27 Nov 2026 (D6): the btRev 9, inkRev 16 and golfRev 4 entries at the end.
+import { BT_REV_D6 } from "@/lib/arcade/ballTrack";
+import { BT_V8_DEAL } from "@/lib/duel/ballTrackDealV8.server";
+import { btD6LevelDeal } from "@/lib/duel/ballTrackLevelsD6.server";
+import { INK_REV_D6 } from "@/lib/arcade/inkBridge";
+import { INK_HILLS_DEAL } from "@/lib/duel/inkHillsDeal.server";
+import { INK_HILLS_DEAL_EXPERT } from "@/lib/duel/inkHillsDealExpert.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const POSITIONAL = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -269,6 +278,8 @@ interface Game {
   gameFor?: (seed: number) => any;
   /** Picks a seed live rooms could actually be dealt (e.g. a bank entry); default random. */
   seedFor?: (n: number) => number;
+  /** Changed with Joe's approval, 27 Nov 2026 (D6): fewer runs than RUNS for an entry whose replays are slow (at most RUNS). */
+  runs?: number;
   /** The game's checkpoint interval in ticks, when it is not INTERVAL (the run's server replay checks at its own). */
   interval?: number;
 }
@@ -1355,6 +1366,61 @@ const GAMES: Game[] = [
   ...(["easy", "hard", "expert"] as const).map((level) => ({ key: `skyline/v12-${level}`, game: skylineGameFor(12, level), checkpoint: skylineCheckpoint, mode: "taps" as const, rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 12, level), seedFor: (n: number) => SKYLINE_V12_DEAL[level][n % SKYLINE_V12_DEAL[level].length]! })), // Changed with Joe's approval, 27 Nov 2026
   // Roofbound flipRev 14 (D5: the running-speed ladder) at its levels on their proved deals.
   ...(["easy", "hard", "expert"] as const).map((level) => ({ key: `flip/v14-${level}`, game: flipGameFor(14, level), checkpoint: flipCheckpoint, mode: "events" as const, rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 14, level), seedFor: (n: number) => FLIP_LADDER_DEALS[level][n % FLIP_LADDER_DEALS[level].length]! })), // Changed with Joe's approval, 27 Nov 2026
+  // D6's entries follow D5's at D6's merge of main after #485 (27 Nov 2026), so every entry already on main keeps its index and stream.
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps, appended at the end so every earlier entry
+  // keeps its index and stream): Five Hands fiveHandsRev 4, Cue Ball poolRev 5, Tilt tiltRev 13.
+  { key: "fivehands/v4", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 4) },
+  { key: "pool/v5", game: poolGameFor(5), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 5) },
+  { key: "tilt/three", game: tiltGameFor(TILT_REV_THREE), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE) },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's further Normal scoring stamps, appended at the end so every earlier entry
+  // keeps its index and stream): Free Cell freecellRev 6, Summit tripeaksRev 4, Apex racingRev 5, Thirteen pyramidRev 4.
+  { key: "freecell/v6", game: freecellGameFor(6), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 6), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks/v4", game: tripeaksGameFor(4), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
+  { key: "racing/v5", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(5), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, 5), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
+  { key: "pyramid/v4", game: pyramidGameFor(4), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 4) },
+  // Changed with Joe's approval, 27 Nov 2026 (D6: Gemstone matchupRev 14 at Normal and Expert, Tilt's tiltRev 13 Expert and Top Bins' freekickRev 7
+  // Expert, appended at the end so every earlier entry keeps its PRNG stream and its part).
+  { key: "matchup/v14", game: matchupD6GameFor("normal"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_D6) },
+  { key: "matchup/v14-expert", game: matchupD6GameFor("expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_D6, "expert") },
+  { key: "tilt/v13-expert", game: tiltLevelGameV13("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE, "expert"), seedFor: (n: number) => TILT_DEAL_LEVELS_V13.expert[n % TILT_DEAL_LEVELS_V13.expert.length]! },
+  { key: "freekick/v7-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(7, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 7, "expert"), seedFor: (n: number) => freekickDealSeedV7(n, "expert") },
+
+  // Changed with Joe's approval, 27 Nov 2026 (D6): Ball Tracker btRev 9 at Normal (btRev 8's deal) and Expert (D6's five-colour courses), Rainbow Bridge
+  // inkRev 16 at Normal and Expert on their proved deals (Expert's replays are slow: 10 runs), and Crazy Golf golfRev 4 (golfRev 3's courses, the level seed
+  // mod 4), appended so every earlier entry keeps its stream.
+  {
+    key: "balltrack/v9",
+    game: makeBallTrackGame(BALL_TRACK_BANK_V7[BT_V8_DEAL[0]!]!.course, BT_REV_D6),
+    gameFor: (seed: number) => makeBallTrackGame(BALL_TRACK_BANK_V7[BT_V8_DEAL[seed % BT_V8_DEAL.length]!]!.course, BT_REV_D6),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BALL_TRACK_BANK_V7[BT_V8_DEAL[run.seed % BT_V8_DEAL.length]!]!.course, run, BT_REV_D6),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BALL_TRACK_BANK_V7[BT_V8_DEAL[seed % BT_V8_DEAL.length]!]!.course, seed, raw, BT_REV_D6),
+  },
+  {
+    key: "balltrack/v9-expert",
+    game: makeBallTrackGame(btD6LevelDeal("expert")[0]!, BT_REV_D6),
+    gameFor: (seed: number) => makeBallTrackGame(btD6LevelDeal("expert")[seed % btD6LevelDeal("expert").length]!, BT_REV_D6),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btD6LevelDeal("expert")[run.seed % btD6LevelDeal("expert").length]!, run, BT_REV_D6),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btD6LevelDeal("expert")[seed % btD6LevelDeal("expert").length]!, seed, raw, BT_REV_D6),
+  },
+  { key: "ink/d6", game: inkBridgeGameFor(INK_REV_D6), seedFor: (n: number) => INK_HILLS_DEAL[(n * 7) % INK_HILLS_DEAL.length]!, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_D6) },
+  { key: "ink/d6-expert", runs: 10, game: inkBridgeGameFor(INK_REV_D6, "expert"), seedFor: (n: number) => INK_HILLS_DEAL_EXPERT[(n * 7) % INK_HILLS_DEAL_EXPERT.length]!, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_D6, "expert") },
+  {
+    key: "minigolf/v4",
+    game: minigolfGameFor(...mgV4(0)),
+    gameFor: (seed: number) => minigolfGameFor(...mgV4(seed)),
+    seedFor: (n: number) => n,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV4(seed)),
+  },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
@@ -1362,6 +1428,12 @@ function mgV3(seed: number): [number[], number, { holes: number[]; level: (typeo
   const level = MG_LEVEL_NAMES[Math.abs(seed) % 4]!;
   const picks = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(Math.abs(seed) * 7 + i * 31) % slot.length]!);
   return [picks.map((e) => e.pars[MG_LEVEL_NAMES.indexOf(level)]!), 3, { holes: picks.map((e) => e.id), level }];
+}
+
+/** golfRev 4's course for a self-replay seed: golfRev 3's (mgV3), stamped golfRev 4. Changed with Joe's approval, 27 Nov 2026 (D6). */
+function mgV4(seed: number): [number[], number, { holes: number[]; level: (typeof MG_LEVEL_NAMES)[number] }] {
+  const [pars, , course] = mgV3(seed);
+  return [pars, 4, course];
 }
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -1410,6 +1482,10 @@ const ENTRY_COST: Record<number, number> = {
   211: 8.8, 212: 8.8, 219: 37.7, 221: 4.4, 222: 12.5, 234: 1.8, 240: 18.1, 242: 1.8, 247: 4.1, 249: 15.5,
   257: 10.7, 258: 13.1, 259: 14.0, 279: 2.6, 295: 13.5, 296: 9.6, 297: 11.7, 298: 17.7, 318: 5.5, 319: 5.1,
   330: 2.1, 335: 2.1, 336: 9.1, 337: 35.6,
+  // Changed with Joe's approval, 27 Nov 2026 (D6): D6's sixteen entries (fivehands/v4 … minigolf/v4), measured locally at
+  // their run counts (40; ink/d6-expert its 10) on the tree merged with main after #485.
+  338: 0.2, 339: 12.1, 340: 0.5, 341: 0.2, 342: 0.0, 343: 0.1, 344: 0.1, 345: 0.2, 346: 0.1, 347: 0.6,
+  348: 0.2, 349: 0.3, 350: 0.3, 351: 13.6, 352: 40.0, 353: 0.5,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
@@ -1446,7 +1522,8 @@ for (const index of selected) {
   let maxEvents = 0;
   let failed = 0;
   let reason = "";
-  for (let run = 0; run < RUNS; run++) {
+  const runs = Math.min(RUNS, spec.runs ?? RUNS); // Changed with Joe's approval, 27 Nov 2026 (D6)
+  for (let run = 0; run < runs; run++) {
     const seed = spec.seedFor ? spec.seedFor(run) : between(1, 0x7ffffffe);
     const game = spec.gameFor ? spec.gameFor(seed) : spec.game;
     let state = spec.init ? spec.init(seed) : game.init(seed);
@@ -1504,7 +1581,7 @@ for (const index of selected) {
   }
   if (failed) failures += 1;
   console.log(
-    `#${String(index).padEnd(3)} ${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${RUNS} — ${reason}` : `ok ${RUNS}/${RUNS}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms · ${((performance.now() - entryStarted) / 1000).toFixed(1)} s`,
+    `#${String(index).padEnd(3)} ${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${runs} — ${reason}` : `ok ${runs}/${runs}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms · ${((performance.now() - entryStarted) / 1000).toFixed(1)} s`,
   );
 }
 

@@ -8,7 +8,7 @@ import {
   mahjongSlotAt,
   MAHJONG_BUTTON_HINT,
   MAHJONG_BUTTON_RESET,
-  MAHJONG_LEVEL_RULES,
+  MAHJONG_LEVEL_RULES, mahjongLevelRulesFor,
   MAHJONG_BUTTON_SHUFFLE,
   MAHJONG_BUTTON_UNDO,
   MAHJONG_CHECKPOINT_INTERVAL,
@@ -92,7 +92,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The live stage's view (stage 2's effects); one game object per revision and view, so the run never restarts.
   const view = useMemo(() => mahjongNewView(), []);
   const level = data ? levelOfPuzzle(data) : null;
-  const rules = level ? MAHJONG_LEVEL_RULES[level] : null;
+  // D6 (23 Nov 2026): a mahjongRev 3 level deal plays D6's levels (MAHJONG_LEVEL_RULES_V3); earlier ones the levels before.
+  const rules = level ? mahjongLevelRulesFor(data?.mahjongRev, level) : null;
   const shuffleCost = rules ? rules.shuffleCost : MAHJONG_SHUFFLE_COST;
   const game = useMemo(() => mahjongArtGameFor(data?.mahjongRev, view, level), [data?.mahjongRev, view, level]);
   /** mahjongRev 2: Undo and Reset beside Shuffle. */
@@ -138,7 +139,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (kind === "down") send({ k: MAHJONG_INPUT_SHUFFLE, a: MAHJONG_BUTTON_SHUFFLE, b: 0, c: 0 });
             return true;
           }
-          if (rules && (key === "h" || key === "H")) {
+          if (rules && rules.hintLimit !== 0 && (key === "h" || key === "H")) {
             if (kind === "down") send({ k: MAHJONG_INPUT_BUTTON, a: MAHJONG_BUTTON_HINT, b: 0, c: 0 });
             return true;
           }
@@ -195,7 +196,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // The Shuffle button in the bottom corner, within thumb reach (rev 2: Undo and Reset, smaller, beside it); its row
           // ends 16 px above the bottom like every arcade control row.
           <div data-home-bar-clear="8" data-game-controls="shuffle" className="flex h-[52px] shrink-0 items-center justify-end gap-2">
-            {rules ? (
+            {rules && rules.hintLimit !== 0 ? (
               <ArcadeControlButton
                 type="button"
                 aria-label={rules.hintLimit === 1 ? "Hint (one this round)" : rules.hintCost ? `Hint (−${rules.hintCost})` : "Hint"}

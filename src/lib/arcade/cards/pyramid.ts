@@ -27,17 +27,34 @@
  * pyramidRev 3 (15 Nov 2026, the game reviews; Joe): a dead end no longer ends the run while Undo can take the player out
  * of it. The run ends only on a clear, at the buzzer, or stuck with nothing to undo (`pyTrulyStuck`: no action left in
  * the history, which is the deal itself). The same deals and parts as rev 2; rev 1 and 2 runs replay and score as before.
+ *
+ * pyramidRev 4 (D6, 23 Nov 2026; Joe's Decision 1 A, plan section 8.2). Normal: rev 3's deals, play and parts with Speed
+ * full by 22 s (PY_V4_SPEED_FULL_S; was 20 s, the flawless pace: the realistic elite's clears take 18–23 s, median 20.5),
+ * so the elite under human limits reaches 200 on half its runs (25 % before). Level deals: the level is the pyramid's
+ * height. A rev-4 level state carries `rows` (Easy 6, Hard 8, Expert 9; 21, 36 and 45 cards, the rest in the stock);
+ * every rule reads the state's shape (pyCardsOf, pyStockPileOf, pyWastePileOf: the stock and waste taps are the card
+ * count and one more, 28 and 29 on seven rows, so every earlier state reads exactly as before). PY_LEVEL_RULES_V4 below.
  */
 import { inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "../engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSpeed, stdSpeedInt, stdSum, type StdPart, type StdSpec } from "../arcadeStandard";
 import { bandCurve, type BandParts } from "../scoreBands";
 import { cardOf, hashInts, rankOf } from "./cards";
 
-/** The dealt revision (rev 3: a dead end waits for Undo; rev 2: more of the 200 on the cards); rev 1 runs replay on pyramidGameV1. */
-export const PY_REV = 3;
+/**
+ * The dealt revision (rev 4: D6's, Speed full by 22 s and the levels' rows; rev 3: a dead end waits for Undo; rev 2: more
+ * of the 200 on the cards); rev 1 runs replay on pyramidGameV1.
+ */
+export const PY_REV = 4;
 export const PY_REV_SHARE = 2;
 /** pyramidRev 3: stuck ends the run only with nothing to undo. */
 export const PY_REV_UNDO_OUT = 3;
+/** pyramidRev 4 (D6, 23 Nov 2026): Normal's Speed full by 22 s; a level deal's pyramid has the level's rows. */
+export const PY_REV_D6 = 4;
+export const PY_REV_ROWS = PY_REV_D6;
+/** pyramidRev 4's Normal: Speed full by 22 s (20 s before). */
+export const PY_V4_SPEED_FULL_S = 22;
+/** Seven rows: every state before pyramidRev 4, and Normal's. */
+export const PY_ROWS = 7;
 export const PY_CARDS = 28;
 export const PY_STOCK = 24;
 /** One pass through the stock: the waste is never turned back over (Joe, 1 Nov 2026, before pyramidRev 1 shipped). */
@@ -73,17 +90,24 @@ export function pyCoreUnits(state: Pick<PyState, "removed">): number {
   return state.removed;
 }
 
-/** pyramidRev 2's spec (what rooms deal: the help, LIVE_BANDS, the reveal). */
-export const PY_STD_SPEC: StdSpec = {
+/** pyramidRev 2 and 3's spec (stored rounds and the levels before D6: the reveal). */
+export const PY_STD_SPEC_V3: StdSpec = {
   field: "pyramidRev",
-  // The stamp rooms deal on these parts: pyramidRev 3 since 15 Nov 2026 (rev 2 scores on them too).
-  rev: PY_REV,
+  // The stamp rooms dealt on these parts: pyramidRev 3 from 15 Nov 2026 until D6 (rev 2 scores on them too).
+  rev: PY_REV_UNDO_OUT,
   parts: [
     { key: "core", label: "Pyramid cards", max: PY_V2_CORE_MAX, of: PY_CORE_FULL, item: "card", how: "remove the 28 pyramid cards, each worth the same" },
     { key: "clear", label: "Cleared", max: PY_V2_CLEAR_MAX, of: 1, how: "remove all 28" },
     { key: "speed", label: "Speed", max: PY_V2_SPEED_MAX, of: 1, how: `clear it within ${PY_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
     { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: PY_PAIR_FULL, item: "pair", how: "2 for each pair made of two pyramid cards" },
   ],
+};
+
+/** pyramidRev 4's spec (what rooms deal: the help, LIVE_BANDS, the reveal): rev 3's parts, Speed full by 22 s. */
+export const PY_STD_SPEC: StdSpec = {
+  ...PY_STD_SPEC_V3,
+  rev: PY_REV,
+  parts: PY_STD_SPEC_V3.parts.map((p) => (p.key === "speed" ? { ...p, how: `clear it within ${PY_V4_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` } : p)),
 };
 
 /** pyramidRev 1's spec (stored rounds). */
@@ -140,6 +164,29 @@ export interface PyState {
   passes?: number;
   hints?: number;
   hintTick?: number;
+  /** pyramidRev 4's level deals (D6): the pyramid's rows (absent: seven). */
+  rows?: number;
+}
+
+/** The pyramid's rows (seven unless a pyramidRev 4 level deal says otherwise). */
+export function pyRowsOf(s: { rows?: number }): number {
+  return s.rows ?? PY_ROWS;
+}
+/** The cards in a pyramid of `rows` rows. */
+export function pyCardsIn(rows: number): number {
+  return (rows * (rows + 1)) / 2;
+}
+/** A state's pyramid cards (28 on seven rows). */
+export function pyCardsOf(s: { rows?: number }): number {
+  return pyCardsIn(pyRowsOf(s));
+}
+/** The stock's tap: the pyramid's card count (PY_STOCK_PILE, 28, on seven rows). */
+export function pyStockPileOf(s: { rows?: number }): number {
+  return pyCardsOf(s);
+}
+/** The waste's tap: one more (PY_WASTE_PILE, 29, on seven rows). */
+export function pyWastePileOf(s: { rows?: number }): number {
+  return pyCardsOf(s) + 1;
 }
 
 /** A pyramid card's row (0 at the top) and place in it. */
@@ -153,18 +200,25 @@ export function pyIndex(row: number, pos: number): number {
   return (row * (row + 1)) / 2 + pos;
 }
 
-/** The two cards covering pyramid card `i` (none on the bottom row). */
-export function pyCoveredBy(i: number): number[] {
+/** The two cards covering pyramid card `i` (none on the bottom row) in a pyramid of `rows` rows. */
+export function pyCoveredBy(i: number, rows = PY_ROWS): number[] {
   const { row, pos } = pyRowOf(i);
-  if (row >= 6) return [];
+  if (row >= rows - 1) return [];
   return [pyIndex(row + 1, pos), pyIndex(row + 1, pos + 1)];
 }
 
 const COVERS = Array.from({ length: PY_CARDS }, (_, i) => pyCoveredBy(i));
+const COVERS_BY_ROWS = new Map<number, number[][]>([[PY_ROWS, COVERS]]);
+function coversOf(rows: number): number[][] {
+  let c = COVERS_BY_ROWS.get(rows);
+  if (!c) COVERS_BY_ROWS.set(rows, (c = Array.from({ length: pyCardsIn(rows) }, (_, i) => pyCoveredBy(i, rows))));
+  return c;
+}
 
-export function pyFree(state: Pick<PyState, "gone">, i: number): boolean {
-  if (i < 0 || i >= PY_CARDS || state.gone[i]) return false;
-  for (const c of COVERS[i]!) if (!state.gone[c]) return false;
+export function pyFree(state: Pick<PyState, "gone"> & { rows?: number }, i: number): boolean {
+  const covers = state.rows === undefined ? COVERS : coversOf(state.rows);
+  if (i < 0 || i >= covers.length || state.gone[i]) return false;
+  for (const c of covers[i]!) if (!state.gone[c]) return false;
   return true;
 }
 
@@ -174,8 +228,8 @@ export function pyWasteTop(state: Pick<PyState, "pile" | "pos">): number {
 
 /** The card a selection or tap target stands for (-1 for none). */
 export function pyCardAt(state: PyState, a: number): number {
-  if (a === PY_WASTE_PILE) return pyWasteTop(state);
-  if (a >= 0 && a < PY_CARDS) return pyFree(state, a) ? state.tab[a]! : -1;
+  if (a === pyWastePileOf(state)) return pyWasteTop(state);
+  if (a >= 0 && a < pyCardsOf(state)) return pyFree(state, a) ? state.tab[a]! : -1;
   return -1;
 }
 
@@ -188,14 +242,16 @@ export function pyCanDraw(state: PyState): boolean {
 export function pyMoves(state: PyState): number[][] {
   const out: number[][] = [];
   const free: number[] = [];
-  for (let i = 0; i < PY_CARDS; i++) if (pyFree(state, i)) free.push(i);
+  const cards = pyCardsOf(state);
+  const waste = cards + 1;
+  for (let i = 0; i < cards; i++) if (pyFree(state, i)) free.push(i);
   const w = pyWasteTop(state);
   for (const i of free) if (rankOf(state.tab[i]!) === 13) out.push([i]);
   for (let x = 0; x < free.length; x++)
     for (let y = x + 1; y < free.length; y++) if (rankOf(state.tab[free[x]!]!) + rankOf(state.tab[free[y]!]!) === 13) out.push([free[x]!, free[y]!]);
   if (w >= 0) {
-    if (rankOf(w) === 13) out.push([PY_WASTE_PILE]);
-    for (const i of free) if (rankOf(state.tab[i]!) + rankOf(w) === 13) out.push([i, PY_WASTE_PILE]);
+    if (rankOf(w) === 13) out.push([waste]);
+    for (const i of free) if (rankOf(state.tab[i]!) + rankOf(w) === 13) out.push([i, waste]);
   }
   return out;
 }
@@ -221,10 +277,18 @@ export interface PyDeal {
   tab: number[];
   stock: number[];
   witness: number[];
+  /** pyramidRev 4's level deals: the pyramid's rows (absent: seven). */
+  rows?: number;
+}
+
+/** pyramidRev 4's deal shape (D6): the rows, and the Kings the pyramid may hold (one picked from the seed). */
+export interface PyShape {
+  rows: number;
+  kings: readonly number[];
 }
 
 /** One attempt at a deal from the PRNG state `rng`; null when the plan ran into a dead end. */
-function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3): { deal: PyDeal | null; rng: number } {
+function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3, shape?: PyShape): { deal: PyDeal | null; rng: number } {
   let rng = rng0;
   const rand = (n: number) => {
     const r = rngBelow(rng, n);
@@ -234,9 +298,11 @@ function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3): { deal: PyDeal
   // Two to four Kings in the pyramid and every other card in pyramid pairs (one left for the waste when the count is
   // odd): the pyramid is a puzzle in full view whose pairs only all come out in the right order, so the face-down stock
   // is a bonus, never the lottery that decides a clear.
-  const kings = kingsMin + rand(kingsSpan);
-  const pairs = (PY_CARDS - kings) >> 1;
-  const left = { k: kings, p: pairs, w: PY_CARDS - kings - 2 * pairs };
+  const CARDS = shape ? pyCardsIn(shape.rows) : PY_CARDS;
+  const rows = shape?.rows;
+  const kings = shape ? shape.kings[rand(shape.kings.length)]! : kingsMin + rand(kingsSpan);
+  const pairs = (CARDS - kings) >> 1;
+  const left = { k: kings, p: pairs, w: CARDS - kings - 2 * pairs };
   // Cards still unused: suits free per rank.
   const suitsLeft: number[][] = Array.from({ length: 14 }, (_, r) => (r === 0 ? [] : [0, 1, 2, 3]));
   const take = (rank: number) => {
@@ -246,13 +312,14 @@ function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3): { deal: PyDeal
     list.splice(i, 1);
     return cardOf(suit, rank);
   };
-  const gone = new Array<number>(PY_CARDS).fill(0);
-  const tab = new Array<number>(PY_CARDS).fill(-1);
+  const gone = new Array<number>(CARDS).fill(0);
+  const tab = new Array<number>(CARDS).fill(-1);
   type Ev = { kind: "k" | "p" | "w"; a: number; b: number; partner: number };
   const events: Ev[] = [];
-  for (let removed = 0; removed < PY_CARDS; ) {
+  const shaped = rows === undefined ? { gone } : { gone, rows };
+  for (let removed = 0; removed < CARDS; ) {
     const free: number[] = [];
-    for (let i = 0; i < PY_CARDS; i++) if (pyFree({ gone }, i)) free.push(i);
+    for (let i = 0; i < CARDS; i++) if (pyFree(shaped, i)) free.push(i);
     const options: ("k" | "p" | "w")[] = [];
     if (left.k > 0 && suitsLeft[13]!.length > 0) options.push("k");
     if (left.p > 0 && free.length >= 2) options.push("p", "p", "p");
@@ -325,9 +392,16 @@ function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3): { deal: PyDeal
     stock.push(ev.partner);
     w++;
   }
+  // pyramidRev 4: with no waste partner the stock's Kings go at seeded places among the rest (before it, a deal with
+  // no waste partner left them out of the stock; kept for the deals already made).
+  if (shape && partners === 0) {
+    for (const k of kingsLeft) plain.splice(rand(plain.length + 1), 0, k);
+  }
   while (plain.length) stock.push(plain.pop()!);
   const witness: number[] = [];
-  let sim = pyStateOf({ tab, stock, witness: [] }, 0);
+  let sim = pyStateOf(rows === undefined ? { tab, stock, witness: [] } : { tab, stock, witness: [], rows }, 0);
+  const STOCK = CARDS;
+  const WASTE = CARDS + 1;
   const tap = (a: number): boolean => {
     const r = pyApply(sim, a);
     if (!r) return false;
@@ -343,13 +417,13 @@ function buildAttempt(rng0: number, kingsMin = 2, kingsSpan = 3): { deal: PyDeal
     } else {
       let guard = 0;
       while (pyWasteTop(sim) !== ev.partner) {
-        if (++guard > 200 || !tap(PY_STOCK_PILE)) return { deal: null, rng };
-        if (pyWasteTop(sim) >= 0 && rankOf(pyWasteTop(sim)) === 13 && !tap(PY_WASTE_PILE)) return { deal: null, rng };
+        if (++guard > 200 || !tap(STOCK)) return { deal: null, rng };
+        if (pyWasteTop(sim) >= 0 && rankOf(pyWasteTop(sim)) === 13 && !tap(WASTE)) return { deal: null, rng };
       }
-      if (!tap(ev.a) || !tap(PY_WASTE_PILE)) return { deal: null, rng };
+      if (!tap(ev.a) || !tap(WASTE)) return { deal: null, rng };
     }
   }
-  return { deal: { tab, stock, witness }, rng };
+  return { deal: rows === undefined ? { tab, stock, witness } : { tab, stock, witness, rows }, rng };
 }
 
 /** Plays a witness through the sim's rules from the deal (no clock): the state it ends in. */
@@ -377,7 +451,8 @@ function afterMove(s: PyState, move: readonly number[]): PyState | null {
 /** The most cards a line of `depth` removals in view takes, plus 0.3 for each free card it leaves. */
 function lookAhead(s: PyState, depth: number): number {
   let free = 0;
-  for (let i = 0; i < PY_CARDS; i++) if (pyFree(s, i)) free++;
+  const cards = pyCardsOf(s);
+  for (let i = 0; i < cards; i++) if (pyFree(s, i)) free++;
   let best = 0.3 * free;
   if (depth === 0) return best;
   for (const m of pyMoves(s)) {
@@ -395,15 +470,17 @@ function lookAhead(s: PyState, depth: number): number {
  */
 export function pyGreedyClears(deal: PyDeal, mode: number): boolean {
   let s = pyStateOf(deal, 0);
+  const cards = pyCardsOf(s);
+  const waste = cards + 1;
   for (let guard = 0; guard < 200; guard++) {
-    if (s.removed === PY_CARDS) return true;
+    if (s.removed === cards) return true;
     const moves = pyMoves(s);
     let move: number[] | null = null;
     const king = moves.find((m) => m.length === 1);
     if (king) move = king;
     else if (moves.length) {
       if (mode === 0) move = moves[0]!;
-      else if (mode === 2) move = moves.find((m) => m.includes(PY_WASTE_PILE)) ?? moves[0]!;
+      else if (mode === 2) move = moves.find((m) => m.includes(waste)) ?? moves[0]!;
       else if (mode >= 3) {
         // 3: the best two-removal line in view; 4 and 5 (the difficulty levels' filters): the best three- and
         // four-removal lines.
@@ -420,9 +497,10 @@ export function pyGreedyClears(deal: PyDeal, mode: number): boolean {
         let best = -1;
         for (const m of moves) {
           const gone = s.gone.slice();
-          for (const a of m) if (a < PY_CARDS) gone[a] = 1;
+          for (const a of m) if (a < cards) gone[a] = 1;
           let opened = 0;
-          for (let j = 0; j < PY_CARDS; j++) if (!s.gone[j] && !pyFree(s, j) && pyFree({ gone }, j)) opened++;
+          const after = s.rows === undefined ? { gone } : { gone, rows: s.rows };
+          for (let j = 0; j < cards; j++) if (!s.gone[j] && !pyFree(s, j) && pyFree(after, j)) opened++;
           if (opened > best) {
             best = opened;
             move = m;
@@ -438,11 +516,11 @@ export function pyGreedyClears(deal: PyDeal, mode: number): boolean {
       }
       continue;
     }
-    const d = pyApply(s, PY_STOCK_PILE);
+    const d = pyApply(s, cards);
     if (!d) return false;
     s = d.state;
   }
-  return s.removed === PY_CARDS;
+  return s.removed === cards;
 }
 
 /** Builds and proves the deal for `seed` (every attempt on one PRNG stream, so the same deal everywhere). */
@@ -476,10 +554,11 @@ export function pyDeal(seed: number): PyDeal {
 
 function pyStateOf(deal: PyDeal, seed: number, rev = 1): PyState {
   const s: PyState = {
-    tick: 0, rev, deal: seed, tab: deal.tab.slice(), gone: new Array<number>(PY_CARDS).fill(0), pile: deal.stock.slice(), pos: 0, pass: 1,
+    tick: 0, rev, deal: seed, tab: deal.tab.slice(), gone: new Array<number>(deal.rows === undefined ? PY_CARDS : pyCardsIn(deal.rows)).fill(0), pile: deal.stock.slice(), pos: 0, pass: 1,
     sel: -1, removed: 0, ppPairs: 0, pairs: 0, kings: 0, draws: 0, rejects: 0, acted: 0, ended: 0, finishTick: 0,
     hist: [], start: [], undos: 0, resets: 0, lastA: -1, lastB: -1, lastTick: 0, std: 1,
   };
+  if (deal.rows !== undefined) s.rows = deal.rows;
   s.start = pyPack(s);
   return s;
 }
@@ -491,13 +570,27 @@ export function pyInit(seed: number, rev = 1): PyState {
 
 /* ---- Undo and Reset: a position packed as integers ---- */
 
-export function pyPack(s: Pick<PyState, "gone" | "pile" | "pos" | "pass" | "removed" | "ppPairs" | "pairs" | "kings">): number[] {
+export function pyPack(s: Pick<PyState, "gone" | "pile" | "pos" | "pass" | "removed" | "ppPairs" | "pairs" | "kings"> & { rows?: number }): number[] {
+  if (s.rows !== undefined) {
+    // pyramidRev 4: up to 45 cards, so the gone mask takes two words of 30 bits.
+    let lo = 0;
+    let hi = 0;
+    const cards = pyCardsIn(s.rows);
+    for (let i = 0; i < cards; i++) if (s.gone[i]) i < 30 ? (lo |= 1 << i) : (hi |= 1 << (i - 30));
+    return [lo, hi, s.pos, s.pass, s.removed, s.ppPairs, s.pairs, s.kings, ...s.pile];
+  }
   let mask = 0;
   for (let i = 0; i < PY_CARDS; i++) if (s.gone[i]) mask |= 1 << i;
   return [mask, s.pos, s.pass, s.removed, s.ppPairs, s.pairs, s.kings, ...s.pile];
 }
 
-function unpack(p: readonly number[]): Pick<PyState, "gone" | "pile" | "pos" | "pass" | "removed" | "ppPairs" | "pairs" | "kings"> {
+function unpack(p: readonly number[], rows?: number): Pick<PyState, "gone" | "pile" | "pos" | "pass" | "removed" | "ppPairs" | "pairs" | "kings"> {
+  if (rows !== undefined) {
+    const cards = pyCardsIn(rows);
+    const gone = new Array<number>(cards);
+    for (let i = 0; i < cards; i++) gone[i] = i < 30 ? (p[0]! >>> i) & 1 : (p[1]! >>> (i - 30)) & 1;
+    return { gone, pos: p[2]!, pass: p[3]!, removed: p[4]!, ppPairs: p[5]!, pairs: p[6]!, kings: p[7]!, pile: p.slice(8) };
+  }
   const gone = new Array<number>(PY_CARDS);
   for (let i = 0; i < PY_CARDS; i++) gone[i] = (p[0]! >>> i) & 1;
   return { gone, pos: p[1]!, pass: p[2]!, removed: p[3]!, ppPairs: p[4]!, pairs: p[5]!, kings: p[6]!, pile: p.slice(7) };
@@ -513,8 +606,9 @@ function removeCards(state: PyState, cards: number[]): PyState {
   let pile = state.pile;
   let pos = state.pos;
   let pyr = 0;
+  const waste = pyWastePileOf(state);
   for (const a of cards) {
-    if (a === PY_WASTE_PILE) {
+    if (a === waste) {
       pile = pile.slice();
       pile.splice(pos - 1, 1);
       pos--;
@@ -535,7 +629,7 @@ function removeCards(state: PyState, cards: number[]): PyState {
  * card and is counted by the caller.
  */
 export function pyApply(state: PyState, a: number): { state: PyState; changed: boolean } | null {
-  if (a === PY_STOCK_PILE) {
+  if (a === pyStockPileOf(state)) {
     if (state.pos < state.pile.length) return { state: { ...state, pos: state.pos + 1, sel: -1, draws: state.draws + 1 }, changed: true };
     if (state.pass < (state.passes ?? PY_PASSES) && state.pile.length > 0) return { state: { ...state, pos: 0, pass: state.pass + 1, sel: -1 }, changed: true };
     return null;
@@ -551,7 +645,7 @@ export function pyApply(state: PyState, a: number): { state: PyState; changed: b
 }
 
 function finish(next: PyState): PyState {
-  if (next.removed === PY_CARDS) {
+  if (next.removed === pyCardsOf(next)) {
     next.ended = 1;
     next.finishTick = next.tick;
   } else if ((next.rev ?? 1) >= PY_REV_UNDO_OUT ? pyTrulyStuck(next) : pyStuck(next)) next.ended = 3;
@@ -574,13 +668,13 @@ function step(state: PyState, input: ArcadeInputEvent | null): PyState {
   } else if (input && input.k === PY_INPUT_UNDO) {
     next.acted = 1;
     if (state.hist.length > 0) {
-      next = { ...next, ...unpack(state.hist[state.hist.length - 1]!), hist: state.hist.slice(0, -1), sel: -1, undos: state.undos + 1, lastA: -1, lastB: -1, lastTick: next.tick };
+      next = { ...next, ...unpack(state.hist[state.hist.length - 1]!, state.rows), hist: state.hist.slice(0, -1), sel: -1, undos: state.undos + 1, lastA: -1, lastB: -1, lastTick: next.tick };
     }
   } else if (input && input.k === PY_INPUT_RESET) {
     next.acted = 1;
     const now = pyPack(state);
     if (!samePacked(now, state.start)) {
-      next = { ...next, ...unpack(state.start), hist: [...state.hist, now], sel: -1, resets: state.resets + 1, lastA: -1, lastB: -1, lastTick: next.tick };
+      next = { ...next, ...unpack(state.start, state.rows), hist: [...state.hist, now], sel: -1, resets: state.resets + 1, lastA: -1, lastB: -1, lastTick: next.tick };
     }
   }
   return finish(next);
@@ -593,11 +687,15 @@ export function pyramidStdParts(state: PyState): StdPart[] | null {
   if (state.lv) return pyLevelParts(state);
   const done = state.ended === 1;
   if ((state.rev ?? 1) >= PY_REV_SHARE) {
+    // pyramidRev 4 (D6): Speed full by 22 s; rev 2 and 3 by 20 s.
+    const d6 = (state.rev ?? 1) >= PY_REV_D6;
+    const spec = d6 ? PY_STD_SPEC : PY_STD_SPEC_V3;
+    const fullS = d6 ? PY_V4_SPEED_FULL_S : PY_SPEED_FULL_S;
     return [
-      stdPart(PY_STD_SPEC, "core", stdLine(PY_V2_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
-      stdPart(PY_STD_SPEC, "clear", done ? PY_V2_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
-      stdPart(PY_STD_SPEC, "speed", done ? stdSpeedInt(PY_V2_SPEED_MAX, state.finishTick, PY_SPEED_FULL_S * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
-      stdPart(PY_STD_SPEC, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
+      stdPart(spec, "core", stdLine(PY_V2_CORE_MAX, pyCoreUnits(state), PY_CORE_FULL), `${state.removed} / ${PY_CARDS} removed`),
+      stdPart(spec, "clear", done ? PY_V2_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
+      stdPart(spec, "speed", done ? stdSpeedInt(PY_V2_SPEED_MAX, state.finishTick, fullS * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+      stdPart(spec, "pairs", stdEach(state.ppPairs, PY_PAIR_EACH, PY_PAIR_MAX), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
     ];
   }
   return [
@@ -615,7 +713,7 @@ export function pyramidScore(state: PyState): number {
 export function pyramidBandParts(state: PyState): BandParts {
   const parts = pyramidStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
-  return { units: pyCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${state.removed} / 28 removed` };
+  return { units: pyCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${state.removed} / ${pyCardsOf(state)} removed` };
 }
 
 /* ============================== Checkpoints ============================== */
@@ -634,7 +732,7 @@ export function pyCheckpoint(state: PyState): PyCheckpoint {
   return {
     tick: state.tick, removed: state.removed, pos: state.pos, ended: state.ended,
     checksum: hashInts(state.lv
-      ? [state.tick, state.sel, state.pass, state.ppPairs, state.pairs, state.kings, state.ended, state.hist.length, state.undos, state.resets, ...state.gone, ...state.pile, 300 + (state.hints ?? 0)]
+      ? [state.tick, state.sel, state.pass, state.ppPairs, state.pairs, state.kings, state.ended, state.hist.length, state.undos, state.resets, ...state.gone, ...state.pile, 300 + (state.hints ?? 0), ...(state.rows === undefined ? [] : [400 + state.rows])]
       : [state.tick, state.sel, state.pass, state.ppPairs, state.pairs, state.kings, state.ended, state.hist.length, state.undos, state.resets, ...state.gone, ...state.pile]),
   };
 }
@@ -659,9 +757,12 @@ export const pyramidGameV2: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...
 /** pyramidRev 3's game: rev 2's deals and parts; a dead end waits for Undo or Reset, ending only with nothing to undo. */
 export const pyramidGameV3: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...pyramidGame, init: (seed) => pyInit(seed, PY_REV_UNDO_OUT) };
 
+/** pyramidRev 4's Normal (D6): rev 3's deals and play, Speed full by 22 s. */
+export const pyramidGameV4: ArcadeGame<PyState, ArcadeInputEvent | null> = { ...pyramidGame, init: (seed) => pyInit(seed, PY_REV_D6) };
+
 export function pyramidGameFor(rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  return r >= PY_REV_UNDO_OUT ? pyramidGameV3 : r >= PY_REV_SHARE ? pyramidGameV2 : pyramidGame;
+  return r >= PY_REV_D6 ? pyramidGameV4 : r >= PY_REV_UNDO_OUT ? pyramidGameV3 : r >= PY_REV_SHARE ? pyramidGameV2 : pyramidGame;
 }
 
 /* ================================ Difficulty levels (15 Nov 2026) ================================ */
@@ -707,16 +808,65 @@ export const PY_LEVEL_RULES: Readonly<Record<PyLevelName, PyLevelRules>> = {
   expert: { lv: PY_LV_EXPERT, passes: 1, kingsMin: 3, kingsSpan: 1, filters: [0, 1, 2, 3, 4, 5], glow: false, hintCost: 0, hintLimit: 1 },
 };
 
+/** D6's levels on pyramidRev 4: a pyramid of `rows` rows, its Kings picked from `kingsList`, speed full by `speedFullS`, pyramid pairs full at `pairsFull`. */
+export interface PyLevelRulesV4 extends PyLevelRules {
+  rows: number;
+  kingsList: readonly number[];
+  speedFullS: number;
+  pairsFull: number;
+}
+
+/**
+ * D6's levels (23 Nov 2026, the polish plan's difficulty spec: the lever is the pyramid's height, seen before the first
+ * tap). Level deals on pyramidRev 4; every pyramid card pairs inside the pyramid (the Kings' count matches the cards'
+ * parity), so the face-down stock never decides a clear. Hard and Expert carry no hints (the spec's rule 5).
+ *
+ *   Easy    6 rows (21 cards, 31 in the stock), 3 passes, 1 or 3 Kings, the partner glow, free hints with the idle glow;
+ *           any proved deal; speed full by 20 s.
+ *   Hard    8 rows (36 cards, 16 in the stock), one pass, 2 or 4 Kings, no glow, no hints; a deal no quick player with no
+ *           plan clears (pyGreedyClears modes 0–4: first pair, most uncovered, waste first, two and three removals ahead);
+ *           speed full by 35 s.
+ *   Expert  9 rows (45 cards, 7 in the stock), one pass, 3 Kings, no glow, no hints; modes 0–6 fail (up to five removals
+ *           ahead); speed full by 42 s.
+ *
+ * Speed and the filters set from 96 room deals each (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS; the
+ * realistic elite's clears take a median 15 / 34 / 41 s): the average player 178 / 134 (Normal) / 98 / 79, the elite at
+ * 200 99 % / 50 % / 44 % / 29 %.
+ */
+export const PY_LEVEL_RULES_V4: Readonly<Record<PyLevelName, PyLevelRulesV4>> = {
+  easy: { lv: PY_LV_EASY, rows: 6, passes: 3, kingsMin: 1, kingsSpan: 0, kingsList: [1, 3], filters: [], glow: true, hintCost: 0, hintLimit: -1, speedFullS: 20, pairsFull: 9 },
+  hard: { lv: PY_LV_HARD, rows: 8, passes: 1, kingsMin: 2, kingsSpan: 0, kingsList: [2, 4], filters: [0, 1, 2, 3, 4], glow: false, hintCost: 0, hintLimit: 0, speedFullS: 35, pairsFull: 16 },
+  expert: { lv: PY_LV_EXPERT, rows: 9, passes: 1, kingsMin: 3, kingsSpan: 0, kingsList: [3], filters: [0, 1, 2, 3, 4, 5, 6], glow: false, hintCost: 0, hintLimit: 0, speedFullS: 42, pairsFull: 21 },
+};
+
 function pyLevelName(lv: number | undefined): PyLevelName | null {
   return lv === PY_LV_EASY ? "easy" : lv === PY_LV_HARD ? "hard" : lv === PY_LV_EXPERT ? "expert" : null;
 }
-export function pyLevelRulesOf(state: Pick<PyState, "lv">): PyLevelRules | null {
+/** A level's rules on a revision (pyramidRev 4: D6's; earlier: the levels before). */
+export function pyLevelRulesFor(rev: number | null | undefined, level: PyLevelName): PyLevelRules | PyLevelRulesV4 {
+  return (rev ?? 1) >= PY_REV_ROWS ? PY_LEVEL_RULES_V4[level] : PY_LEVEL_RULES[level];
+}
+export function pyLevelRulesOf(state: Pick<PyState, "lv"> & { rev?: number }): PyLevelRules | null {
   const n = pyLevelName(state.lv);
-  return n ? PY_LEVEL_RULES[n] : null;
+  return n ? pyLevelRulesFor(state.rev, n) : null;
 }
 /** Whether a selected card's partners glow (Normal and Easy; display only). */
-export function pyGlows(state: Pick<PyState, "lv">): boolean {
+export function pyGlows(state: Pick<PyState, "lv"> & { rev?: number }): boolean {
   return pyLevelRulesOf(state)?.glow ?? true;
+}
+/** The pyramid pairs that fill the pairs part (PY_PAIR_FULL; a pyramidRev 4 level its own, PY_LEVEL_RULES_V4). */
+export function pyPairsFullOf(state: Pick<PyState, "lv"> & { rev?: number }): number {
+  const r = pyLevelRulesOf(state);
+  return r && "pairsFull" in r ? (r as PyLevelRulesV4).pairsFull : PY_PAIR_FULL;
+}
+/** The same for a puzzle's stamp and level (reveals). */
+export function pyPairsFullFor(rev: number | null | undefined, level: string | null | undefined): number {
+  return (rev ?? 1) >= PY_REV_ROWS && (level === "easy" || level === "hard" || level === "expert") ? PY_LEVEL_RULES_V4[level].pairsFull : PY_PAIR_FULL;
+}
+/** Whether a level state has the Hint button (D6's Hard and Expert have none). Display and input mapping only. */
+export function pyHintButtonOn(state: Pick<PyState, "lv"> & { rev?: number }): boolean {
+  const r = pyLevelRulesOf(state);
+  return Boolean(r) && r!.hintLimit !== 0;
 }
 export function pyHintsLeft(state: PyState): number {
   const r = pyLevelRulesOf(state);
@@ -724,8 +874,9 @@ export function pyHintsLeft(state: PyState): number {
   return r.hintLimit < 0 ? Infinity : Math.max(0, r.hintLimit - (state.hints ?? 0));
 }
 
-/** Builds and proves a level's deal for `seed` (its own PRNG stream, every attempt on it). */
-export function pyBuildLevelDeal(seed: number, level: PyLevelName): PyDeal {
+/** Builds and proves a level's deal for `seed` (its own PRNG stream, every attempt on it); `rev` 4 is D6's rows. */
+export function pyBuildLevelDeal(seed: number, level: PyLevelName, rev: number = PY_REV_UNDO_OUT): PyDeal {
+  if (rev >= PY_REV_ROWS) return pyBuildLevelDealV4(seed, level);
   const r = PY_LEVEL_RULES[level];
   let rng = (Math.trunc(seed) ^ 0x5a17c3 ^ (0x9e3779b1 * r.lv)) | 0;
   for (let attempt = 0; attempt < 20_000; attempt++) {
@@ -740,21 +891,46 @@ export function pyBuildLevelDeal(seed: number, level: PyLevelName): PyDeal {
   throw new Error(`pyramid: no ${level} deal for seed ${seed}`);
 }
 
+/** pyramidRev 4's level deal: the level's rows and Kings, every pyramid card paired inside it, the witness proved. */
+function pyBuildLevelDealV4(seed: number, level: PyLevelName): PyDeal {
+  const r = PY_LEVEL_RULES_V4[level];
+  const cards = pyCardsIn(r.rows);
+  let rng = (Math.trunc(seed) ^ 0x5a17c3 ^ (0x9e3779b1 * r.lv) ^ 0x0d6d6) | 0;
+  for (let attempt = 0; attempt < 20_000; attempt++) {
+    const out = buildAttempt(rng, 0, 0, { rows: r.rows, kings: r.kingsList });
+    rng = out.rng;
+    if (!out.deal) continue;
+    const end = proveDeal(out.deal);
+    if (end.removed !== cards || end.ppPairs < r.pairsFull) continue;
+    if (r.filters.some((mode) => pyGreedyClears(out.deal!, mode))) continue;
+    return out.deal;
+  }
+  throw new Error(`pyramid: no ${level} deal for seed ${seed} on pyramidRev 4`);
+}
+
 const levelDealCache = new Map<string, PyDeal>();
-export function pyLevelDeal(seed: number, level: PyLevelName): PyDeal {
-  const key = `${level}:${Math.trunc(seed) | 0}`;
+export function pyLevelDeal(seed: number, level: PyLevelName, rev: number = PY_REV_UNDO_OUT): PyDeal {
+  const r4 = rev >= PY_REV_ROWS;
+  const key = `${level}:${r4 ? 4 : 3}:${Math.trunc(seed) | 0}`;
   let d = levelDealCache.get(key);
   if (!d) {
-    d = pyBuildLevelDeal(Math.trunc(seed) | 0, level);
+    d = pyBuildLevelDeal(Math.trunc(seed) | 0, level, r4 ? PY_REV_ROWS : PY_REV_UNDO_OUT);
     if (levelDealCache.size > 64) levelDealCache.clear();
     levelDealCache.set(key, d);
   }
   return d;
 }
 
-export function pyLevelInit(seed: number, level: PyLevelName): PyState {
-  const r = PY_LEVEL_RULES[level];
-  const s = pyStateOf(pyLevelDeal(seed, level), Math.trunc(seed) | 0, PY_REV_UNDO_OUT);
+/** The deal a state was dealt (a level state's level deal on its revision, else the seed's deal): tools and bots. */
+export function pyDealOfState(state: Pick<PyState, "deal" | "lv" | "rev">): PyDeal {
+  const level = pyLevelName(state.lv);
+  return level ? pyLevelDeal(state.deal, level, state.rev) : pyDeal(state.deal);
+}
+
+export function pyLevelInit(seed: number, level: PyLevelName, rev: number = PY_REV_UNDO_OUT): PyState {
+  const r4 = rev >= PY_REV_ROWS;
+  const r = pyLevelRulesFor(r4 ? PY_REV_ROWS : PY_REV_UNDO_OUT, level);
+  const s = pyStateOf(pyLevelDeal(seed, level, rev), Math.trunc(seed) | 0, r4 ? PY_REV_ROWS : PY_REV_UNDO_OUT);
   return { ...s, lv: r.lv, passes: r.passes, hints: 0, hintTick: 0 };
 }
 
@@ -768,13 +944,42 @@ function stepLevel(state: PyState, input: ArcadeInputEvent | null): PyState {
   return step(state, input);
 }
 
-/** A level's spec (the help and the reveal). */
-export function pyLevelSpec(level: PyLevelName): StdSpec {
+/** A level's spec (the help and the reveal); `rev` 4 is D6's rows. */
+export function pyLevelSpec(level: PyLevelName, rev?: number | null): StdSpec {
+  if ((rev ?? 1) >= PY_REV_ROWS) {
+    const r = PY_LEVEL_RULES_V4[level];
+    const cards = pyCardsIn(r.rows);
+    return {
+      field: "pyramidRev",
+      rev: PY_REV_ROWS,
+      parts: [
+        { key: "core", label: "Pyramid cards", max: PY_V2_CORE_MAX, of: cards, item: "card", how: `remove the ${cards} pyramid cards, each worth the same` },
+        { key: "clear", label: "Cleared", max: PY_V2_CLEAR_MAX, of: 1, how: `remove all ${cards}` },
+        { key: "speed", label: "Speed", max: PY_V2_SPEED_MAX, of: 1, how: `clear it within ${r.speedFullS} s for all of it, falling to 0 at the buzzer` },
+        { key: "pairs", label: "Pyramid pairs", max: PY_PAIR_MAX, of: r.pairsFull, item: "pair", how: `pairs made of two pyramid cards, all of it at ${r.pairsFull}` },
+      ],
+    };
+  }
   const r = PY_LEVEL_RULES[level];
-  return { ...PY_STD_SPEC, parts: PY_STD_SPEC.parts.map((p) => (p.key === "core" && r.hintCost ? { ...p, how: `${p.how}; each hint costs ${r.hintCost}` } : p)) };
+  return { ...PY_STD_SPEC_V3, parts: PY_STD_SPEC_V3.parts.map((p) => (p.key === "core" && r.hintCost ? { ...p, how: `${p.how}; each hint costs ${r.hintCost}` } : p)) };
+}
+
+function pyLevelPartsV4(state: PyState): StdPart[] {
+  const level = pyLevelName(state.lv)!;
+  const r = PY_LEVEL_RULES_V4[level];
+  const spec = pyLevelSpec(level, PY_REV_ROWS);
+  const cards = pyCardsIn(r.rows);
+  const done = state.ended === 1;
+  return [
+    stdPart(spec, "core", stdLine(PY_V2_CORE_MAX, pyCoreUnits(state), cards), `${state.removed} / ${cards} removed`),
+    stdPart(spec, "clear", done ? PY_V2_CLEAR_MAX : 0, done ? "all removed" : "not cleared"),
+    stdPart(spec, "speed", done ? stdSpeedInt(PY_V2_SPEED_MAX, state.finishTick, r.speedFullS * 60, PY_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+    stdPart(spec, "pairs", stdLine(PY_PAIR_MAX, state.ppPairs, r.pairsFull), `${state.ppPairs} pyramid pair${state.ppPairs === 1 ? "" : "s"}`),
+  ];
 }
 
 function pyLevelParts(state: PyState): StdPart[] {
+  if ((state.rev ?? 1) >= PY_REV_ROWS) return pyLevelPartsV4(state);
   const r = pyLevelRulesOf(state)!;
   const spec = pyLevelSpec(pyLevelName(state.lv)!);
   const done = state.ended === 1;
@@ -808,24 +1013,30 @@ export function pyHintMove(state: PyState): number[] | null {
     }
   }
   if (best) return best;
-  return pyCanDraw(state) ? [PY_STOCK_PILE] : null;
+  return pyCanDraw(state) ? [pyStockPileOf(state)] : null;
 }
 
-const PY_LEVEL_GAMES = new Map<PyLevelName, ArcadeGame<PyState, ArcadeInputEvent | null>>();
-export function pyramidLevelGame(level: PyLevelName): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  let g = PY_LEVEL_GAMES.get(level);
+const PY_LEVEL_GAMES = new Map<string, ArcadeGame<PyState, ArcadeInputEvent | null>>();
+/** A level's game (`rev` 4: D6's rows, PY_LEVEL_RULES_V4; earlier: the levels before on rev 3). */
+export function pyramidLevelGame(level: PyLevelName, rev?: number | null): ArcadeGame<PyState, ArcadeInputEvent | null> {
+  const r4 = (rev ?? 1) >= PY_REV_ROWS;
+  const key = `${level}:${r4 ? 4 : 3}`;
+  let g = PY_LEVEL_GAMES.get(key);
   if (!g) {
+    const cards = r4 ? pyCardsIn(PY_LEVEL_RULES_V4[level].rows) : PY_CARDS;
     g = {
       ...pyramidGameV3,
-      init: (seed) => pyLevelInit(seed, level),
+      init: (seed) => pyLevelInit(seed, level, r4 ? PY_REV_ROWS : PY_REV_UNDO_OUT),
       step: stepLevel,
-      inputRanges: [...(pyramidGameV3.inputRanges ?? []), inputRange(PY_INPUT_HINT)],
+      inputRanges: r4
+        ? [inputRange(PY_INPUT_TAP, [0, cards + 1]), inputRange(PY_INPUT_UNDO), inputRange(PY_INPUT_RESET), inputRange(PY_INPUT_HINT)]
+        : [...(pyramidGameV3.inputRanges ?? []), inputRange(PY_INPUT_HINT)],
     };
-    PY_LEVEL_GAMES.set(level, g);
+    PY_LEVEL_GAMES.set(key, g);
   }
   return g;
 }
 
 export function pyramidGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<PyState, ArcadeInputEvent | null> {
-  return level === "easy" || level === "hard" || level === "expert" ? pyramidLevelGame(level) : pyramidGameFor(rev);
+  return level === "easy" || level === "hard" || level === "expert" ? pyramidLevelGame(level, rev) : pyramidGameFor(rev);
 }

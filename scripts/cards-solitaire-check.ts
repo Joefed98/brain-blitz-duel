@@ -118,7 +118,8 @@ for (let i = 0, x = 0x2545f491; i < 200; i++) {
   const gs = generatePuzzle("golfsol");
   const mg = generatePuzzle("muggins");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3, the dead end that waits for Undo).
-  ok(py.type === "pyramid" && py.pyramidRev === 3 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 3 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: Thirteen pyramidRev 4, speed full by 22 s; d6-normal-stamps-check proves it).
+  ok(py.type === "pyramid" && py.pyramidRev === 4 && gs.type === "golfsol" && gs.golfSolRev === 1 && gs.seed >= 0 && gs.seed < GS_DEALS.length && mg.type === "muggins" && mg.mugginsRev === 1, "rooms deal pyramidRev 4 (any seed), golfSolRev 1 (a bank index) and mugginsRev 1 (any seed)");
 }
 
 /* 3. Rules. */

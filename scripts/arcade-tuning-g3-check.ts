@@ -115,6 +115,7 @@ import {
   BT_LAYOUT_TALL,
   BT_REV_BAND,
   BT_REV_TALL,
+  BT_REV_D6,
   BT_REV_RUSH,
   BT_ROWS,
   BT_STEP_TICKS,
@@ -221,7 +222,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     const bt = generateBallTrack();
     // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it. The arcade
     // scoring standard (29 Oct 2026) deals btRev 8, btRev 7's play re-scored (arcade-standard-check).
-    ok(bt.btRev === BT_REV_TALL + 4 && bt.course.rows === 13, "rooms deal btRev 8 (btRev 7's play, expansion E6, after btRev 4)");
+    ok(bt.btRev === BT_REV_D6 && BT_REV_D6 === BT_REV_TALL + 5 && bt.course.rows === 13, "rooms deal btRev 9 (btRev 7's play, expansion E6, after btRev 4; D6's figures)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
