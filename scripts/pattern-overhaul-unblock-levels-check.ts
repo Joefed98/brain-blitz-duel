@@ -74,9 +74,9 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
 {
   check(same(levelsOf("unblock"), ["easy", "normal", "hard", "expert"]), `unblock offers ${levelsOf("unblock").join(", ")}`);
   const spec: Record<(typeof BANKED)[number], UnblockLevelSettings> = {
-    easy: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000, speedFullByS: 40 },
-    hard: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 },
-    expert: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 90_000, speedFullByS: 30 },
+    easy: { cols: 6, minMoves: [5, 9], cars: [6, 8], timeLimitMs: 60_000, speedFullByS: 40 }, // Changed with Joe's approval, 22 Nov 2026
+    hard: { cols: 7, minMoves: [26, 32], cars: [13, 15], timeLimitMs: 70_000, speedFullByS: 28 }, // Changed with Joe's approval, 22 Nov 2026
+    expert: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 38 }, // Changed with Joe's approval, 22 Nov 2026
   };
   for (const level of BANKED) {
     check(same(settingsOf(level), spec[level]), `${level}: settings ${JSON.stringify(settingsOf(level))}`);

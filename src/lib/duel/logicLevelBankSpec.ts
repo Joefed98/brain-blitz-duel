@@ -9,6 +9,8 @@ import type { PuzzleType } from "./types";
 export const LOGIC_LEVEL_BANKED: readonly { type: PuzzleType; level: Level }[] = [
   { type: "trail", level: "hard" },
   { type: "trail", level: "expert" },
+  // Regions Hard (D4, 22 Nov 2026): an 8 × 8 map takes 6–9 s to build and prove.
+  { type: "fillomino", level: "hard" },
   { type: "fillomino", level: "expert" },
   // Loopline Expert (16 Nov 2026): an 8 × 8 loop the solver proves takes up to a minute on some seeds.
   { type: "fences", level: "expert" },

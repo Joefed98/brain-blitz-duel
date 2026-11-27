@@ -13,7 +13,7 @@ const STEP_SCALE = [0, 2, 4, 5, 7, 9, 11];
 export function trailStepRate(step: number): number {
   return 2 ** (STEP_SCALE[(Math.max(1, step) - 1) % STEP_SCALE.length]! / 12);
 }
-import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trToFill, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
+import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trSide, trTapPath, trToFill, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
@@ -300,12 +300,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   if (!data) return null;
   const busy = locked || complete;
   const nextNumber = Math.min(data.givens.length, trDragPath(data.givens, path).length + 1);
+  // The board's own size (a level's 5 × 5 or 7 × 7; Normal's 6 × 6).
+  const side = trSide(data.givens.length);
   // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
   const fit = Math.min(space.w - 8, space.h - 84);
   // The Logic overhaul (15 Nov 2026): up to 90 px a square where there is room, and on a narrow phone the squares
   // grow up to a third taller into the space above the controls (the board is otherwise width-bound).
-  const cell = Math.max(44, Math.min(90, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
-  const cellH = Math.max(cell, Math.min(Math.round(cell * 4 / 3), Math.floor((space.h - 84 - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  const cell = Math.max(44, Math.min(90, Math.floor((fit - (side - 1) * GAP) / side)));
+  const cellH = Math.max(cell, Math.min(Math.round(cell * 4 / 3), Math.floor((space.h - 84 - (side - 1) * GAP) / side)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -327,14 +329,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     const pitchH = cellH + GAP;
     const col = Math.floor(px / pitch);
     const row = Math.floor(py / pitchH);
-    if (col < 0 || row < 0 || col >= TR_SIZE || row >= TR_SIZE) return null;
+    if (col < 0 || row < 0 || col >= side || row >= side) return null;
     if (strict) {
       // Near the centre only (an ellipse on a tall square), so diagonals are easy to hit.
       const dx = (px - (col * pitch + cell / 2)) / (cell * 0.42);
       const dy = (py - (row * pitchH + cellH / 2)) / (cellH * 0.42);
       if (dx * dx + dy * dy > 1) return null;
     }
-    return row * TR_SIZE + col;
+    return row * side + col;
   };
 
   const visit = (c: number) => {
@@ -427,7 +429,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerCancel={cancel}
         onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} cellH={cellH} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
+        <Grid size={side} givens={data.givens} path={slots} cell={cell} cellH={cellH} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
       </div>
       {column && <div className="tr-spacer" aria-hidden />}
       {framed ? (
@@ -436,7 +438,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           parts={complete ? ["Trail complete"] : [`Next ${nextNumber}`, `${toFill - placedTiles} to go`]}
         />
       ) : null}
-      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
+      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-2" style={{ width: side * cell + (side - 1) * GAP }}>
         <Button variant="outline"
           type="button"
           disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
@@ -482,7 +484,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   const mine = trDecode(myAnswer ?? "", puzzle.givens.length);
   const gap = 3;
   // Leave room for the switch, the tally and the chips (about 150 px) under the shared frame's own rows.
-  const cell = Math.max(30, Math.min(56, Math.floor((space.w - 8 - 5 * gap) / 6), Math.floor((space.h - 150 - 5 * gap) / 6)));
+  const side = trSide(puzzle.givens.length);
+  const cell = Math.max(30, Math.min(56, Math.floor((space.w - 8 - (side - 1) * gap) / side), Math.floor((space.h - 150 - (side - 1) * gap) / side)));
   const toPlace = puzzle.givens.filter((g) => g === null).length;
   const placed = mine.filter((c, i) => c >= 0 && i < puzzle.givens.length && puzzle.givens[c] == null).length;
   const right = hasSolution ? trCorrectTiles(puzzle.givens, mine, solution) : 0;
@@ -491,7 +494,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   const board = (path: readonly number[], compare: boolean) => (
     <div ref={root} data-reveal-board="" className="flex justify-center">
       <Grid
-        size={TR_SIZE}
+        size={side}
         givens={puzzle.givens}
         path={path}
         cell={cell}

@@ -20,7 +20,7 @@ import { fillominoSolvedGrid } from "./fillomino";
 import { orth, sightLine, lightUpHeightOf } from "./lightUp";
 import { rectArea, rectHas, rectValid, shikakuHeightOf, type ShikakuRect } from "./shikaku";
 import { orthNeighbours, tentsHeightOf, tentsMatchTrees } from "./tents";
-import { trNeighbours, TR_CELLS } from "./trail";
+import { trNeighbours, trSide } from "./trail";
 import type {
   BridgesPuzzleData,
   FencesPuzzleData,
@@ -303,11 +303,13 @@ function shikakuModel(p: ShikakuPuzzleData): Model<ShikakuRect[][]> {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* Trail: for each step 1…36, the squares it could still be on (bit flags).                                          */
+/* Trail: for each step 1…N, the squares it could still be on (bit flags).                                           */
 
 function trailModel(p: TrailPuzzleData): Model<Uint8Array[]> {
-  const cells = TR_CELLS;
-  const nbs = Array.from({ length: cells }, (_, c) => trNeighbours(c));
+  // The board's own size (a level's 5 × 5, 7 × 7 or 8 × 8; Normal's 6 × 6, 36 squares, as before).
+  const cells = p.givens.length;
+  const side = trSide(cells);
+  const nbs = Array.from({ length: cells }, (_, c) => trNeighbours(c, side));
   const givenAt = new Map<number, number>();
   p.givens.forEach((g, cell) => {
     if (g != null) givenAt.set(g, cell);
@@ -457,4 +459,51 @@ export function solveLikePerson(puzzle: PuzzleData): HumanSolve {
     default:
       throw new Error(`no person-style solver for ${puzzle.type}`);
   }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* The person's clock (D4, 22 Nov 2026; Joe's answer of 20 Nov: the proof first, with a clock).                     */
+
+/** Seconds a person needs for one one-step trial that rules a choice out (the spec's figure). */
+export const PERSON_TRIAL_S = 1.5;
+/** The human limits (scripts/arcade-skill-bands/human.ts HUMAN_LIMITS): 0.25 s to react, 0.15 s a tap after it. */
+const REACT_S = 0.25;
+const TAP_S = 0.15;
+const action = (taps: number) => REACT_S + taps * TAP_S;
+
+/**
+ * What a person enters to finish the board, in seconds at the human limits: a tent, bulb, Trail square or Loopline
+ * line is a tap; a Shikaku rectangle or an Island Link bridge a drag (a tap and a drop); a Regions stroke one tap for
+ * every two squares it paints.
+ */
+export function personEntrySeconds(puzzle: PuzzleData): number {
+  switch (puzzle.type) {
+    case "tents":
+      return (puzzle as TentsPuzzleData).trees.length * action(1);
+    case "lightup":
+      return ((puzzle as LightUpPuzzleData).solution?.length ?? 0) * action(1);
+    case "shikaku":
+      return (puzzle as ShikakuPuzzleData).clues.length * action(2);
+    case "trail":
+      return (puzzle as TrailPuzzleData).givens.filter((g) => g == null).length * action(1);
+    case "fences":
+      return ((puzzle as FencesPuzzleData).solution?.length ?? 0) * action(1);
+    case "bridges":
+      return ((puzzle as BridgesPuzzleData).solution ?? []).reduce((n, b) => n + (b > 0 ? 1 : 0), 0) * action(2);
+    case "fillomino": {
+      const blanks = (puzzle as FillominoPuzzleData).givens.filter((g) => !(g > 0)).length;
+      // A stroke a region (about four squares), each one decided and then painted a tap for every two squares.
+      return Math.ceil(blanks / 4) * REACT_S + Math.ceil(blanks / 2) * TAP_S;
+    }
+    default:
+      return 0;
+  }
+}
+
+/**
+ * The person-style solver's clock: the board's entries at the human limits plus PERSON_TRIAL_S for every one-step
+ * trial that ruled a choice out. A level board is fair for a person in a timed round only when this fits its clock.
+ */
+export function personSeconds(puzzle: PuzzleData, solve: HumanSolve = solveLikePerson(puzzle)): number {
+  return personEntrySeconds(puzzle) + solve.eliminations * PERSON_TRIAL_S;
 }

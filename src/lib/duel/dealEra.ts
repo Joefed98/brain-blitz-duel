@@ -125,6 +125,8 @@ export const DEAL_PINS = {
   prePyramidPartial: { texts: true },
   /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
   preBallparkBullseyes: { texts: true },
+  /** topsyLine.ts: Topsy-Turvy gravityRev 8 on Normal (full speed by 32 s), before the D4 Normal stamp (22 Nov 2026). */
+  preTopsyLine: { texts: true },
   /** wordStar.ts: Nucleus wordsmithRev 5, Forage wordHuntRev 4 and Roundabout wheelRev 5, before the D1 refit (21 Nov 2026). */
   preWordStar: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;

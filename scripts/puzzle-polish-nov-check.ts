@@ -49,6 +49,7 @@ import { joinCountSuffix, splitCountSuffix } from "../src/lib/duel/moveLimits";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
+import { pinPreTopsyLine } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
 import { encodeMazeTrail } from "../src/lib/duel/depth/labyrinth";
 import { mazeColsOf } from "../src/lib/duel/maze";
 import { BATCH_TYPES, dealBatch, flawlessSolve, spamBatch, type BatchType } from "./puzzle-batch-nov/players";
@@ -61,6 +62,9 @@ import { pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): written for Operator gapsRev 1,
 // so it deals the stamps before the overhaul (gapsRev 2 is proved by number-overhaul-equation-pyramid-check).
 pinPreNumberOverhaul(true);
+// Changed with Joe's approval, 22 Nov 2026 (routine consequence of D4's Topsy-Turvy gravityRev 9): written for gravityRev 7's 32 s line, so it
+// deals the stamps before (topsy-line-check proves gravityRev 9).
+pinPreTopsyLine(true); // Changed with Joe's approval, 22 Nov 2026
 
 let fails = 0;
 let passes = 0;

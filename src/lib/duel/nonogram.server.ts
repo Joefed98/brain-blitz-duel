@@ -192,6 +192,12 @@ export function generateLegacyNonogram(): NonoPuzzleData {
  * time (a symmetric picture's mirror is itself), so the same strokes give more boards. Rows and cols ride on the clue
  * lists; the clock on `timeLimitMs`.
  */
+/** Solved by reading two lines together, needing at least `min` such steps. */
+function twoLines(rows: number[][], cols: number[][], min: number): boolean {
+  const solve = nonoLogicSolve(rows, cols, true);
+  return solve.solved && solve.probes >= min;
+}
+
 export function generateNonogramLevel(level: import("./logicLevels").NonoLevel): NonoPuzzleData {
   const { cols: w, rows: h } = level;
   const [loShare, hiShare] = level.fill;
@@ -222,7 +228,9 @@ export function generateNonogramLevel(level: import("./logicLevels").NonoLevel):
     if (!rows.every((c) => c.length > 0) || !cols.every((c) => c.length > 0)) continue;
     // Settling every square by deduction proves the picture is the only one (logic-1-levels-check also counts).
     const line = nonoLogicSolve(rows, cols, false).solved;
-    if (level.logic === "line" ? !line : line || !nonoLogicSolve(rows, cols, true).solved) continue;
+    // "two": not solvable line by line, and solvable reading two lines together, at least `minProbes` times (D4,
+    // 22 Nov 2026: Expert three; absent = once, as before).
+    if (level.logic === "line" ? !line : line || !twoLines(rows, cols, level.minProbes ?? 1)) continue;
     return { type: "nonogram", rows, cols, pattern: shown, timeLimitMs: level.timeMs, ...(level.lockLines ? { lockLines: true } : {}) };
   }
   throw new Error("Mosaic generator could not build a picture for the level");

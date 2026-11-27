@@ -10,7 +10,7 @@
  *   bun scripts/logic-level-bank.ts --check[=k/n]     rebuild entries (or a part) and compare with the bank, byte for byte
  *   --only=type:level[,…]                              build, merge or check only those banks (a merge keeps the others)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { withSeededRandom } from "../src/lib/duel/random";
 import { dealLogicLevel, logicLevelBankOff } from "../src/lib/duel/logicLevelDeal.server";
@@ -84,8 +84,29 @@ if (merge) {
     process.exit(bad ? 1 : 0);
   }
   const out: { type: string; level: string; i: number; p: PuzzleData }[] = [];
+  // A part keeps a journal of the entries it has built (D4, 22 Nov 2026: a machine restart lost two hours of
+  // builds), one JSON line each, and on a restart takes those as built: every entry is a pure function of its seed, so
+  // a journalled entry is exactly what building it again would give (--check proves the merged bank either way).
+  const journal = part ? `${PARTS}/journal-${part.k}-of-${part.n}.jsonl` : null;
+  const done = new Map<string, PuzzleData>();
+  if (journal && existsSync(journal)) {
+    for (const line of readFileSync(journal, "utf8").split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const e = JSON.parse(line) as { type: string; level: string; i: number; p: PuzzleData };
+        done.set(`${e.type}:${e.level}:${e.i}`, e.p);
+      } catch {
+        /* a line cut short by the restart: built again */
+      }
+    }
+    console.log(`resuming: ${done.size} entries from ${journal}`);
+  }
+  if (journal && !existsSync(PARTS)) mkdirSync(PARTS);
   for (const job of mine) {
-    out.push({ ...job, p: build(job.type, job.level, job.i) });
+    const was = done.get(`${job.type}:${job.level}:${job.i}`);
+    const p = was ?? build(job.type, job.level, job.i);
+    out.push({ ...job, p });
+    if (journal && !was) appendFileSync(journal, `${JSON.stringify({ ...job, p })}\n`);
     if (out.length % 10 === 0) console.log(`${out.length} of ${mine.length} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   }
   if (part) {
