@@ -29,7 +29,8 @@ import {
   type PushPuzzleData,
 } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { gameFx } from "@/lib/fx/kit";
+import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -254,6 +255,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
 
 const ARROW: Partial<Record<SlideDir, string>> = { U: "↑", D: "↓", L: "←", R: "→" };
 
+/** The reveal's two views on the template's control (G4). */
+const PUSH_REVEAL_VIEWS = [
+  { id: "solution", label: "Solution" },
+  { id: "yours", label: "Yours" },
+] as const;
+
 /** A stored figure from the grade (`extra`), when it is a number. */
 function storedNumber(extra: Record<string, unknown> | null | undefined, key: string): number | null {
   const v = extra?.[key];
@@ -267,17 +274,22 @@ function storedNumber(extra: Record<string, unknown> | null | undefined, key: st
  * numbers (par, the player's pushes, crates home, the gold crate, time left) come from the stored grade; the replay only
  * stands in on a row stored without them. Any stamp reads the same stored fields.
  */
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: PuzzleRevealProps) {
   const isPush = puzzle.type === "push";
-  // Stage 2: the solve's payoff on the result, the kit's win on the reveal's own result card, once (silent: the reveal
-  // plays its score sound; no haptic outside a live board).
+  // Stage 2: the solve's payoff, the reveal's win moment, once (the template plays the effects kit's win; the polish
+  // plan's G4, 27 Nov 2026: a callback, so the board never reaches outside its own reveal).
   const won = Boolean(myCorrect && isPush);
   const revealRef = useRef<HTMLDivElement>(null);
+  const onWinRef = useRef(onWin);
+  onWinRef.current = onWin;
   useEffect(() => {
-    if (!won) return;
-    const card = revealRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
-    gameFx("win", card ?? null, { silent: true, inGame: false });
+    if (won) onWinRef.current?.();
   }, [won]);
+  // Solution and Yours on the template's views control (G4), one board at a time at the stage's size.
+  const shown = useRevealViews(PUSH_REVEAL_VIEWS);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const fitWidth = useRevealBoardWidth(revealRef, boardRef, { max: 400 });
+  const fitStyle = fitWidth ? { width: fitWidth } : undefined;
   const solution = isPush ? decodePushSolution(puzzle.solution ?? "") : [];
   const frames = useMemo(
     () => (isPush ? pushSolutionFrames(puzzle.crates, solution) : []),
@@ -323,17 +335,19 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   const storedGold = myExtra?.["goldHome"];
   const goldHome = typeof storedGold === "boolean" ? storedGold : null;
   const timeLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
+  // The player's own numbers sit under Yours only, so nothing below the solution reads as the solution's.
+  const yoursHidden = Boolean(available && mine !== null && shown === "solution");
 
   const solutionBoard = (
     <div className="push-reveal-space">
-      <div className="push-reveal-board" data-push-reveal-step={at}>
+      <div ref={shown === "solution" ? boardRef : undefined} className="push-reveal-board" data-push-reveal-step={at} style={fitStyle}>
         <Board walls={puzzle.walls} targets={puzzle.targets} crates={crates} pusher={pusherCell} facing={lastPush?.dir} gold={gold} />
       </div>
     </div>
   );
   const yoursBoard = mine ? (
     <div className="push-reveal-space">
-      <div className="push-reveal-board" data-push-yours-board={myCorrect ? "solved" : "unfinished"}>
+      <div ref={shown === "yours" || !available ? boardRef : undefined} className="push-reveal-board" data-push-yours-board={myCorrect ? "solved" : "unfinished"} style={fitStyle}>
         <WarehouseBoard
           walls={puzzle.walls}
           targets={puzzle.targets}
@@ -361,13 +375,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
     <div ref={revealRef} className="push-reveal flex w-full flex-col items-center gap-2">
       {available && yoursBoard ? (
         <div className="push-reveal-pair flex w-full items-start justify-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">
-            <span className="push-reveal-label">Solution</span>
+          <div hidden={shown !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">
+            <span className="push-reveal-label sr-only">Solution</span>
             {solutionBoard}
             {route}
           </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-yours="">
-            <span className="push-reveal-label">Yours</span>
+          <div hidden={shown !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-yours="">
+            <span className="push-reveal-label sr-only">Yours</span>
             {yoursBoard}
             {!myCorrect && missedCrates.length ? (
               <p className="push-reveal-note" data-push-missed-count={missedCrates.length}>
@@ -385,7 +399,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
         yoursBoard
       ) : (
         <div className="push-reveal-space">
-          <div className="push-reveal-board">
+          <div ref={boardRef} className="push-reveal-board" style={fitStyle}>
             <Board walls={puzzle.walls} targets={puzzle.targets} crates={puzzle.crates} pusher={puzzle.pusher} gold={gold} />
           </div>
         </div>
@@ -398,22 +412,22 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
           </span>
         ) : null}
         {pushes !== null ? (
-          <span className="push-key" data-push-key="pushes" data-yours-only="">
+          <span className="push-key" data-push-key="pushes" data-yours-only="" hidden={yoursHidden}>
             You <span className="push-key-value">{pushes}</span>
           </span>
         ) : null}
         {home !== null ? (
-          <span className="push-key" data-push-key="home" data-yours-only="">
+          <span className="push-key" data-push-key="home" data-yours-only="" hidden={yoursHidden}>
             Home <span className="push-key-value">{home} / {total}</span>
           </span>
         ) : null}
         {gold && goldHome !== null ? (
-          <span className="push-key" data-push-key="gold" data-yours-only="">
+          <span className="push-key" data-push-key="gold" data-yours-only="" hidden={yoursHidden}>
             Gold crate <span className="push-key-value">{goldHome ? "on its mark" : "not home"}</span>
           </span>
         ) : null}
         {timeLeft !== null ? (
-          <span className="push-key" data-push-key="time" data-yours-only="">
+          <span className="push-key" data-push-key="time" data-yours-only="" hidden={yoursHidden}>
             Time left <span className="push-key-value">{timeLeft} s</span>
           </span>
         ) : null}

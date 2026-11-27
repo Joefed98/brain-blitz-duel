@@ -11,6 +11,7 @@ import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } fro
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { useGameFxOnce } from "@/components/fx/GameFx";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
 import { decodeGravityTilts, encodeGravityTilts } from "@/lib/duel/gravity";
@@ -683,8 +684,13 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtr
   // A solved round's result lands with the kit's win (silent: the round already played gravity.solve).
   const result = useRef<HTMLDivElement | null>(null);
   useGameFxOnce("win", result, Boolean(myCorrect), { silent: true });
+  // The board drawn at the template's stage size (the polish plan's G4, 27 Nov 2026): what the stage has left after the
+  // switcher, the board's line, its route and the round's pills.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const squareRef = useRef<HTMLDivElement | null>(null);
+  const fit = useRevealBoardWidth(rootRef, squareRef);
   return (
-    <div className="grav-reveal topsy-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-2" data-topsy-reveal="">
+    <div ref={rootRef} className="grav-reveal topsy-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-2" data-topsy-reveal="">
       {/* One board at a time, large, with a switcher (Joe's reveal rules, 15 Nov 2026). */}
       <div className="topsy-board-tabs" role="tablist" aria-label="Board shown">
         {boards.map((x, i) => (
@@ -716,7 +722,7 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtr
         </div>
       </div>
       <div className="grav-reveal-space">
-        <div className="grav-reveal-square" data-reveal-board="">
+        <div ref={squareRef} className="grav-reveal-square" data-reveal-board="" style={fit ? { width: fit, height: fit } : undefined}>
           <TopsyBoardView key={index} board={data.boards[index]!} state={b.state} missed={b.outcome !== "cleared"} />
         </div>
       </div>

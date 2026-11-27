@@ -33,7 +33,8 @@ import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceArt, IceBoard as Board, IceFallingBall, IceTrail, useIceSlideFx, type IceBallFx } from "@/components/puzzles/pattern/iceSlideBoard";
-import { gameFx } from "@/lib/fx/kit";
+import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -372,16 +373,28 @@ const storedNum = (extra: Record<string, unknown> | null | undefined, key: strin
  * wherever it fell), the numbers behind the score from the stored grade, and the player's slides against the par
  * route as chips. Older stamps read their stored figures (every slide played) the same way.
  */
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
-  // Stage 2: the solve's payoff on the result, the kit's win on the reveal's own result card, once (silent: the reveal
-  // plays its score sound; no haptic outside a live board).
+/** The reveal's two views on the template's control (G4). */
+const ICE_REVEAL_VIEWS = [
+  { id: "solution", label: "Solution" },
+  { id: "yours", label: "Yours" },
+] as const;
+
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: PuzzleRevealProps) {
+  // Stage 2: the solve's payoff, the reveal's win moment, once (the template plays the effects kit's win; the polish
+  // plan's G4, 27 Nov 2026: a callback, so the board never reaches outside its own reveal).
   const won = Boolean(myCorrect && puzzle.type === "iceslide");
   const revealRef = useRef<HTMLDivElement>(null);
+  const onWinRef = useRef(onWin);
+  onWinRef.current = onWin;
   useEffect(() => {
-    if (!won) return;
-    const card = revealRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
-    gameFx("win", card ?? null, { silent: true, inGame: false });
+    if (won) onWinRef.current?.();
   }, [won]);
+  // Solution and Yours on the template's views control (G4), one board at a time at the stage's size.
+  const view = useRevealViews(ICE_REVEAL_VIEWS);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const fitDims = puzzle.type === "iceslide" ? slideDims(puzzle) : { cols: 1, rows: 1 };
+  const fitAspect = fitDims.cols / fitDims.rows;
+  const fitWidth = useRevealBoardWidth(revealRef, boardRef, { aspect: fitAspect, max: 380 * Math.min(1, fitAspect) });
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
   const dims = slideDims(puzzle);
@@ -406,12 +419,18 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
     !myCorrect && away !== null ? { id: "away", label: "From the exit", value: `${away} slide${away === 1 ? "" : "s"}` } : null,
     seconds !== null ? { id: "time", label: "Time left", value: `${seconds} s` } : null,
   ];
-  const rink = (props: { route: number[]; ball: number; broken?: number; fallen?: number[] }) => (
+  const rink = (props: { route: number[]; ball: number; broken?: number; fallen?: number[]; shown: boolean }) => (
     <div
+      ref={props.shown ? boardRef : undefined}
       className="ice-reveal-board"
       data-reveal-board=""
       data-ice-tall={revealTall ? "true" : undefined}
-      style={revealTall ? ({ "--ice-ar": `${dims.cols / dims.rows}` } as CSSProperties) : undefined}
+      style={
+        {
+          ...(revealTall ? { "--ice-ar": `${dims.cols / dims.rows}` } : {}),
+          ...(fitWidth ? { width: fitWidth } : {}),
+        } as CSSProperties
+      }
     >
       <Board
         {...(dims.cols !== 12 || dims.rows !== 12 ? { cols: dims.cols, cells: dims.cells } : {})}
@@ -434,17 +453,17 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
     <div ref={revealRef} className="ice-reveal flex w-full flex-col items-center gap-3">
       <div className="ice-reveal-space">
         <div className="ice-reveal-pair">
-          <div className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">
-            {rink({ route, ball: puzzle.start })}
-            <span className="ice-reveal-label">Solution</span>
+          <div hidden={view !== "solution"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-solution="">
+            {rink({ route, ball: puzzle.start, shown: view === "solution" })}
+            <span className="ice-reveal-label sr-only">Solution</span>
             <p className="ice-reveal-caption" data-solution-caption="">
               Shortest route · {par} slide{par === 1 ? "" : "s"}
             </p>
             <SlideChips dirs={best} label="Par route" view="solution" />
           </div>
-          <div className="ice-reveal-col flex flex-col items-center gap-2" data-ice-yours="">
-            {rink({ route: [puzzle.start, ...mine.standing.flat()], ball: mine.cell, broken: mine.mask, fallen: mine.fellAt })}
-            <span className="ice-reveal-label">Yours</span>
+          <div hidden={view !== "yours"} className="ice-reveal-col flex flex-col items-center gap-2" data-ice-yours="">
+            {rink({ route: [puzzle.start, ...mine.standing.flat()], ball: mine.cell, broken: mine.mask, fallen: mine.fellAt, shown: view === "yours" })}
+            <span className="ice-reveal-label sr-only">Yours</span>
             <HudPills testId="iceslide-reveal" items={items} className="ice-reveal-pills" />
             <div className="ice-chips-pair">
               <SlideChips dirs={mine.standingDirs} label="You" view="yours" />
