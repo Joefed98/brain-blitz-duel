@@ -408,7 +408,9 @@ try {
     }
   }
 
-  /* A room link (a device not in the room: its join), the daily and a challenge show the terms first, then the screen. */
+  /* A room link (a device not in the room: its join) and a challenge show the terms first, then the screen; the daily
+     shows its page first and the terms at the first Play tap (P3, plan decision 9). */
+  // Changed with Joe's approval, 22 Nov 2026: the daily shows its page first, the terms at the first Play tap.
   for (const [label, mode, screen] of [
     ["a room link", "room", "link join"],
     ["the daily", "daily", "daily, before playing"],
@@ -426,10 +428,16 @@ try {
       },
     });
     try {
+      if (mode === "daily") {
+        // Changed with Joe's approval, 22 Nov 2026: the Daily's page first (no terms), then the terms at Play.
+        await page.locator("[data-daily-play]").first().waitFor({ timeout: 30_000 });
+        check((await page.locator("[data-terms]").count()) === 0, `${label}: the page first, no terms`);
+        await page.locator("[data-daily-play]").first().click();
+      }
       await page.locator("[data-terms]").waitFor({ timeout: 30_000 });
       check(true, `${label}: the terms first`);
-      // Nothing of the entry point behind starts: no room preview or join, no daily or challenge call.
-      const early = (await calls(page)).filter((name) => /^(fetchRoomPreview|joinRoomByCode|daily|asyncAttempt|challenge)/.test(name));
+      // Nothing of the entry point behind starts: no room preview or join, no daily start or challenge call.
+      const early = (await calls(page)).filter((name) => (mode === "daily" ? /^dailyStart/ : /^(fetchRoomPreview|joinRoomByCode|daily|asyncAttempt|challenge)/).test(name)); // Changed with Joe's approval, 22 Nov 2026
       check(early.length === 0, `${label}: nothing of the screen behind starts before I AGREE (${early.join(", ")})`);
       await page.getByRole("button", { name: "I agree" }).click();
       await page.waitForTimeout(1200);

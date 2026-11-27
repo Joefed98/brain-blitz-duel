@@ -47,7 +47,7 @@ export const Route = createFileRoute("/friends")({
 
 function FriendsPage() {
   return (
-    <OnlineOnly body="Friends need a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly body="Friends need a connection. Practice still works.">
       <FriendsScreen />
     </OnlineOnly>
   );

@@ -190,7 +190,7 @@ try {
   // compiles each route's own modules on its first request (/practice, every game's tile, takes ~18 s cold here). The waits and assertions below are unchanged.
   // Changed with Joe's approval, 14 Nov 2026 (routine consequences of the Home and Play pages, /play and /rooms
   // warmed too, and of the Games catalogue, its page titled "Games").
-  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"], ["/rooms", "Rooms"]] as const) { // Changed with Joe's approval, 21 Nov 2026
+  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Compete"], ["/profile", "You"], ["/rooms", "Rooms"]] as const) { // Changed with Joe's approval, 21 Nov 2026; changed with Joe's approval, 22 Nov 2026
     await warmUp(browser, `${origin}${path}`, async (page) => {
       await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 180_000 });
     }, {
@@ -258,8 +258,8 @@ try {
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: titled "Games").
       for (const [label, path, tab] of [
         ["Games", "/practice", "practice"],
-        ["Tournaments", "/tournaments", "tournaments"],
-        ["Profile", "/profile", "you"], // Changed with Joe's approval, 21 Nov 2026
+        ["Compete", "/tournaments", "tournaments"], // Changed with Joe's approval, 22 Nov 2026
+        ["You", "/profile", "you"], // Changed with Joe's approval, 21 Nov 2026; changed with Joe's approval, 22 Nov 2026
       ] as const) {
         await page.locator(`[data-app-tabbar] [data-tab='${tab}']`).click();
         await page.getByRole("heading", { level: 1, name: label }).waitFor({ timeout: 30_000 });
@@ -276,11 +276,11 @@ try {
       check(new URL(page.url()).pathname === "/settings", `Profile: the gear opens the settings (${new URL(page.url()).pathname})`);
       check((await page.locator("[data-settings-page] [data-sound-controls]").count()) === 1, "Settings: the sound controls");
       await page.locator("[data-settings-back]").click();
-      await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor({ timeout: 30_000 });
+      await page.getByRole("heading", { level: 1, name: "You" }).waitFor({ timeout: 30_000 }); // Changed with Joe's approval, 22 Nov 2026
       // A device with no rooms, dailies or bests (tab pages refresh): its card, the pointer to Customise and Get started.
       // Changed with Joe's approval, 13 Nov 2026: "Your look" is retired for Customise (one identity everywhere).
       check((await page.getByRole("button", { name: "Choose your look" }).count()) === 0, 'Profile (new player): no "Choose your look"');
-      check((await page.locator("[data-get-started] [data-step]").count()) === 3, "Profile (new player): the three Get started steps");
+      check((await page.locator("[data-get-started] [data-step]").count()) === 0 && (await page.locator("[data-save-progress-row]").count()) === 1, "You (new guest): no Get started; the one Save your progress row"); // Changed with Joe's approval, 22 Nov 2026
       // Changed with Joe's approval, 13 Nov 2026: Profile has no look picker; it points to Customise and the lobby.
       check((await page.locator("[data-look-picker]").count()) === 0, "Profile: no look picker (retired for Customise)");
       check(/Customise/.test((await page.locator("[data-look-moved]").textContent()) ?? "") && (await page.locator("[data-customise-open]").count()) === 1, "Profile: points to Customise (the card's Customise button)");
@@ -293,7 +293,7 @@ try {
 
       // Tournaments: Next up (Join now, it is lobby time) and Coming up; Join now opens the public room.
       await page.locator("[data-app-tabbar] [data-tab='tournaments']").click();
-      await page.getByRole("heading", { level: 1, name: "Tournaments" }).waitFor({ timeout: 30_000 });
+      await page.getByRole("heading", { level: 1, name: "Compete" }).waitFor({ timeout: 30_000 }); // Changed with Joe's approval, 22 Nov 2026
       check((await page.locator("[data-public-game='join']").count()) === 1, "Tournaments: Next up offers Join now once the lobby is open");
       check((await page.locator("[data-public-later]").count()) === 1, "Tournaments: Coming up lists the later game");
       check((await page.locator("[data-public-results-empty]").count()) === 1, 'Tournaments: "No public games played yet"');
@@ -302,7 +302,7 @@ try {
       check(true, "Join now opens the public room");
       // The URL changes before the room route has loaded and drawn (a cold route chunk on CI): wait for the
       // Tournaments screen to leave before judging the room's (the intermittent "no tab bar" failure).
-      await page.getByRole("heading", { level: 1, name: "Tournaments" }).waitFor({ state: "detached", timeout: 60_000 });
+      await page.getByRole("heading", { level: 1, name: "Compete" }).waitFor({ state: "detached", timeout: 60_000 }); // Changed with Joe's approval, 22 Nov 2026
       await page.waitForTimeout(1500);
       check((await tabBar(page)) === 0, "the room screen has no tab bar");
       for (const e of errors) check(false, `page error: ${e}`);
@@ -315,7 +315,7 @@ try {
   {
     const { page, context } = await openApp("/tournaments", { clock: BEFORE_LOBBY });
     try {
-      await page.getByRole("heading", { level: 1, name: "Tournaments" }).waitFor({ timeout: 60_000 });
+      await page.getByRole("heading", { level: 1, name: "Compete" }).waitFor({ timeout: 60_000 }); // Changed with Joe's approval, 22 Nov 2026
       check((await page.locator("[data-public-game='calendar']").count()) === 1, "Tournaments: before lobby time Next up offers Add to calendar");
       await page.clock.fastForward(45_000);
       await page.waitForTimeout(300);

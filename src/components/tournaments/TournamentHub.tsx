@@ -10,7 +10,7 @@ import { useAppMoment } from "@/components/fx/useMomentEnter";
  */
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
-import { Button, EmptyState, Icon, LiveTag, Panel, Row, SectionHeader, Segmented } from "@/design/components";
+import { Button, EmptyState, Icon, LiveTag, Medal, Panel, Row, SectionHeader, Segmented } from "@/design/components";
 import { Trophy } from "@/design/art";
 import { SeasonEmblem } from "@/components/seasons/SeasonSection";
 import { SEASON_TIER_NAMES } from "@/lib/seasons/rules";
@@ -78,13 +78,34 @@ function eventWhen(ev: TournamentEventView): { text: string; tone?: "live" } {
   return { text: ukTime(ev.startsAt) };
 }
 
-function LiveCard({ ev, now, primary, onOpen }: { ev: TournamentEventView; now: number; primary: boolean; onOpen: (id: string) => void }) {
+function LiveCard({ ev, now, primary, compact, onOpen }: { ev: TournamentEventView; now: number; primary: boolean; compact?: boolean; onOpen: (id: string) => void }) {
   const entered = ev.mine !== null && !ev.mine.refunded;
   const action = ev.kind === "arena" ? (entered ? "Go to the Arena" : "Join the Arena") : entered ? "Play" : "Enter";
   const meta =
     ev.kind === "arena"
       ? `${ev.entrants} entered · ends in ${inMinutes(ev.endsAt - now)}`
       : `${ev.entrants} entered · ${inMinutes(ev.endsAt - now)} left`;
+  // Compete (P3, 22 Nov 2026; mockup compete-mixed-phone): a live event as one card with its one action on the right,
+  // never gold (the ladder's Find a match is the page's gold button); the rules and prizes are on the event page.
+  const short = ev.kind === "arena" ? (entered ? "Next duel" : "Join") : entered ? "Play" : "Enter";
+  if (compact)
+    return (
+      <div data-tournament-live={ev.id} data-live-compact className="tn-live-card jz-panel">
+        <TournamentArt name={KIND_ART[ev.kind]} size={52} />
+        <div className="tn-live-text">
+          <span className="tn-live-head">
+            <LiveTag />
+          </span>
+          <h3 className="tn-live-title" data-ellipsis>
+            {ev.title}
+          </h3>
+          <p className="tn-meta">{meta}</p>
+        </div>
+        <Button variant="secondary" size={48} onClick={() => onOpen(ev.id)} data-tournament-open={ev.id} aria-label={`${short}, ${ev.title}`}>
+          {short}
+        </Button>
+      </div>
+    );
   return (
     <Panel pad data-tournament-live={ev.id} className={`tn-hero${primary ? " jz-cut-lg" : ""}`}>
       <div className="tn-hero-head">
@@ -220,6 +241,8 @@ export function TournamentHubSections({
   upcoming,
   results,
   resultsEmpty,
+  compact = false,
+  heading,
 }: {
   hub: TournamentHub;
   onOpen: (eventId: string) => void;
@@ -227,6 +250,10 @@ export function TournamentHubSections({
   upcoming?: ReactNode;
   results?: ReactNode;
   resultsEmpty?: ReactNode;
+  /** Compete's form (P3): live events as compact cards, no gold button and no "Live now" heading. */
+  compact?: boolean;
+  /** A heading drawn over the hub (Compete's "Tournaments"). */
+  heading?: string;
 }) {
   const [view, setView] = useState<HubView>("upcoming");
   const days: { label: string; events: TournamentEventView[] }[] = [];
@@ -243,6 +270,7 @@ export function TournamentHubSections({
   if (live.length === 0 && !hub.next && days.length === 0 && entries.length === 0 && !results)
     return (
       <div className="tn-hub" data-tournament-hub data-tournament-hub-empty>
+        {heading ? <SectionHeader title={heading} /> : null}
         {upcoming}
         <section aria-label="Your results" className="tn-section">
           <SectionHeader title="Your results" />
@@ -252,6 +280,7 @@ export function TournamentHubSections({
     );
   return (
     <div className="tn-hub" data-tournament-hub>
+      {heading ? <SectionHeader title={heading} /> : null}
       <Segmented
         label="Tournaments"
         value={view}
@@ -265,10 +294,10 @@ export function TournamentHubSections({
       <div className="tn-view" data-tournament-panel="upcoming" hidden={view !== "upcoming"}>
         {live.length > 0 ? (
           <section aria-label="Live" className="tn-section">
-            <SectionHeader title="Live now" />
+            {compact ? null : <SectionHeader title="Live now" />}
             <div className="tn-cards">
               {live.map((ev, i) => (
-                <LiveCard key={ev.id} ev={ev} now={hub.now} primary={i === 0} onOpen={onOpen} />
+                <LiveCard key={ev.id} ev={ev} now={hub.now} primary={i === 0 && !compact} compact={compact} onOpen={onOpen} />
               ))}
             </div>
           </section>
@@ -358,6 +387,56 @@ export function TrophyCabinet({ trophies, seasons }: { trophies: readonly Trophy
           ))}
         </ul>
       </Panel>
+    </section>
+  );
+}
+
+/** How many pieces the trophy shelf shows before its count. */
+export const TROPHY_SHELF_MAX = 5;
+
+/**
+ * You's trophy shelf (P3, 22 Nov 2026; plan section 2.1, mockup you-mixed-phone; earlier row A4's showcase): one row under
+ * the card with the newest of what the player has won, the season emblems first, then tournament trophies, then room
+ * podium medals (this device's own record, `podiums`: places 1–3, newest first), and the count; a tap scrolls to the
+ * trophy cabinet where there is one. Nothing at all with none of the three.
+ */
+export function TrophyShelf({
+  trophies,
+  podiums,
+  seasons,
+}: {
+  trophies: readonly TrophyView[];
+  podiums: readonly { key: string; place: 1 | 2 | 3 }[];
+  seasons?: readonly SeasonHistoryEntry[];
+}) {
+  const mine = useMySeasons();
+  const emblems = seasons ?? (mine.live && mine.seasons?.account ? mine.seasons.history : []);
+  const pieces = [
+    ...emblems.map((h, i) => ({ key: `season:${h.season}:${i}`, node: <SeasonEmblem tier={h.tier} mark={h.mark} size={44} />, kind: "season" })),
+    ...trophies.map((t) => ({ key: `trophy:${t.eventId}`, node: <Trophy kind={TROPHY_KIND[t.medal]} size={48} label={`${t.medal} trophy`} />, kind: "trophy" })),
+    ...podiums.map((p) => ({ key: `medal:${p.key}`, node: <Medal place={p.place} size="m" />, kind: "medal" })),
+  ];
+  if (!pieces.length) return null;
+  const won = emblems.length + trophies.length;
+  const count = won > 0 ? `Trophies ${won}` : `Medals ${podiums.length}`;
+  const toCabinet = () => document.querySelector("[data-trophy-cabinet]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return (
+    <section aria-label="Trophy shelf" className="tn-shelf jz-panel" data-trophy-shelf={pieces.length}>
+      <ul className="tn-shelf-row">
+        {pieces.slice(0, TROPHY_SHELF_MAX).map((p) => (
+          <li key={p.key} className="tn-shelf-piece" data-shelf-piece={p.kind}>
+            {p.node}
+          </li>
+        ))}
+      </ul>
+      {won > 0 ? (
+        <button type="button" className="tn-shelf-count press" onClick={toCabinet} data-trophy-shelf-open>
+          {count}
+          <Icon name="chevron-right" size={18} tone="text-2" />
+        </button>
+      ) : (
+        <span className="tn-shelf-count">{count}</span>
+      )}
     </section>
   );
 }

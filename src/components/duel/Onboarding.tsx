@@ -21,18 +21,18 @@ interface Panel {
 const PANELS: Panel[] = [
   {
     title: "Quick games. Real rivals.",
-    body: "Brain teasers and arcade games, about two minutes each, played against your friends.",
+    body: "Puzzles and arcade games, two minutes each, against friends.",
     art: <KitArt name="games" />,
   },
   {
     title: "Same game, same time.",
-    body: "Create a room and share the code, or join a friend’s. Everyone plays the same game at once.",
+    body: "Share a room code. Everyone plays the same game at once.",
     art: <KitArt name="rooms" />,
   },
   {
     title: "Score big, win the room.",
     // The top is the games' own maximums (roundMax.ts): "Every game" while they all share it.
-    body: `${topRoundMax().shared ? "Every game scores" : "Games score"} up to ${topRoundMax().top}. Faster and sharper scores higher. Most points across the rounds wins.`,
+    body: `${topRoundMax().shared ? "Every game scores" : "Games score"} up to ${topRoundMax().top}. Most points wins the room.`,
     art: <KitArt name="trophy" />,
   },
 ];

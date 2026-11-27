@@ -278,12 +278,12 @@ async function mount(ui: () => React.ReactElement, path = "/profile") {
 {
   const src = readFileSync("src/routes/profile.tsx", "utf8");
   const at = (needle: string) => src.indexOf(needle);
-  const order = ["{wide ? null : cardColumn}", "<ProfileRatings />", 'aria-label="Mastery stars"', 'aria-label="Recent matches"', "<ProfileBadges />", "<ProfileFriends />"];
-  check(order.every((n) => at(n) > 0) && order.every((n, i) => i === 0 || at(order[i - 1]!) < at(n)), "Profile's order: card, Ratings, Mastery, Recent matches, Badges, Friends");
-  check(/data-profile-guest-name/.test(src) && /maxLength=\{GUEST_NAME_MAX\}/.test(src), "a guest keeps the Display name box");
+  const order = ["{wide ? null : cardColumn}", "<TrophyShelf", 'aria-label="Mastery stars"', "<ProfileRatings />", "data-profile-rows", 'aria-label="Recent matches"']; // Changed with Joe's approval, 22 Nov 2026
+  check(order.every((n) => at(n) > 0) && order.every((n, i) => i === 0 || at(order[i - 1]!) < at(n)), "You's order: card, trophy shelf, gauges (Mastery stars), strongest categories, rows, Recent matches"); // Changed with Joe's approval, 22 Nov 2026
+  check(!/data-profile-guest-name|maxLength=\{GUEST_NAME_MAX\}/.test(src), "You has no name box (names are typed where they're played, pre-filled)"); // Changed with Joe's approval, 22 Nov 2026
   // Joe, 14 Nov 2026: Profile is only about the player; the rest have their own homes.
-  const tail = ["<ProfileFriends />", "<SeasonSection />", "<TrophyCabinet trophies={trophies} />", "data-get-started", "data-profile-footer"];
-  check(tail.every((n, i) => i === 0 || at(tail[i - 1]!) < at(n)), "then Season peak, the trophy cabinet and Get started, last");
+  const tail = ['aria-label="Recent matches"', "<SeasonSection />", "<TrophyCabinet trophies={trophies} />", "data-get-started"]; // Changed with Joe's approval, 22 Nov 2026
+  check(tail.every((n, i) => i === 0 || at(tail[i - 1]!) < at(n)), "then Season peak, the trophy cabinet and Get started, last"); // Changed with Joe's approval, 22 Nov 2026
   check(!/ProfileBoards|YourChallenges|ProfileChallenges|aria-label="Practice bests"|data-profile-daily/.test(src), "no Leaderboards links, Your challenges, Practice challenges, Practice bests or Daily on Profile");
   check(/doneCount < steps\.length/.test(src), "Get started only until all three steps are done");
   check(/\{accountName \? null : \(\s*<div data-profile-footer/.test(src) && /Saved on this phone\. Create an account to keep it everywhere\./.test(src), "a footer for guests only");

@@ -40,6 +40,7 @@ export function AsyncResults({
   actions,
   share,
   footer,
+  onHome,
 }: {
   roomId: string;
   view: AsyncAttemptView;
@@ -54,6 +55,8 @@ export function AsyncResults({
   share?: ReactNode;
   /** Under the buttons (the daily's SEND FEEDBACK link). */
   footer?: ReactNode;
+  /** Home (P3, 22 Nov 2026; plan section 3.6: the Daily's results gain a way home), under the board and Share. */
+  onHome?: () => void;
 }) {
   const enter = useMomentEnter("rise");
   const [reveals, setReveals] = useState<(AsyncReveal | null | undefined)[]>(() =>
@@ -253,6 +256,11 @@ export function AsyncResults({
             {share}
           </div>
         )}
+        {onHome ? (
+          <Button variant="quiet" size={48} block data-async-home onClick={onHome}>
+            Home
+          </Button>
+        ) : null}
         {/* The Joules this Daily or challenge earned (the Season pass, wave 2 D2): its finish was stored moments ago;
             reopened later, nothing new shows. Nothing is drawn where the pass is off. */}
         {view.finished ? <JoulesLine sinceMs={joulesSince} /> : null}

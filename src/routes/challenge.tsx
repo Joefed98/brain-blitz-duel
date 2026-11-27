@@ -41,6 +41,7 @@ import {
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { podiumAwards } from "@/lib/duel/podiumAwards";
 import { standings } from "@/lib/duel/scoring";
+import { nameOrGenerated } from "@/components/account/generatedName";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { serverNow } from "@/lib/duel/clock";
 import type { PuzzleCategory } from "@/lib/duel/types";
@@ -82,7 +83,7 @@ export const Route = createFileRoute("/challenge")({
 /** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
 function OfflineChallenge() {
   return (
-    <OnlineOnly body="Challenges need a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly body="Challenges need a connection. Practice still works.">
       <GatedChallengeScreen />
     </OnlineOnly>
   );
@@ -156,7 +157,8 @@ function ChallengeScreen() {
 
   useEffect(() => {
     const stored = getStoredName();
-    setName(stored);
+    // Pre-filled with a generated name when none is stored yet (P3: one tap to go; the box stays open to change it).
+    setName(nameOrGenerated(stored));
     setEditingName(stored.trim() === "");
     const remembered = rememberedLook();
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
