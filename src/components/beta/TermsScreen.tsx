@@ -89,8 +89,16 @@ export function TermsContent() {
  * The terms as a screen. Not yet agreed: I AGREE at the bottom (kept on the device with its date and
  * recorded with the beta events), then `onAgree`. Agreed: the date, and Back when given.
  */
+/**
+ * The short form (P3, 22 Nov 2026; plan decision 9: about 60 words in three lines and a link to the full text). The
+ * wording is Joe's adviser's call, so it stays null until Joe supplies it; while null the screen shows the full terms
+ * as before. Set, the screen shows these lines and "Read the full terms", which opens the full text in place.
+ */
+export const TERMS_SUMMARY: readonly string[] | null = null;
+
 export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?: () => void }) {
   const [agreement, setAgreement] = useState(() => termsAgreement());
+  const [full, setFull] = useState(TERMS_SUMMARY === null);
   return (
     // The style guide's look (the Settings session, 14 Nov 2026): Back and the title, the sections in one panel, the
     // action pinned at the bottom; a centred column on tablets and computers (polish-layout/settings.css).
@@ -107,7 +115,20 @@ export function TermsScreen({ onAgree, onBack }: { onAgree?: () => void; onBack?
           </div>
         </header>
         <p className="tm-lede">Before you play: the short version, in plain English.</p>
-        <TermsContent />
+        {full ? (
+          <TermsContent />
+        ) : (
+          <div data-terms-summary className="tm-content">
+            <ul className="tm-summary">
+              {(TERMS_SUMMARY ?? []).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <Button variant="quiet" size={48} onClick={() => setFull(true)} data-terms-full>
+              Read the full terms
+            </Button>
+          </div>
+        )}
         <div data-terms-actions className="tm-actions">
           {agreement ? (
             <>

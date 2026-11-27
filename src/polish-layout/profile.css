@@ -523,3 +523,238 @@
   color: var(--jz-text-3);
   font: var(--jz-type-caption);
 }
+
+/* ------------------------------------------------------------------ You (P3, 22 Nov 2026) */
+/* Joe's mix of Y2 and Y3 (plan section 2.1, mockup you-mixed-phone): the card large, the trophy shelf, three ring gauges,
+   the strongest categories as bars, four quick tiles; a guest's one calm row. Today's esports look; tokens only. */
+.pf-page[data-profile-page] .pf-card-block .pcard,
+.pf-page[data-profile-page] .pf-card-block [data-player-card] {
+  width: 100%;
+}
+/* A guest's "Save your progress" row and the beta's feedback link beside it. */
+.pf-save {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.pf-save-row {
+  width: 100%;
+  border: 0;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  text-align: left;
+}
+.pf-save-row .jz-row-sub {
+  overflow: visible;
+  white-space: normal;
+}
+/* The trophy shelf (TrophyShelf in TournamentHub.tsx). */
+.tn-shelf {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12) var(--jz-space-16);
+}
+.tn-shelf-row {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--jz-space-12);
+  overflow: hidden;
+}
+.tn-shelf-piece {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+.tn-shelf-count {
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  white-space: nowrap;
+}
+/* The three ring gauges. */
+.pf-gauges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.pf-gauge-slot {
+  display: flex;
+  min-width: 0;
+}
+.pf-gauge {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--jz-space-16) var(--jz-space-8);
+  border: 0;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  text-align: center;
+}
+.pf-gauge-dial {
+  position: relative;
+  display: inline-flex;
+  width: 76px;
+  height: 76px;
+  margin-bottom: var(--jz-space-4);
+  align-items: center;
+  justify-content: center;
+}
+.pf-gauge-ring {
+  position: absolute;
+  inset: 0;
+}
+.pf-gauge-track {
+  fill: none;
+  stroke: var(--jz-surface-2);
+  stroke-width: 8;
+}
+.pf-gauge-arc {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.pf-gauge-figure {
+  position: relative;
+  max-width: 64px;
+  overflow: hidden;
+  font: var(--jz-weight-black) 20px/24px var(--jz-font);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-gauge-label {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-gauge-sub {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The strongest categories as bars. */
+.pf-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+}
+.pf-bar-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 30%) 1fr auto;
+  align-items: center;
+  gap: var(--jz-space-12);
+}
+.pf-bar-name {
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-bar {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--jz-surface-2);
+}
+.pf-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+}
+/* The three ratings under the bars, quieter than before. */
+.pf-ratings .pf-tile {
+  min-height: 112px;
+}
+/* Friends, Challenges, Badges and Help. */
+.pf-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.pf-quick-tile {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 96px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-12) var(--jz-space-4);
+  border: 0;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
+.pf-quick-label {
+  max-width: 100%;
+  overflow: hidden;
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-quick-count {
+  position: absolute;
+  top: var(--jz-space-8);
+  right: var(--jz-space-8);
+}
+.pf-quick-tile:focus-visible,
+.pf-gauge[type="button"]:focus-visible,
+.tn-shelf-count:focus-visible,
+.pf-save-row:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.pf-quick-tile, .pf-gauge[type="button"]):hover {
+    background-color: var(--jz-surface-2);
+  }
+}
+/* A phone: the four as two rows of two, icon beside the label, so "Challenges" fits at 15 px. */
+@media (max-width: 479px) {
+  .pf-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pf-quick-tile {
+    min-height: 60px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: var(--jz-space-8) var(--jz-space-12);
+  }
+  .pf-quick-count {
+    top: 50%;
+    right: var(--jz-space-12);
+    transform: translateY(-50%);
+  }
+}

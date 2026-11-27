@@ -60,7 +60,7 @@ export function CoinPacks({
           </li>
         ))}
       </ul>
-      <p className="shop-note">No random boxes: you always see exactly what you get. Coins can’t be cashed out, traded or gifted.</p>
+      <p className="shop-note">No random boxes. Coins can’t be cashed out or traded.</p>
       {pack ? (
         <Sheet
           title="Test purchase"

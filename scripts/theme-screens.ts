@@ -749,15 +749,15 @@ export const ROOM_IDENTITY_SCREENS = (): ThemeScreen[] => {
         await page.waitForTimeout(400);
       },
     },
-    // A guest's Profile: the room stats panel with the Display name box (kept when "Your look" was retired).
+    // A guest's Profile: one card and one calm "Save your progress" row (P3: the Display name box is gone). Changed with Joe's approval, 22 Nov 2026
     {
-      name: "identity: profile, a guest's display name",
+      name: "identity: profile, a guest's save row", // Changed with Joe's approval, 22 Nov 2026
       mode: "profile",
       daily: () => dailyFixture().after,
       sizes: ALL_SIZES,
       go: async (page) => {
-        await page.locator("[data-profile-guest-name] input").waitFor({ timeout: 10_000 });
-        await page.locator("[data-profile-guest-name] input").scrollIntoViewIfNeeded();
+        await page.locator("[data-save-progress-row]").waitFor({ timeout: 10_000 }); // Changed with Joe's approval, 22 Nov 2026
+        await page.locator("[data-save-progress-row]").scrollIntoViewIfNeeded(); // Changed with Joe's approval, 22 Nov 2026
         await page.waitForTimeout(300);
       },
     },
@@ -783,14 +783,14 @@ export const NAV_SCREENS = (): ThemeScreen[] => {
     { name: "nav: home, a guest", mode: "home", sizes: NAV_SIZES },
     { name: "nav: home, an account with the Shop", mode: "home", globals: { ...account, ...shop }, sizes: NAV_SIZES },
     { name: "nav: games", mode: "practice", sizes: NAV_SIZES },
-    { name: "nav: tournaments, coming soon", mode: "tournaments", records: false, sizes: NAV_SIZES },
+    { name: "nav: tournaments, coming soon", mode: "tournaments", records: false, globals: { __harnessBoards: boardsFixture() }, sizes: NAV_SIZES }, // Changed with Joe's approval, 22 Nov 2026
     { name: "nav: shop", mode: "pass", plain: true, globals: { __harnessPass: passFixture(), ...shop }, waitMs: 800, sizes: NAV_SIZES },
     { name: "nav: more", mode: "more", plain: true, sizes: NAV_SIZES },
     { name: "nav: more, an account with the Shop", mode: "more", plain: true, globals: { ...account, ...shop }, sizes: NAV_SIZES },
     { name: "nav: room lobby, the rail collapsed", mode: "room", room: room("waiting", "starting", { players: 3 }), sizes: NAV_SIZES },
     { name: "nav: launch screen", mode: "launch", plain: true, sizes: NAV_SIZES },
     { name: "nav light: home", mode: "home", globals: light, sizes: NAV_SIZES },
-    { name: "nav light: tournaments, coming soon", mode: "tournaments", records: false, globals: light, sizes: NAV_SIZES },
+    { name: "nav light: tournaments, coming soon", mode: "tournaments", records: false, globals: { ...light, __harnessBoards: boardsFixture() }, sizes: NAV_SIZES }, // Changed with Joe's approval, 22 Nov 2026
     { name: "nav light: more", mode: "more", plain: true, globals: { ...light, ...shop }, sizes: NAV_SIZES },
     { name: "nav light: launch screen", mode: "launch", plain: true, globals: light, sizes: NAV_SIZES },
   ];

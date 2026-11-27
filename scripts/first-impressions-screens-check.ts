@@ -33,7 +33,7 @@ const SIZES: ThemeViewport[] = [{ name: "390x844", w: 390, h: 844 }, ...VIEWPORT
 const EXPECT: Record<string, { selectors: string[]; whole: boolean; captains: number }> = {
   // Changed with Joe's approval, 14 Nov 2026 (Profile trimmed to the player: Your challenges moved off Profile, so its
   // empty state and its Captain are no longer drawn there; Recent matches' empty state stays).
-  "profile, new player, empty states": { selectors: ["[data-recent-rooms-empty]"], whole: false, captains: 1 },
+  "profile, new player, empty states": { selectors: ["[data-save-progress-row]"], whole: false, captains: 0 }, // Changed with Joe's approval, 22 Nov 2026
   "tournaments, nothing played, empty states": { selectors: ["[data-public-results-empty]", "[data-public-none]"], whole: false, captains: 2 },
   "not found": { selectors: ["[data-error-screen]"], whole: true, captains: 1 },
   "room not found": { selectors: ["[data-error-screen]", "[data-error-screen] input"], whole: true, captains: 1 },
@@ -46,7 +46,7 @@ const EXPECT: Record<string, { selectors: string[]; whole: boolean; captains: nu
   "first open, screen 3": { selectors: ["[data-first-open-screen='3']", "[data-first-open-play]", "[data-first-open-friends]"], whole: true, captains: 1 },
   // Changed with Joe's approval, 14 Nov 2026: the Tournaments tab for a player without tournaments is its own screen
   // (the navigation step's coming-soon page, drawn with the trophy, no Captain).
-  "nav: tournaments, coming soon": { selectors: ["[data-tournaments-soon]"], whole: false, captains: 0 },
+  "nav: tournaments, coming soon": { selectors: ["[data-compete-boards]"], whole: false, captains: 0 }, // Changed with Joe's approval, 22 Nov 2026
 };
 
 const failures: string[] = [];

@@ -19,6 +19,7 @@ import { readPlayCards, writePlayCards } from "@/lib/playCards";
 import { fetchDuelByCode, fetchPlayers } from "@/lib/duel/api";
 import { isSeat, myKeyAmong, myPublicId } from "@/lib/duel/seatKey";
 import { MAX_PLAYERS } from "@/lib/duel/types";
+import { nameOrGenerated } from "@/components/account/generatedName";
 import { currentUserId, getStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/rooms")({
 
 function OfflineRooms() {
   return (
-    <OnlineOnly live body="Rooms need a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly live body="Rooms need a connection. Practice still works.">
       <Rooms />
     </OnlineOnly>
   );
@@ -127,7 +128,8 @@ function Rooms() {
 
   useBeforePaint(() => {
     const stored = getStoredName();
-    setName(stored);
+    // Pre-filled with a generated name when none is stored yet (P3: one tap to go; the box stays open to change it).
+    setName(nameOrGenerated(stored));
     setEditingName(stored.trim() === "");
     const remembered = rememberedLook();
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });

@@ -8,13 +8,13 @@
 import { useNavigate } from "@tanstack/react-router";
 
 import { ProfileArt } from "@/components/profile/ProfileArt";
-import { Panel, Row, SectionHeader } from "@/design/components";
+import { Panel, SectionHeader } from "@/design/components";
 import type { RatedStatus, SideRating } from "@/lib/rated/backend";
 import { recordRatedEvent } from "@/lib/rated/ratedEvents";
 import { pickLabel, placementHomeLine } from "@/lib/rated/rules";
 import { PLACEMENT_MATCHES, ratingText } from "@/lib/rated/tierDisplay";
 
-import { PickMark, PlacementBoxes } from "./RatedParts";
+import { PlacementBoxes } from "./RatedParts";
 
 /** The strongest categories shown (the top three with at least one rated match). */
 export const STRONGEST_SHOWN = 3;
@@ -46,17 +46,49 @@ export function ProfileRating({ status }: { status: RatedStatus }) {
     .filter((c) => c.matches > 0)
     .sort((a, b) => b.rating - a.rating || b.matches - a.matches)
     .slice(0, STRONGEST_SHOWN);
+  // You (P3, 22 Nov 2026; mockup you-mixed-phone): the strongest categories as bars first, then the three ratings.
+  const top = strongest[0]?.rating ?? 0;
+  const floor = Math.min(...strongest.map((c) => c.rating), top) - 150;
   return (
     <div className="pf-ratings" data-profile-rating="placed">
+      {strongest.length ? (
+        <section aria-label="Strongest categories" className="pf-section" data-strongest>
+          <SectionHeader
+            title="Strongest categories"
+            right={
+              <button type="button" className="pf-see press" onClick={openTiers} data-profile-tiers-link>
+                Tiers
+              </button>
+            }
+          />
+          <Panel className="pf-bars">
+            {strongest.map((c) => (
+              <div key={c.pick} className="pf-bar-row" data-strongest-row={c.pick}>
+                <span className="pf-bar-name" data-one-line>
+                  {pickLabel(c.pick)}
+                </span>
+                <span className="pf-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(12, Math.round(((c.rating - floor) / Math.max(1, top - floor)) * 100))}%`, background: PICK_BAR[c.pick] ?? "var(--jz-text-3)" }} />
+                </span>
+                <span className="pf-row-figure" aria-label={`${ratingText(c.rating)}, ${matches(c.matches)}`}>
+                  {ratingText(c.rating)}
+                </span>
+              </div>
+            ))}
+          </Panel>
+        </section>
+      ) : null}
       <section aria-label="Joulz Rating" className="pf-section">
-        <SectionHeader
-          title="Ratings"
-          right={
-            <button type="button" className="pf-see press" onClick={openTiers} data-profile-tiers-link>
-              Tiers
-            </button>
-          }
-        />
+        {strongest.length ? null : (
+          <SectionHeader
+            title="Ratings"
+            right={
+              <button type="button" className="pf-see press" onClick={openTiers} data-profile-tiers-link>
+                Tiers
+              </button>
+            }
+          />
+        )}
         <div className="pf-tiles">
           <button type="button" className="pf-tile press" data-open-tiers onClick={openTiers} aria-label={`Joulz Rating ${ratingText(s.rank.rating)}, ${s.rank.label}. See the tiers`}>
             <ProfileArt name="rating" />
@@ -74,21 +106,24 @@ export function ProfileRating({ status }: { status: RatedStatus }) {
           <SideRatingTile side="arcade" rating={s.arcade} />
         </div>
       </section>
-      {strongest.length ? (
-        <section aria-label="Strongest categories" className="pf-section" data-strongest>
-          <SectionHeader title="Strongest categories" />
-          <Panel>
-            {strongest.map((c) => (
-              <Row key={c.pick} leading={<PickMark pick={c.pick} />} title={pickLabel(c.pick)} sub={matches(c.matches)} data-strongest-row={c.pick}>
-                <span className="pf-row-figure">{ratingText(c.rating)}</span>
-              </Row>
-            ))}
-          </Panel>
-        </section>
-      ) : null}
     </div>
   );
 }
+
+/** A strongest category's bar colour: the category's or arcade group's own (tokens in theme.css). */
+const PICK_BAR: Record<string, string> = {
+  word: "var(--category-word)",
+  number: "var(--category-number)",
+  speed: "var(--category-speed)",
+  attention: "var(--category-attention)",
+  pattern: "var(--category-pattern)",
+  logic: "var(--category-logic)",
+  retro: "var(--group-retro)",
+  sports: "var(--group-sports)",
+  cards: "var(--group-cards)",
+  action: "var(--group-action)",
+  strategy: "var(--group-strategy)",
+};
 
 /** A side's tile: its rating (or "Not played yet", no figure), the side's name and its rated matches. */
 function SideRatingTile({ side, rating }: { side: "puzzles" | "arcade"; rating: SideRating }) {

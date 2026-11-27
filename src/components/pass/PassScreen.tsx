@@ -139,7 +139,7 @@ function LevelCard({ view }: { view: PassView }) {
       >
         <span style={{ width: `${pct}%` }} />
       </span>
-      <p className="pass-note">Joules come from the Dailies, rated matches, tournaments, weekly challenges, and stars and challenges in Practice.</p>
+      <p className="pass-note">Earn Joules from Dailies, rated matches, tournaments and challenges.</p>
     </div>
   );
 }
@@ -255,7 +255,7 @@ function Tracks({ view, busy, name, onClaim }: { view: PassView; busy: string | 
       <p className="pass-note">
         {view.season.test
           ? "Test season: what you claim here is yours to try out."
-          : "Season 1 only: Neon Circuit items are never sold in the shop and can’t be earned after the season ends."}
+          : "Season 1 only: never sold, and gone when the season ends."}
       </p>
     </section>
   );

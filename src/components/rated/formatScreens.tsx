@@ -45,6 +45,8 @@ export interface ResultScreenProps {
   onTiers: () => void;
   onChallenge: () => Promise<{ ok: true; code: string } | { ok: false; message: string }>;
   onReveal: () => void;
+  /** Home (P3, 22 Nov 2026): the result's way home. */
+  onHome?: () => void;
 }
 
 /** What the Between screen is given: the room route draws it after each game of a 4- or 8-player match. */

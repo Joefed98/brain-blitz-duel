@@ -115,32 +115,6 @@
   text-align: right;
 }
 
-/* The coming-soon page. */
-.tn-soon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--jz-space-8);
-  padding: var(--jz-space-24) var(--jz-space-16);
-  text-align: center;
-}
-.tn-soon-tag {
-  padding: 2px var(--jz-space-8);
-  border-radius: var(--jz-radius-sm);
-  background: var(--jz-surface-2);
-  font: var(--jz-type-caption);
-  color: var(--jz-text-2);
-}
-.tn-soon-title {
-  font: var(--jz-type-heading);
-  color: var(--jz-text);
-}
-.tn-soon-body {
-  max-width: 32ch;
-  font: var(--jz-type-label);
-  color: var(--jz-text-2);
-}
-
 /* ------------------------------------------------------------------ an event page */
 .tn-event-hero {
   display: flex;
@@ -511,4 +485,94 @@ button.tn-pod-card:focus-visible {
 :is(.tn-hero-title, .tn-day, .tn-event-title, .tn-soon-title, .dl-title, .dl-hero-title) {
   text-transform: none;
   letter-spacing: normal;
+}
+
+/* ------------------------------------------------------------------ Compete (P3, 22 Nov 2026) */
+/* Compete's order (plan section 2.1, mockup compete-mixed-phone): the ladder hero, Tournaments, then Leaderboards. */
+.cp-section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+/* A live event as one card: the art, LIVE, the title and the line, its one action on the right; a cyan edge light. */
+.tn-live-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  box-shadow: inset 0 0 0 1.5px var(--jz-cyan);
+}
+.tn-live-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+[data-skin] .tn-live-title,
+.tn-live-title {
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0;
+  font: var(--jz-type-heading);
+  color: var(--jz-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tn-live-card > [data-jz="button"] {
+  flex: none;
+}
+/* The leaderboards' four tabs and the board under them. */
+.cp-board-tabs {
+  width: 100%;
+}
+/* One panel round the board in every state (loading, a note, the rows), so nothing moves when the board arrives. */
+.cp-board-panel {
+  overflow: hidden;
+}
+.cp-board-panel .lb-board {
+  border-radius: 0;
+  background: none;
+}
+/* The skeleton draws the loaded list's rows at their heights: three ranked rows (a nameplate and its line under it)
+   and the pinned row, with the same dividers. */
+.cp-board-skel {
+  display: flex;
+  flex-direction: column;
+}
+.cp-board-skel-row {
+  display: flex;
+  min-height: 80px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) var(--jz-space-16);
+  border-top: 1px solid var(--jz-line);
+}
+.cp-board-skel-row:first-child {
+  border-top: 0;
+}
+.cp-board-skel-row[data-pinned] {
+  min-height: 60px;
+  border-top: 0;
+  border-left: 3px solid var(--jz-gold);
+  background: var(--jz-surface-2);
+}
+.cp-board-skel-medal {
+  flex: none;
+  border-radius: 50%;
+}
+.cp-board-skel-plate {
+  flex: 1;
+  min-width: 0;
+}
+.cp-board-skel-row > .jz-skel:last-child {
+  flex: none;
+}
+.cp-board-note {
+  margin: 0;
+  padding: var(--jz-space-16);
+  font: var(--jz-type-label);
+  color: var(--jz-text-2);
 }

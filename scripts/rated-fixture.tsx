@@ -142,7 +142,8 @@ const RESULT: RatedResult = {
 const noop = () => undefined;
 const challenge = async () => ({ ok: true as const, code: "ABC234" });
 const result = (r: RatedResult) => (
-  <MatchResult result={r} nowMs={Date.now()} onNext={noop} onRematch={noop} onTiers={noop} onChallenge={challenge} onReveal={noop} />
+  // Changed with Joe's approval, 22 Nov 2026: onHome, so the result's Home button shows.
+  <MatchResult result={r} nowMs={Date.now()} onNext={noop} onRematch={noop} onTiers={noop} onChallenge={challenge} onReveal={noop} onHome={noop} />
 );
 
 /** The 4- and 8-player views' seats: cards for accounts, a recorded run, long names on purpose. */

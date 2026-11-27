@@ -207,3 +207,20 @@ export async function readRatedWeekChange(client: Db, userId: string, fromIso: s
     error,
   };
 }
+
+/** A player's rated record (You's "Rated wins" gauge, P3, 22 Nov 2026): their counted live matches and the wins. */
+export interface RatedWinCount {
+  played: number;
+  wins: number;
+}
+
+export async function readRatedWinCount(client: Db, userId: string): Promise<Result<RatedWinCount | null>> {
+  // Not in the generated types yet (20261122100000_rated_win_count.sql): called through its name.
+  const rpc = client.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Result<unknown>["error"] }>;
+  const { data, error } = await rpc.call(client, "rated_win_count", { p_user_id: userId });
+  const row = data as { played?: unknown; wins?: unknown } | null;
+  return {
+    data: row && typeof row === "object" ? { played: Number(row.played) || 0, wins: Number(row.wins) || 0 } : null,
+    error,
+  };
+}
