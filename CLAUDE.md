@@ -3008,8 +3008,8 @@ outside the repo.
   Nov 2026 sessions don't decide difficulty** (Joe tunes the levels himself after playtests): the figures are reported,
   never targets; the ladder checks re-play a sample of them and prove the deals, nothing more. Lever pictures:
   `src/lib/levels/pictures/retro-action.tsx` (`LEVER_PICTURES`, one SVG per game drawn from its level's own settings,
-  tokens only) for P2's level slot; the "?" help's "Levels:" lines are unchanged until P2's PR #471 merges (the proposed
-  lines are in the D5 PR). Checks: `<game>-ladder-check` for all sixteen (shared helpers `scripts/ladder-check-lib.ts`)
+  tokens only) for P2's level slot; each game's "?" help has a help-only "Levels:" line saying what Easy, Hard and
+  Expert change (`instructions.ts`, written after P2's #471; High Rise's and Roofbound's read their sims' tables). Checks: `<game>-ladder-check` for all sixteen (shared helpers `scripts/ladder-check-lib.ts`)
   and retro-levels-check. Moon Climb's widest poses reach past its hit box on every revision (an art issue for A3).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
