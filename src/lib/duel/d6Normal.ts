@@ -58,6 +58,10 @@ export function pinPreBalltrackD6(on: boolean): boolean {
 export function pinPreInkD6(on: boolean): boolean {
   return setDealPin("inkPreD6", on);
 }
+/** Checks written for Crazy Golf golfRev 3 deal it (Normal and the levels before D6); returns the previous setting. */
+export function pinPreMinigolfD6(on: boolean): boolean {
+  return setDealPin("minigolfPreD6", on);
+}
 /** Checks written for D6's games' level deals before D6 (main 7e25a4d0) deal them; returns the previous setting. */
 export function pinPreD6Levels(on: boolean): boolean {
   return setDealPin("d6PreLevels", on);
@@ -67,5 +71,6 @@ export function pinPreD6Levels(on: boolean): boolean {
 export const fiveHands128Dealt = (): boolean => !dealPinned("fivehandsPre128");
 export const tiltThreeDealt = (): boolean => !dealPinned("tiltPreThree");
 export const inkD6Dealt = (): boolean => !dealPinned("inkPreD6");
+export const minigolfD6Dealt = (): boolean => !dealPinned("minigolfPreD6");
 export const tripeaksEaseDealt = (): boolean => !dealPinned("tripeaksPreEase");
 export const racingFiveDealt = (): boolean => !dealPinned("racingPreFive");

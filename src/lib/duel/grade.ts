@@ -1541,7 +1541,7 @@ function gradeUnderRev(
         score = run.score;
         extraDetail = {
           golfRev: puzzle.golfRev ?? 1,
-          ...(puzzle.golfRev === 3 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
+          ...(puzzle.golfRev === 3 || puzzle.golfRev === 4 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
           holed: run.holed,
           strokes: run.strokes,
           atPar: run.pars,

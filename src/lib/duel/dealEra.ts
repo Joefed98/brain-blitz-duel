@@ -145,6 +145,8 @@ export const DEAL_PINS = {
   balltrackPreD6: { texts: true },
   /** arcade.server.ts: Rainbow Bridge inkRev 15, before D6's inkRev 16 (each part full where the realistic elite fills it, 27 Nov 2026). */
   inkPreD6: { texts: true },
+  /** sports.server.ts: Crazy Golf golfRev 3, before D6's golfRev 4 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  minigolfPreD6: { texts: true },
   /**
    * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
    * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.

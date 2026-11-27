@@ -30,7 +30,7 @@ import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
 import { racingDealSeedV5Easy } from "./racingDealV5Easy.server";
 import { racingDealSeedV5Hard } from "./racingDealV5Hard.server";
 import { racingDealSeedV5Expert } from "./racingDealV5Expert.server";
-import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
+import { MINIGOLF_REV, MINIGOLF_REV_COURSE, MINIGOLF_REV_D6, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
 import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
 import { POOL_REV, POOL_REV_V4 } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
@@ -143,7 +143,9 @@ export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData 
   return {
     type: "minigolf",
     seed,
-    golfRev: MINIGOLF_REV_COURSE,
+    // golfRev 4 (D6, 27 Nov 2026): golfRev 3's holes and play, each part on the level's own figures (MG_D6_FIGURES).
+    // Checks written for golfRev 3 pin minigolfPreD6; the levels before D6, d6PreLevels.
+    golfRev: dealPinned("minigolfPreD6") || (lv !== "normal" && dealPinned("d6PreLevels")) ? MINIGOLF_REV_COURSE : MINIGOLF_REV_D6,
     holes: picks.map((e) => e.id),
     pars: picks.map((e) => e.pars[at]!),
     ...(lv === "normal" ? {} : { level: lv }),
