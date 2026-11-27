@@ -33,7 +33,14 @@
   background-image: linear-gradient(var(--box-wash), var(--box-wash)), url("/logic-art/box-tile.webp");
   background-size: 100% 100%;
 }
-:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-box-tint] {
+/* Every other 2 × 3 box takes a light tint, so the boxes read (Spotlight, A2): the boxes on a checkerboard, picked by the
+   cell's place in the 6 × 6 grid (rows 1–2 columns 4–6, rows 3–4 columns 1–3, rows 5–6 columns 4–6), so the board's
+   markup is unchanged. */
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell:is(
+    :nth-child(4), :nth-child(5), :nth-child(6), :nth-child(10), :nth-child(11), :nth-child(12),
+    :nth-child(13), :nth-child(14), :nth-child(15), :nth-child(19), :nth-child(20), :nth-child(21),
+    :nth-child(28), :nth-child(29), :nth-child(30), :nth-child(34), :nth-child(35), :nth-child(36)
+  ) {
   --box-wash: color-mix(in srgb, var(--category-accent) 15%, transparent);
 }
 :is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-tone="given"] {
