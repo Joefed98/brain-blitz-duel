@@ -14,6 +14,7 @@ import { takeHud, withHudInWorld } from "@/lib/arcade/hudPlacement";
 import { clearLiveHud, offerLiveHud } from "@/lib/rated/liveHud";
 
 import { ARENA_HUD_IN_PANEL, useArenaMount } from "./arena";
+import { arenaPanelsHidden } from "./screenMode";
 
 /** Returns `hudDraw(draw)`: runs one frame's draw with the HUD placed for this screen, then offers its values. */
 export function useArenaHudDraw(): <T>(draw: () => T) => T {
@@ -23,7 +24,8 @@ export function useArenaHudDraw(): <T>(draw: () => T) => T {
   useEffect(() => () => clearLiveHud(), []);
   return useCallback(<T,>(draw: () => T): T => {
     const onArena = arenaRef.current;
-    const result = withHudInWorld(!(onArena && ARENA_HUD_IN_PANEL), draw);
+    // With the panels hidden (screenMode.ts) the HUD is drawn in the world again, as the panel listing it is gone.
+    const result = withHudInWorld(!(onArena && ARENA_HUD_IN_PANEL) || arenaPanelsHidden(), draw);
     if (onArena) offerLiveHud(takeHud(), performance.now());
     return result;
   }, []);

@@ -25,6 +25,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { takeHud, withHudInWorld } from "@/lib/arcade/hudPlacement";
 import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
+import { arenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
 import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
@@ -361,7 +362,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           ctx.save();
           // The Cabinet (polish plan B1): on the arena the panels can draw the canvas HUD's values (ARENA_HUD_IN_PANEL);
           // the painters read the flag for this draw only (hudPlacement.ts), so replays, reveals and checks are untouched.
-          withHudInWorld(!(arenaRef.current && ARENA_HUD_IN_PANEL), () => {
+          withHudInWorld(!(arenaRef.current && ARENA_HUD_IN_PANEL) || arenaPanelsHidden(), () => {
             if (propsRef.current.renderAtCanvasSize) {
               game.draw(ctx, state.current, size);
             } else {
