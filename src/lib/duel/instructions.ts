@@ -398,6 +398,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         ...(wordOverhaulDealt("wordsmith")
           ? [{ action: "The word counter", detail: "counts the board’s everyday words; a rarer dictionary word still scores, as a bonus word.", helpOnly: true }]
           : []),
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy counts three-letter words on a ring of 9 or 10 letters, 120 seconds; Hard only words of five letters or more on 10 or 11, 65 seconds; Expert only six letters or more on 11, 40 seconds.", helpOnly: true },
       ],
       score: scoreList([
         { label: "Words", how: "longer words score more (4 letters 1 word point, 5 letters 2, 6 letters 4, 7 letters 7, 8 letters 11, 9 or more 15, shown on the counter)", max: WORDSMITH_V3_CAP },
@@ -413,6 +415,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag a placed tile", detail: "back to the tray, or double-tap it, to take it back. Clear empties the grid.", helpOnly: true },
         { action: "A run that is not a word", detail: "shows red while it stands. After Done, any left flash red for a moment: fix them and tap Done again.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy is ten tiles and two crossing words on a 6 by 6 board, 120 seconds; Hard nineteen tiles and four words on 8 by 8, 90 seconds; Expert twenty-three tiles on 8 by 8, words checked only on Done, 70 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("tilegrid", TILEGRID_STRETCH_TOPUP) : wordNov7Dealt("tilegrid") ? WORD_NOV7_HELP.tilegrid : WORD_STANDARD_HELP.tilegrid,
     },
@@ -446,6 +450,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         ...(wordOverhaulDealt("wordslide") ? [{ action: "Reset", detail: "asks first: tap it twice.", helpOnly: true }] : []),
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy is a 4 by 4 grid of four-letter words, 2 or 3 slides away; Hard a 6 by 6 grid of six-letter words, 6 or 7 slides away; Expert a 7 by 7 grid of seven-letter words, 6 slides away, with a looser move bonus; every level has 100 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? parBonusHelp("wordslide", SLIDE_PAR_BONUS_TOPUP, "moves", "the par moves") : wordNov7Dealt("wordslide") ? WORD_NOV7_HELP.wordslide : WORD_STANDARD_HELP.wordslide,
     },
@@ -612,6 +618,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tapping the last letter again", detail: "takes it off the word.", helpOnly: true },
         { action: "The Misses pill", detail: "counts traces that were not words against your free ones; it turns red once they cost points.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy counts three-letter words and misses are free, 120 seconds; Hard only words of five letters or more, with six free misses, 65 seconds; Expert only seven letters or more, with three free misses, 40 seconds.", helpOnly: true },
       ],
       // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
       score: scoreList([
@@ -2170,6 +2178,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         wordOverhaulDealt("wordsearch")
           ? { action: "The bonus word", detail: "fills the gold star chip. After the last listed word the round goes on: find the bonus, or tap Done.", helpOnly: true }
           : { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy is an 8 by 8 grid of five words, all across or down, 120 seconds; Hard a taller grid of eight words running any way, backwards too, 100 seconds; Expert ten words with false starts, 90 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? wordSearchBonusHelp() : wordOverhaulDealt("wordsearch") ? LOOKOUT_OVERHAUL_HELP : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
     },
@@ -2190,6 +2200,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "Crossword answers", detail: "are everyday words, with few three-letter ones.", helpOnly: true },
             ]
           : []),
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy has six letters on the wheel and a smaller crossword, 120 seconds; Hard a bigger crossword of 16 to 19 words with 3 free misses, 95 seconds; Expert eight letters, 20 or more words and 2 free misses, 90 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? letterWheelJarHelp() : WORD_STANDARD_HELP.letterwheel,
     },
@@ -2205,6 +2217,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy shows four starting letters on every word, with four vowel guesses, 14 strikes and 120 seconds; Hard one starting letter and two vowel guesses a word, 100 seconds; Expert no starting letters and two vowel guesses, 70 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? strikeoutDepthHelp() : WORD_STANDARD_HELP.strikeout,
     },
@@ -2219,6 +2233,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "After each letter", detail: "the next number still to decode is picked for you.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
         { action: "A full grid that isn’t cracked", detail: "flashes the words on it that aren’t real words.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy is a 5 by 5 grid of six words with six letters to start, 120 seconds; Hard five letters to start on a wider 8 by 7 grid, 110 seconds; Expert four letters on a 9 by 7 grid, 80 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : wordOverhaulDealt("codeword") ? CODEWORD_OVERHAUL_HELP : WORD_STANDARD_HELP.codeword,
     },
@@ -2232,6 +2248,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par on Normal (the level says); running out ends the round.`, helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
+        // D1 (27 Nov 2026): what each level changes, for the "?" help (help text only).
+        { action: "Levels:", detail: "Easy has fewer tiles out of place and plenty of spare swaps, 120 seconds; Hard three loops of words, 30 tiles on a bigger board and 8 spare swaps, 110 seconds; Expert six 7-letter words, 33 tiles and 6 spare swaps, 110 seconds.", helpOnly: true },
       ],
       score: preStandardPinned() ? parBonusHelp("swapword", SWAP_PAR_BONUS_TOPUP, "swaps", "par swaps (the fewest that solve the board)") : WORD_STANDARD_HELP.swapword,
     },
