@@ -206,7 +206,7 @@ function encode(rev: number, level: MoonLevel | null, seed: number, events: read
   const met = (n: string, extra: Record<string, number>, score = 150) => goalMet(ch[n]!.goal, { score, extra: { ricoRev: 5, ...extra } as never });
   ok(Boolean(ch["Scroll keeper"]) && met("Scroll keeper", { scrolls: 3, rides: 0, metres: 100, flow: 0 }) && !met("Scroll keeper", { scrolls: 2, rides: 6, metres: 300, flow: 10 }), "6a: Scroll keeper needs all three scrolls (two fill the part on ricoRev 5)");
   ok(Boolean(ch["Lantern lift"]) && met("Lantern lift", { rides: 6, scrolls: 0, metres: 100, flow: 0 }) && !met("Lantern lift", { rides: 5, scrolls: 3, metres: 300, flow: 10 }), "6b: Lantern lift needs all six rides (three fill the part)");
-  ok(Boolean(ch["Moonwalker"]) && met("Moonwalker", { metres: 220, rides: 0, scrolls: 0, flow: 0 }) && !met("Moonwalker", { metres: 219, rides: 6, scrolls: 3, flow: 10 }), "6c: Moonwalker needs 220 m, Normal's full height (Hard's height fills at 190 m)");
+  ok(Boolean(ch["Moonwalker"]) && met("Moonwalker", { metres: 245, rides: 0, scrolls: 0, flow: 0 }) && !met("Moonwalker", { metres: 244, rides: 6, scrolls: 3, flow: 10 }), "6c: Moonwalker needs 245 m on Hard (Joe, 27 Nov 2026: ricoRev 3–4's full height, past Hard's 190 m)");
 }
 
 if (failures.length) {

@@ -1913,7 +1913,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
         { action: `${BURST_V10_WAVES} waves:`, detail: "clear each fast for a bonus." },
-        { action: "Golden atoms:", detail: `${BURST_V14_GOLD_FULL} pay ${BURST_V10_GOLDEN_MAX}, but they hurt like any atom.` },
+        { action: "Golden atoms:", detail: `${BURST_V14_GOLD_FULL} pay ${BURST_V10_GOLDEN_MAX}, but they hurt too.` },
         { action: "An atom touching you (golden ones too)", detail: `costs a life (3 lives). Each life but your last costs ${BURST_V10_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },

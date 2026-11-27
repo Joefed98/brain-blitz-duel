@@ -14,9 +14,14 @@
  */
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
 import { bastionTankGameFor, BT2_WORLD_H, BT2_WORLD_W, type BastionTankState } from "../src/lib/arcade/bastionTank";
 import { bastionOracleRun } from "./bastion-oracle";
+
+// The HUD's and the intro still's text in the app's own font (self-hosted, public/fonts), as ricochet-overhaul-check and
+// swing-overhaul-check do, so a frame's pixels don't depend on the machine's fallback font (CI's differs from a session's).
+// Changed with Joe's approval, 27 Nov 2026 (the fixture re-recorded from c550c1bb's renderer with the font registered).
+GlobalFonts.registerFromPath("public/fonts/archivo-var-latin.woff2", "Archivo");
 
 export const BASTION_LADDER_ART = "scripts/fixtures/bastion-ladder-art.json";
 

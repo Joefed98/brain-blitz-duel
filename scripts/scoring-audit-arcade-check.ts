@@ -245,7 +245,8 @@ for (const r of newRuns) {
   ok(/before your last costs/.test(help("burst").score) && /Wasted shots beyond one for each atom popped/.test(help("burst").score) && /half your atom points/.test(help("burst").score) && /wasted/.test(all("burst")), "Fission's help: the last life is free, wasted shots, the half cap");
   ok(/wasted shots/.test(INTRO_SCORE.burst) && INTRO_SCORE.burst.length <= 90, `Fission's intro names wasted shots: ${INTRO_SCORE.burst}`);
   // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12): the help states 30 perfect drops.
-  ok(/every perfect drop counts the same, all of it at 30 perfect drops/.test(help("skyline").score) && !/share of your drops/.test(help("skyline").score), "High Rise's help: perfect drops counted, not a share");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's skylineRev 12 refit of 27 Nov 2026): the help states 24 perfect drops.
+  ok(/every perfect drop counts the same, all of it at 24 perfect drops/.test(help("skyline").score) && !/share of your drops/.test(help("skyline").score), "High Rise's help: perfect drops counted, not a share");
   ok(!/first half of it scores nothing/.test(all("slice")) && !/Past the first/.test(all("slice")) && /every piece counts the same/.test(help("slice").score), "Slice's help: every piece and every combo food counts from the first");
 }
 
