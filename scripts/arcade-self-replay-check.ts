@@ -1403,6 +1403,13 @@ const ENTRY_COST: Record<number, number> = {
   184: 29.2,
   // Cue Ball poolRev 4 (3 Nov 2026, pool/v4: 17.0 s at 40 runs locally).
   202: 17.0,
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ladder entries): every entry over 1.5 s that
+  // wasn't listed, measured locally at 40 runs on polish/d5 afad946e, so the three parts balance (~180–220 s each here).
+  113: 2.6, 114: 2.8, 130: 7.5, 131: 4.9, 132: 3.2, 138: 1.9, 140: 2.0, 141: 3.9, 142: 4.9, 152: 1.6,
+  159: 5.2, 161: 9.8, 162: 4.5, 172: 16.0, 181: 17.7, 186: 16.4, 197: 6.8, 204: 12.4, 209: 12.0, 210: 6.3,
+  211: 8.8, 212: 8.8, 219: 37.7, 221: 4.4, 222: 12.5, 234: 1.8, 240: 18.1, 242: 1.8, 247: 4.1, 249: 15.5,
+  257: 10.7, 258: 13.1, 259: 14.0, 279: 2.6, 295: 13.5, 296: 9.6, 297: 11.7, 298: 17.7, 318: 5.5, 319: 5.1,
+  330: 2.1, 335: 2.1, 336: 9.1, 337: 35.6,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

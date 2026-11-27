@@ -3064,7 +3064,7 @@ outside the repo.
   - Split checks: an entry `<file>@<k>/<n>` in `shards.ts` runs part k of n
     (`--part=k/n`). puzzle-bank-check's every-entry verification is split over four of `a`–`g`
     (one part each, under 90 s on a 2-core runner); arcade-play-check's 22 active arcade games (and Letterfall) over
-    `play1`–`play5`; arcade-self-replay-check's entries over two (`@1/2`, `@2/2`, each entry on its own
+    `play1`–`play5`; arcade-self-replay-check's entries over three (`@1/3`–`@3/3`, changed with Joe's approval, 27 Nov 2026; each entry on its own
     PRNG stream, so a part runs the same seeds as a whole run). Together the parts check exactly what one whole run does.
   - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
     or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
