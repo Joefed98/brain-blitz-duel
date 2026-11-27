@@ -630,6 +630,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         prePatternNov15Pinned()
           ? { action: "Undo and Reset", detail: "don’t give a move back: every slide counts.", helpOnly: true }
           : { action: "Undo and Reset", detail: "give the move back: only the slides left on the board count.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is a half-empty 6 × 6 lot; Hard a fuller 7 × 7 lot and a longer line, 70 seconds; Expert the longest line, 75 seconds.", helpOnly: true },
       ],
       // Partial-credit fixes (7 Nov 2026, partialCredit.ts): the new stamp's unfinished credit.
       score: partialCreditDealt() ? PARTIAL_PATTERN_HELP.unblock : PATTERN_STD_HELP.unblock,
@@ -648,6 +650,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? []
           : [{ action: "Undo", detail: "gives your last move back; Reset sends every piece back to the tray.", helpOnly: true }]),
         // ---- tessellate:end
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is a 5 × 5 board and four small pieces; Hard an 8 × 8 board and ten pieces, 70 seconds; Expert eleven pieces with only one or two ways to finish.", helpOnly: true },
       ],
       score: blockPatternHelp(),
     },
@@ -678,6 +682,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
             { action: "Par", detail: "is the fewest turns either way, shown under the board beside your turns." },
             // Difficulty levels (15 Nov 2026, pipes.levels.ts): Expert hides the live spills.
             { action: "On Expert", detail: "no spills show while you play: find the open ends yourself.", helpOnly: true },
+            // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+            { action: "Levels:", detail: "Easy is 5 × 5; Hard 8 × 8 with nearly every tile turned; Expert 8 × 11 with the spills hidden.", helpOnly: true },
           ],
       // pipesRev 4 (7 Nov 2026, speedPipesNov7.ts): the tiles turned to fit.
       score: pipesPatternHelp(),
@@ -690,7 +696,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pencil marks", detail: "are for notes." },
         { action: "A clash turns red:", detail: "a number repeated in its row, column or box." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
-        { action: "Levels:", detail: "Easy has more digits given and hides a digit once all six are placed; Hard gives fewer and needs a pair or pointing step; Expert gives 9 or 10 and needs two, and its clashes show only when you press Check.", helpOnly: true },
+        { action: "Levels:", detail: "Easy gives 24 to 26 digits and hides a digit once all six are placed; Hard gives 10 to 12 and needs a pair or pointing step; Expert gives 8 or 9, needs three such steps and shows clashes only when you press Check, 75 seconds.", helpOnly: true },
       ],
       score: logicStandardHelp("sudoku"),
     },
@@ -705,6 +711,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
             { action: "Fill every square", detail: "with a path." },
             { action: "Drag from a loose end", detail: "to carry on; drag from a dot to start its line again (a tap leaves it as it is).", helpOnly: true },
             { action: "Each bead", detail: "has its own symbol, so close colours are easy to tell apart.", helpOnly: true },
+            // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+            { action: "Levels:", detail: "Easy is 6 × 6 with 5 or 6 pairs; Hard 9 × 11 with 12 pairs; Expert 9 × 13 with 14 pairs, 70 seconds.", helpOnly: true },
           ]
         : [
             { action: "Drag from a dot", detail: "to its partner." },
@@ -760,6 +768,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         // Difficulty levels (16 Nov 2026, push.levels.ts): the stuck hint on Easy and Normal only (display only).
         { action: "On Easy and Normal", detail: "a crate pushed where it can never reach a mark turns red: undo it.", helpOnly: true },
         { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has 3 crates; Hard 6; Expert 7 with the longest pushes.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,
     },
@@ -779,7 +789,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "Undo is free:", detail: "it takes back your last change (a place, turn, move or Reset) and costs nothing; a shot isn’t given back.", helpOnly: true },
               { action: "Out of shots:", detail: "after your last shot the board locks.", helpOnly: true },
               // Difficulty levels (16 Nov 2026, laser.levels.ts): the shots and spare mirrors differ by level.
-              { action: "Levels:", detail: "Easy gives five shots and three spare mirrors; Hard one spare; Expert one spare and two shots.", helpOnly: true },
+              { action: "Levels:", detail: "Easy has one bomb, five shots and three spare mirrors; Hard 6 or 7 bombs and one spare, 60 seconds; Expert 9 or 10 bombs, no spare mirror and two shots, 75 seconds.", helpOnly: true },
             ]),
       ],
       // laserRev 4 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
@@ -794,7 +804,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect solve:", detail: "the fewest moves (par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
         { action: "A wrong post", detail: "bounces the ring back; it stays lifted for another try.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 7 rings on 4 posts; Hard 9 rings on 3 posts, 90 seconds; Expert 10 rings on 3 posts, 105 seconds; Normal 3 or 4 posts. Run out of time and the reveal says how many moves you were from done.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 7 rings on 4 posts; Hard 10 rings on 3 posts, 90 seconds; Expert 12 rings on 3 posts, 120 seconds; Normal 3 or 4 posts. Run out of time and the reveal says how many moves you were from done.", helpOnly: true },
       ],
       score: logicStandardHelp("tower"),
     },
@@ -829,7 +839,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         logicOverhaul1Dealt()
           ? { action: "Pours are limited", detail: "(the counter). Undo gives its pour back; out of pours, the board ends.", helpOnly: true }
           : { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 6 flasks of 4 colours; Hard 10 taller flasks of 7 layers on 120 seconds; Expert 12 flasks of 10 colours with two empty, and only each flask\u2019s top colour shows: the layers below are grey with a ? until you uncover them.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 6 flasks of 4 colours; Hard 12 flasks of 10 colours, 90 seconds; Expert the same rack with only each flask’s top colour showing: the layers below are grey with a ? until you uncover them.", helpOnly: true },
       ],
       score: logicStandardHelp("tubes"),
     },
@@ -841,7 +851,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one code", detail: "fits every clue." },
         { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
         { action: "A wrong try", detail: "marks the clues its code broke.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 3 dials of 0\u20139 with simple clues; Hard 4 dials of 0\u201315, six clues with primes, squares and differences, 75 seconds; Expert 5 dials of 0\u201320, seven clues and only two tries.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 3 dials of 0–9 with simple clues; Hard 5 dials of 0–15, seven clues and two tries, 90 seconds; Expert 6 dials of 0–15, nine clues and one try.", helpOnly: true },
       ],
       score: logicStandardHelp("safe"),
     },
@@ -882,6 +892,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           : { action: "Tilts are limited", detail: "on each board: its par plus 8. Undo and Reset give the tilt back; out of tilts, the next board comes.", helpOnly: true },
         { action: "Arrows or a joystick:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
         // ---- topsy:end
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is two boards of 3 balls; Hard three boards of 7; Expert three boards of 8.", helpOnly: true },
       ],
       score: parMovesDealt() ? parMovesPatternHelp("gravity") : PATTERN_STD_HELP.gravity,
     },
@@ -907,7 +919,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap or drag", detail: "to fill; tap again to mark empty. A drag paints like its first square." },
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
-        { action: "Levels:", detail: "Easy is 6 \u00d7 6 and a line that matches its numbers fills its gaps with \u00d7; Hard 9 \u00d7 11; Expert 9 \u00d7 14, where some squares need two lines read together.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 5 × 5 and a line that matches its numbers fills its gaps with ×; Hard 9 × 11; Expert 9 × 14, where some squares need two lines read together.", helpOnly: true },
       ],
       score: logicStandardHelp("nonogram"),
     },
@@ -1240,7 +1252,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The opening is revealed for you:", detail: "every board can be solved by logic alone, no guessing.", helpOnly: true },
         { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
         { action: "One board for everyone,", detail: "on Normal 16 mines on 10 × 16, 90 seconds.", helpOnly: true },
-        { action: "Levels:", detail: "Easy is 8 × 12 with 9 mines; Hard today\u2019s 20 mines; Expert 12 × 18 with 34 mines and a small opening, 120 seconds. Never a guess on any level.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 8 × 12 with 9 mines; Hard 26 mines, 90 seconds; Expert 40 mines on the same 10 × 16 with a small opening, 105 seconds. Never a guess on any level.", helpOnly: true },
       ],
       score: liveStdHelp("minesweeper", `Each mine hit costs ${MINES_HIT_COST}.`),
     },
@@ -1996,6 +2008,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a rectangle", detail: "to remove it.", helpOnly: true },
         { action: "The outline turns green", detail: "while you drag once its size matches the one number inside.", helpOnly: true },
         { action: "Each rectangle", detail: "is a coloured glass pane; touching panes are never the same colour.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 10 × 7; Hard 10 × 13 with 19 to 22 rectangles, 120 seconds; Expert 10 × 15 with 22 to 26.", helpOnly: true },
       ],
       score: logicStandardHelp("shikaku"),
     },
@@ -2007,6 +2021,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Each number", detail: "is how many of its four sides the loop uses." },
         { action: "A number turns gold", detail: "when the loop uses exactly that many of its sides, and red when it uses more.", helpOnly: true },
         { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 5 × 5; Hard 7 × 7, 120 seconds; Expert 8 × 8, 120 seconds.", helpOnly: true },
       ],
       score: gridStandardHelp("fences"),
     },
@@ -2021,6 +2037,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every number has its own colour;", detail: "a region of the right size is edged in gold. Gold means the size is right, not that the region is correct.", helpOnly: true },
         { action: "A region past its number", detail: "turns red.", helpOnly: true },
         { action: "Undo", detail: "takes back a whole stroke; Reset clears the board.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 6 × 6; Hard 8 × 8, 120 seconds; Expert 8 × 8 with 10 to 14 numbers, 120 seconds.", helpOnly: true },
       ],
       score: gridStandardHelp("fillomino"),
     },
@@ -2034,6 +2052,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Bridges run straight,", detail: "never cross, and at most two join a pair." },
         { action: "Every island", detail: "must end up connected." },
         { action: "Undo", detail: "takes back your last move; Reset clears the board.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 6 × 6 with 7 to 9 islands; Hard 8 × 8 with 13 to 16, 120 seconds; Expert 18 to 22 islands.", helpOnly: true },
       ],
       score: gridStandardHelp("bridges"),
     },
@@ -2055,6 +2075,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pass each fixed number", detail: "at its own step." },
         { action: "Ten gold-edged numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
         { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes. Each undo costs a little of the clean bonus.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 5 × 5 with 9 numbers shown; Hard 7 × 7 with 17; Expert 7 × 7 with 14.", helpOnly: true },
       ],
       score: standardNumberHelp("trail"),
     },
@@ -2245,6 +2267,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Dots", detail: "are your notes; they never score.", helpOnly: true },
         { action: "Lit squares glow warm;", detail: "near the end the board counts the squares still dark.", helpOnly: true },
         { action: "A wall’s number gets a gold tick", detail: "once it has its bulbs (a 0 once every square beside it is lit or dotted).", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 9 × 6 with most walls numbered; Hard 9 × 11, 120 seconds; Expert 9 × 12 with fewer numbers.", helpOnly: true },
       ],
       score: logicStandardHelp("lightup"),
     },
@@ -2258,6 +2282,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
         { action: "A signpost turns gold", detail: "when its row or column has all its tents.", helpOnly: true },
         { action: "A ? sign", detail: "hides that row’s or column’s count; work it out from the rest.", helpOnly: true },
+        // D4 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 8 × 6 with every count shown; Hard 8 × 11 with half the counts hidden, 120 seconds; Expert 8 × 12, 115 seconds.", helpOnly: true },
       ],
       score: logicStandardHelp("tents"),
     },
