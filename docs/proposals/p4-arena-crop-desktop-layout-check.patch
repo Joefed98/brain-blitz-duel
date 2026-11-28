@@ -1,0 +1,36 @@
+--- a/scripts/desktop-layout-check.ts
++++ b/scripts/desktop-layout-check.ts
+@@ -18,7 +18,8 @@
+  *  - each game's desktop mode (desktopModes.ts, every active game at 1440×900 and one game of each mode at
+  *    every size): the play screen not in the registry's mode, a rotor on any but a rotate game (and none on
+  *    one), the page scrolling, the world, its canvas or a control outside the centre between the rail and
+- *    the panel or off screen, or a canvas not crisp within the pixel-ratio cap of 2;
++ *    the panel or off screen, or a canvas not crisp within the pixel-ratio cap of 2 (the world judged without the HUD (Changed with Joe's approval, 28 Nov 2026)
++ *    band a game declares cut, hudBands.ts, out of view by design; hud-bands-check proves nothing drawn reaches it); (Changed with Joe's approval, 28 Nov 2026)
+  * and, the phones unchanged: at 414×896 (iPhone 11 home-screen app) and 375×667, any of those screens shows a
+  * rail, the banner slot, a right column, the room panel, a controls hint, a desktop mode or a layout mark, or a
+  * tab page lacks its bottom tab bar and header. A touch screen as wide as a desktop (1440×900 with touch) gets
+@@ -183,6 +184,14 @@
+     frameHeader: !!document.querySelector("[data-game-frame-header]"),
+     hintBox: box(document.querySelector("[data-controls-hint]")),
+     arena: arena ? { ...box(arena)!, turned, rotors: document.querySelectorAll("[data-arena-rotor]").length } : null,
++    // The HUD band the slot declares cut (hudBands.ts), in CSS pixels of the drawn world: above and below. (Changed with Joe's approval, 28 Nov 2026)
++    cut: (() => { // Changed with Joe's approval, 28 Nov 2026
++      const slot = arena?.closest("[data-arena-slot]"); // Changed with Joe's approval, 28 Nov 2026
++      const st = slot ? getComputedStyle(slot) : null; // Changed with Joe's approval, 28 Nov 2026
++      const worldH = Number(st?.getPropertyValue("--arena-h").trim() || 0); // Changed with Joe's approval, 28 Nov 2026
++      const k = arena && worldH > 0 ? arena.getBoundingClientRect().height / worldH : 0; // Changed with Joe's approval, 28 Nov 2026
++      return { top: Number(st?.getPropertyValue("--arena-crop").trim() || 0) * k, bottom: Number(st?.getPropertyValue("--arena-crop-b").trim() || 0) * k }; // Changed with Joe's approval, 28 Nov 2026
++    })(), // Changed with Joe's approval, 28 Nov 2026
+     // Text inside a rotor would read sideways: none may be there (Cue Ball's HUD is on its upright strip).
+     rotorText: [...document.querySelectorAll("[data-arena-rotor] *")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())).map((el) => (el.textContent ?? "").trim().slice(0, 20)),
+     hudStrip: (() => {
+@@ -281,7 +290,7 @@
+   if (m.arena) {
+     if (m.arena.rotors !== (want === "rotate" ? 1 : 0)) problems.push(`${m.arena.rotors} rotor(s), want ${want === "rotate" ? 1 : 0}`);
+     if (m.arena.turned !== (want === "rotate")) problems.push(`world ${m.arena.turned ? "turned" : "upright"}`);
+-    if (m.arena.x < left - 0.75 || m.arena.r > right + 0.75 || m.arena.y < -0.75 || m.arena.b > m.innerH + 0.75) problems.push(`world ${m.arena.w.toFixed(0)}×${m.arena.h.toFixed(0)} at ${m.arena.x.toFixed(0)},${m.arena.y.toFixed(0)} outside the centre ${left}..${right}`);
++    if (m.arena.x < left - 0.75 || m.arena.r > right + 0.75 || m.arena.y + m.cut.top < -0.75 || m.arena.b - m.cut.bottom > m.innerH + 0.75) problems.push(`world ${m.arena.w.toFixed(0)}×${m.arena.h.toFixed(0)} at ${m.arena.x.toFixed(0)},${m.arena.y.toFixed(0)} outside the centre ${left}..${right}`); // Changed with Joe's approval, 28 Nov 2026
+     const ratio = Math.min(2, m.dpr);
+     for (const c of m.canvases) {
+       if (c.cssW < 2) continue;

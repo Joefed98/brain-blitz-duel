@@ -1,0 +1,40 @@
+--- a/scripts/desktop-geometry-check.tsx
++++ b/scripts/desktop-geometry-check.tsx
+@@ -19,6 +19,8 @@
+  *    largest uniform fit of its box (within 2px: an even whole-pixel width), not on whole CSS pixels, or its canvas backing
+  *    store not the box × the pixel ratio (crisp at DPR 1 and 2); its fill (where the game has one)
+  *    not covering the whole screen; a control off screen; the page scrolling;
++ *    the fit and the board's foot are measured without the HUD band a game declares cut (hudBands.ts), out of view by (Changed with Joe's approval, 28 Nov 2026)
++ *    design; hud-bands-check proves nothing the game draws reaches into it; (Changed with Joe's approval, 28 Nov 2026)
+  *  - while one arcade round is resized through every size (and down to a 1000×768 window, where
+  *    the phone's game layout returns, and back; 1024×768 until 31 Oct 2026, now the desktop layout's
+  *    narrowest) any of the above fails at any step;
+@@ -218,6 +220,8 @@
+     slotPad: slotStyle ? { l: parseFloat(slotStyle.paddingLeft), r: parseFloat(slotStyle.paddingRight) } : null,
+     worldW: slot ? Number(getComputedStyle(slot).getPropertyValue("--arena-w")) : 0,
+     worldH: slot ? Number(getComputedStyle(slot).getPropertyValue("--arena-h")) : 0,
++    crop: slot ? Number(getComputedStyle(slot).getPropertyValue("--arena-crop").trim() || 0) : 0, // Changed with Joe's approval, 28 Nov 2026
++    cropB: slot ? Number(getComputedStyle(slot).getPropertyValue("--arena-crop-b").trim() || 0) : 0, // Changed with Joe's approval, 28 Nov 2026
+     arena: box(arena),
+     canvas: canvas ? { css: box(canvas), w: canvas.width, h: canvas.height } : null,
+     header: box(header),
+@@ -283,7 +287,9 @@
+   for (const c of m.controls) {
+     if (c.x < m.column.x - 0.5 || c.r > m.column.r + 0.5 || c.y < m.column.y - 0.5 || c.b > m.innerH + 0.5) problems.push(`control "${c.what}" outside the column or screen (${fmt(c)})`);
+   }
+-  if (m.arena && (m.arena.x < m.column.x - 0.5 || m.arena.r > m.column.r + 0.5 || m.arena.b > m.innerH + 0.5)) problems.push(`board outside the column (${fmt(m.arena)})`);
++  // The declared band's foot is out of view by design (the top is not judged here). (Changed with Joe's approval, 28 Nov 2026)
++  const cutB = m.arena && m.worldH > 0 ? (m.cropB * m.arena.h) / m.worldH : 0; // Changed with Joe's approval, 28 Nov 2026
++  if (m.arena && (m.arena.x < m.column.x - 0.5 || m.arena.r > m.column.r + 0.5 || m.arena.b - cutB > m.innerH + 0.5)) problems.push(`board outside the column (${fmt(m.arena)})`); // Changed with Joe's approval, 28 Nov 2026
+   if (!arcade) return;
+   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): in the arena the header is
+   // not drawn; the one timer is in the side panel (its seconds at least the phone's 15 px), never beside a header copy.
+@@ -306,7 +312,7 @@
+   if (!m.slot || !m.arena || !m.worldW) return void problems.push("no arena slot / world");
+   // A rotate game's world is turned in its rotor (desktop-layout-check and desktop-fairness-check judge it).
+   if (mode === "rotate") return;
+-  const scale = Math.min(m.slot.w / m.worldW, m.slot.h / m.worldH);
++  const scale = Math.min(m.slot.w / m.worldW, m.slot.h / (m.worldH - m.crop - m.cropB)); // Changed with Joe's approval, 28 Nov 2026
+   const fitW = m.worldW * scale;
+   const fitH = m.worldH * scale;
+   if (!near(m.arena.w, fitW, 2) || !near(m.arena.h, fitH, 2)) problems.push(`world ${m.arena.w}×${m.arena.h} is not the largest fit ${fitW.toFixed(1)}×${fitH.toFixed(1)} of its box ${m.slot.w}×${m.slot.h.toFixed(1)}`);
