@@ -37,11 +37,11 @@ export function AppWordmark({ still = false }: { still?: boolean } = {}) {
     });
   }, [still]);
   return (
-    <span data-app-wordmark className="ap-wordmark" aria-label={name} role="img">
-      <span aria-hidden="true" className="ap-wordmark-text">
+    <span data-app-wordmark className="jz-wordmark-row" aria-label={name} role="img">
+      <span aria-hidden="true" className="jz-wordmark-text">
         {name}
       </span>
-      <LogoMark key={opening} width={17} height={22} className="ap-wordmark-mark" charge={charge} />
+      <LogoMark key={opening} width={17} height={22} className="jz-wordmark-mark" charge={charge} />
     </span>
   );
 }

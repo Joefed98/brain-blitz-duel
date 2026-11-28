@@ -140,7 +140,7 @@ export function RoundResultsTable({
                         <span className="room-player">
                           <NameplateStrip player={plateOf(row.slot, row.name, look)} />
                         </span>
-                        {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                        {isMe ? <span className="rs-you shrink-0 jz-text-caption">(you)</span> : null}
                         {row.status === "inactive" ? <LeftTag /> : null}
                         {won && <span className="rs-pill shrink-0">Round won</span>}
                       </span>
@@ -150,7 +150,7 @@ export function RoundResultsTable({
                       <span
                         data-ellipsis
                         data-row-line
-                        className={`text-[12.5px] leading-tight text-[var(--ap-text-2)] ${open ? "block whitespace-normal" : "block truncate"}`}
+                        className={`jz-text-caption leading-tight jz-em-detail ${open ? "block whitespace-normal" : "block truncate"}`}
                       >
                         {time ? <span className="tabular-nums">{time}, </span> : null}
                         <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
@@ -165,7 +165,7 @@ export function RoundResultsTable({
                 <span className="flex items-center gap-1">
                   <AnimatedScore
                     value={row.roundScore}
-                    className="th-score rs-total w-12 text-right"
+                    className="jz-score rs-total w-12 text-right"
                   />
                   <Icon name="chevron-down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                 </span>

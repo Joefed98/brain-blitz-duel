@@ -235,7 +235,8 @@ async function mount(rows: Standing[], mySlot: number) {
 }
 const wait = (ms: number) => act(async () => sleep(ms));
 const items = (host: Element) => Array.from(host.querySelectorAll("ul.rs-list > li")) as HTMLElement[];
-const totals = (host: Element) => items(host).map((li) => li.querySelector(".th-score")?.textContent ?? "");
+// Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+const totals = (host: Element) => items(host).map((li) => li.querySelector(".jz-score")?.textContent ?? "");
 const shift = (li: HTMLElement) => {
   const m = /translateY\((-?[\d.]+)px\)/.exec(li.style.transform);
   return m ? Number(m[1]) : 0;
@@ -264,7 +265,8 @@ for (const { label, rows, left = [] } of CASES) {
   // watched by a player who isn't in the list (no pinned row): every row's slide is checked here.
   const view = await mount(rows, isCompactRoom(rows.length) ? 0 : rows.at(-1)!.slot);
   await wait(20);
-  const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .th-name")).map((e) => e.textContent);
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  const names = Array.from(view.host.querySelectorAll("ul.rs-list > li .jz-name")).map((e) => e.textContent);
   check(JSON.stringify(names) === JSON.stringify(rows.map((r) => r.name)), `${label}: the list's page order is not the server's`);
   check(left.every((slot) => !names.includes(`P${slot}`)), `${label}: a player who left is shown`);
   // A player who left is marked by the "Left" tag at full strength (7 Nov 2026, accessibility audit #3; was opacity-40).
@@ -282,7 +284,8 @@ for (const { label, rows, left = [] } of CASES) {
   }
   await wait(plan.stepAt.at(-1)! + 60);
   check(!!view.host.querySelector("[data-reveal-sweep]"), `${label}: 1st lands with no sweep`);
-  const swept = Array.from(view.host.querySelectorAll("[data-reveal-sweep] .th-name")).map((e) => e.textContent).sort();
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  const swept = Array.from(view.host.querySelectorAll("[data-reveal-sweep] .jz-name")).map((e) => e.textContent).sort();
   check(JSON.stringify(swept) === JSON.stringify(rows.filter((r) => r.position === 1).map((r) => r.name).sort()), `${label}: the sweep is on ${swept.join()}, not 1st place`);
   await wait(R.STANDINGS_REVEAL_END_MS - plan.stepAt.at(-1)! + 200);
   check(JSON.stringify(totals(view.host)) === JSON.stringify(rows.map((r) => String(r.total))), `${label}: ends on ${totals(view.host).join()}, the server's ${rows.map((r) => r.total).join()}`);
@@ -348,7 +351,8 @@ for (const { label, rows, left = [] } of CASES) {
   }
   check(still, "16 players: my pinned row slides during the reveal");
   check(unique, "16 players: two rows are drawn in the same place during the reveal");
-  check(pin()?.querySelector(".th-score")?.textContent === String(me.total), `16 players: my pinned row ends on ${pin()?.querySelector(".th-score")?.textContent}, not ${me.total}`);
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  check(pin()?.querySelector(".jz-score")?.textContent === String(me.total), `16 players: my pinned row ends on ${pin()?.querySelector(".jz-score")?.textContent}, not ${me.total}`);
   check(JSON.stringify(drawn(view.host, rows)) === JSON.stringify(rows.map((r) => r.slot)), "16 players with a pinned row: not drawn in the server's order at the end");
   await view.unmount();
 }

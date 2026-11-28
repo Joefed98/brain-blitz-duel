@@ -77,13 +77,13 @@ export function ProfileFriends() {
             sub="Friends need an account"
             onClick={openAll}
           >
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="jz-chevron" />
           </Row>
         </Panel>
       ) : overview && shown.length === 0 ? (
         <Panel>
           <Row as="button" data-profile-friends-add leading={<Icon name="addfriend" size={22} tone="text-2" />} title="Add a friend" sub="Find them or send your link" onClick={() => go({ add: "1" })}>
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="jz-chevron" />
           </Row>
         </Panel>
       ) : shown.length ? (

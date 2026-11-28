@@ -77,7 +77,7 @@ export function DuelOverall({
                   after={
                     isMe || row.status === "inactive" ? (
                       <span className="flex shrink-0 items-center gap-1">
-                        {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                        {isMe ? <span className="rs-you shrink-0 jz-text-caption">(you)</span> : null}
                         {row.status === "inactive" ? <LeftTag /> : null}
                       </span>
                     ) : undefined
@@ -88,11 +88,11 @@ export function DuelOverall({
                     {shownGain(row)}
                   </span>
                 ) : (
-                <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-[var(--ap-text-2)]">
+                <span className="whitespace-nowrap jz-text-caption font-semibold tabular-nums jz-em-detail">
                   +{row.roundScore}
                 </span>
                 )}
-                <span className="th-score rs-total text-right text-[26px]">
+                <span className="jz-score rs-total text-right jz-text-title">
                   <AnimatedScore value={shownTotal(row)} />
                 </span>
                 {mark?.note ? <span data-tie-note className="rs-sub rs-tie-note">{mark.note}</span> : null}

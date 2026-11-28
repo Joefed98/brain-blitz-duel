@@ -37,7 +37,7 @@ export function VolumeSliders() {
               }}
               className="min-w-0 flex-1"
             />
-            <span className="ap-meta w-10 text-right tabular-nums">{percent}%</span>
+            <span className="jz-meta-line w-10 text-right tabular-nums">{percent}%</span>
           </div>
         );
       })}

@@ -98,10 +98,10 @@ export function PublicGameNext({
   const parts = game ? ukDateParts(game.startsAt) : null;
   return (
     <div data-public-game={game ? state : "pending"}>
-      <div className="ap-next-head">
-        <span aria-hidden="true" className="ap-date">
-          <span className="ap-date-day">{parts ? parts.weekday.toUpperCase() : "···"}</span>
-          <span className="ap-date-num">{parts ? parts.day : "··"}</span>
+      <div className="jz-next-head">
+        <span aria-hidden="true" className="jz-date">
+          <span className="jz-date-day">{parts ? parts.weekday.toUpperCase() : "···"}</span>
+          <span className="jz-date-num">{parts ? parts.day : "··"}</span>
         </span>
         <span className="jz-row-text">
           <span data-ellipsis className="jz-row-title">
@@ -113,7 +113,7 @@ export function PublicGameNext({
         </span>
       </div>
       {open && game ? (
-        <p data-public-status data-open="" className="ap-next-status">
+        <p data-public-status data-open="" className="jz-next-status">
           <LiveTag kind="live" className="shrink-0" />
           <span>
             Lobby open
@@ -122,12 +122,12 @@ export function PublicGameNext({
           </span>
         </p>
       ) : (
-        <p data-public-status className="ap-next-status">
+        <p data-public-status className="jz-next-status">
           <Icon name="timer" size={18} className="-m-px" />
           <span>{game ? `Lobby opens in ${untilText(game.lobbyAt, now)}` : "Lobby opens ····"}</span>
         </p>
       )}
-      <div className="ap-next-actions">
+      <div className="jz-next-actions">
         {open && game ? (
           <Button variant="gold" size={44} block data-public-join onClick={() => onJoin(game.roomCode)}>
             <Icon name="friends" size={18} className="-m-px" /> Join now
@@ -162,9 +162,9 @@ export function PublicGameRow({ game }: { game: PublicGame }) {
   const name = game.title ?? "Public game";
   return (
     <div data-icon="date-sm" className="jz-row">
-      <span aria-hidden="true" data-quiet="" className="ap-date">
-        <span className="ap-date-day">{parts.weekday.toUpperCase()}</span>
-        <span className="ap-date-num">{parts.day}</span>
+      <span aria-hidden="true" data-quiet="" className="jz-date">
+        <span className="jz-date-day">{parts.weekday.toUpperCase()}</span>
+        <span className="jz-date-num">{parts.day}</span>
       </span>
       <span className="jz-row-text">
         <span data-ellipsis className="jz-row-title">
@@ -179,7 +179,7 @@ export function PublicGameRow({ game }: { game: PublicGame }) {
         data-public-row-calendar
         aria-label={`Add ${name} to calendar`}
         onClick={() => downloadCalendar(game)}
-        className="ap-icon-btn press"
+        className="jz-icon-btn press"
       >
         <Icon name="calendar" size={20} />
       </button>
@@ -203,7 +203,7 @@ export function PublicGameCard({
   link?: ReactNode;
 }) {
   return (
-    <section aria-label={heading} className="ap-section">
+    <section aria-label={heading} className="jz-page-section">
       <SectionHeader
         title={<>{heading}</>}
         right={

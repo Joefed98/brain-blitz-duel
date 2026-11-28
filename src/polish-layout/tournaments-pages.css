@@ -125,6 +125,7 @@
 }
 .tn-event-title {
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
 }
 .tn-event-grid,
@@ -365,6 +366,7 @@ button.tn-pod-card:focus-visible {
 }
 .dl-title {
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
   white-space: nowrap;
 }
@@ -438,6 +440,7 @@ button.tn-pod-card:focus-visible {
 .dl-me-total {
   flex: none;
   font: var(--jz-type-display);
+  font-stretch: var(--jz-width-title);
   color: var(--jz-text);
   font-variant-numeric: tabular-nums;
 }

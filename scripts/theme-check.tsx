@@ -4,8 +4,9 @@
  *  1. The fonts and tokens (no browser): every file THEME_FONTS names is in public/fonts and is a woff2;
  *     each @font-face (src/design/tokens.css, theme.css, app-pages.css) points at a file there with
  *     font-display: swap and names Archivo, the one app font (DESIGN.md, design foundation F1, 6 Nov
- *     2026); the root route preloads THEME_FONTS; --jz-font ends in a generic fallback family and every
- *     old font token (--th-font-*, --ap-font) is var(--jz-font); no package was added for them. The
+ * Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*).
+ *     2026); the root route preloads THEME_FONTS; --jz-font ends in a generic fallback family and no
+ *     --th-* or --ap-* alias is left in src (retired in S1, 27 Nov 2026); no package was added for them. The
  *     token pairs DESIGN.md section 2 promises (text, text-2 and text-3 on the background and surfaces,
  *     on-gold on gold, gold on the background) are at least 4.5:1, from tokens.css's own values.
  *  2. On every skinned screen (scripts/theme-screens.ts: the four tab screens, settings, lobby and
@@ -31,7 +32,7 @@
  *
  *   bun scripts/theme-check.tsx [screen name filter…] [--verbose] [--shots=<dir>]
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
@@ -81,14 +82,37 @@ if (!/THEME_FONTS\.map\([\s\S]{0,80}rel:\s*"preload"[\s\S]{0,80}as:\s*"font"/.te
   if (!value.trim().startsWith(`"${APP_PAGE_FAMILY}"`) || !value.trim().endsWith("sans-serif"))
     fail(`--jz-font is not Archivo with a fallback stack ending in sans-serif: ${value}`);
 }
-for (const [token, file] of [
-  ["--th-font-head", css],
-  ["--th-font-body", css],
-  ["--th-font-mono", css],
-  ["--ap-font", appCss],
-] as const) {
-  const value = new RegExp(`:root\\s*\\{[^}]*?${token}:\\s*([^;]+);`).exec(file)?.[1] ?? "";
-  if (value.trim() !== "var(--jz-font)") fail(`${token} is not an alias of --jz-font: ${value}`);
+// Changed with Joe's approval, 28 Nov 2026 (S1: the --th-* and --ap-* aliases retired): was "every old font token
+// (--th-font-*, --ap-font) is var(--jz-font)"; now no --th-* or --ap-* custom property is defined or read anywhere in src
+// (every .css, .ts and .tsx file under it).
+{
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(`${dir}/${e.name}`) : /\.(css|ts|tsx)$/.test(e.name) ? [`${dir}/${e.name}`] : [],
+    );
+  for (const file of walk("src"))
+    for (const m of readFileSync(file, "utf8").matchAll(/--(?:th|ap)-[a-z0-9-]+/g))
+      fail(`${file}: an old --th-* / --ap-* alias is still in src: ${m[0]}`);
+}
+// Changed with Joe's approval, 28 Nov 2026 (S1): app chrome's font still resolves to Archivo. Every --font-display,
+// --font-body and --font-mono the app's own scopes set (styles.css :root, the page skin, the tab pages, the room
+// screens) is var(--jz-font), so no scope can bring in another face.
+{
+  const scopes: [string, string][] = [
+    ["src/styles.css", readFileSync("src/styles.css", "utf8")],
+    ["src/polish-layout/theme.css", css],
+    ["src/polish-layout/app-pages.css", appCss],
+    ["src/polish-layout/room-screens.css", readFileSync("src/polish-layout/room-screens.css", "utf8")],
+  ];
+  let seen = 0;
+  for (const [name, file] of scopes)
+    for (const m of file.matchAll(/--font-(display|body|mono):\s*([^;]+);/g)) {
+      // styles.css's @theme maps Tailwind's --font-* onto these same variables (var(--font-display) and friends).
+      if (/^var\(--font-(display|body|mono)\)$/.test(m[2]!.trim())) continue;
+      seen++;
+      if (m[2]!.trim() !== "var(--jz-font)") fail(`${name}: --font-${m[1]} is ${m[2]!.trim()}, not var(--jz-font) (Archivo)`);
+    }
+  if (seen < 12) fail(`app chrome's --font-* declarations: found ${seen}, expected at least 12`);
 }
 // The contrast DESIGN.md section 2 promises, from tokens.css's own values.
 {
@@ -325,7 +349,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     if (family !== familyFor(h, "head"))
       problems.push(`heading "${h.textContent?.trim()}" is ${family}, not ${familyFor(h, "head")}`);
   }
-  for (const m of document.querySelectorAll("[data-skin] :is(.font-mono, .th-score)")) {
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  for (const m of document.querySelectorAll("[data-skin] :is(.font-mono, .jz-score)")) {
     if (m.closest(NOT_JUDGED) || !visible(m)) continue;
     const family = first(getComputedStyle(m).fontFamily);
     if (family !== familyFor(m, "mono"))
@@ -384,7 +409,8 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
     skins: skins.length,
     // The tab pages' panels (Prompt R) and Practice's game tiles (shelves and grid, follow-up to #129) are its cards.
     // Polish batch R: the room screens' panels and lists (.rs-list), the error layout and the terms' page text.
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, .jz-sheet[data-skin], [data-skin] .jz-sheet, [data-skin] .jz-panel, [data-skin] .ap-tile, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
+    // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+    cards: document.querySelectorAll("[data-skin] .jz-card, [data-skin] .jz-dialog, .jz-sheet[data-skin], [data-skin] .jz-sheet, [data-skin] .jz-panel, [data-skin] .rs-list, [data-skin] .rs-grid, [data-skin] [data-error-screen], [data-skin] [data-terms]").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
@@ -478,7 +504,8 @@ try {
           if (probe.rowLines.some((l) => !l.oneLine)) problems.push("a closed leaderboard row's verdict line is not one line with an ellipsis");
         }
         if (probe.cards === 0 && !screen.plain)
-          problems.push("no skin card or sheet (.th-card / .th-sheet) on the screen");
+          // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+          problems.push("no skin card or sheet (.jz-card / .jz-dialog) on the screen");
         for (const family of [...Object.values(THEME_FAMILIES), APP_PAGE_FAMILY]) {
           if (probe.used.includes(family)) {
             familiesUsed.add(family);

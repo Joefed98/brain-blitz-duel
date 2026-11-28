@@ -110,7 +110,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
   };
 
   const nextSection = next ? (
-    <section aria-label="Next up" className="ap-section">
+    <section aria-label="Next up" className="jz-page-section">
       <SectionHeader title="Next public game" />
       <div className="jz-panel overflow-hidden">
         <PublicGameNext game={next} now={now} onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })} />
@@ -121,7 +121,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
   // only with its link. Only for a player with tournaments.
   const noneSection =
     next || soon ? null : (
-      <section aria-label="No public games" className="ap-section">
+      <section aria-label="No public games" className="jz-page-section">
         <EmptyState
           data-public-none
           layout="card"
@@ -138,7 +138,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
     );
   const laterSection =
     later.length > 0 ? (
-      <section aria-label="Coming up" className="ap-section">
+      <section aria-label="Coming up" className="jz-page-section">
         <SectionHeader title="Coming up" />
         <div className="jz-panel">
           {later.map((game) => (
@@ -161,11 +161,11 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
   );
   const resultsList =
     results.length > 0 ? (
-      <section aria-label="Your results" className="ap-section">
+      <section aria-label="Your results" className="jz-page-section">
         <SectionHeader
           title="Public games"
           right={
-            <span className="ap-meta">
+            <span className="jz-meta-line">
               {results.length} {results.length === 1 ? "game" : "games"}
             </span>
           }
@@ -179,7 +179,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
             return (
               <li key={r.key} data-public-result data-icon="place" className="jz-row">
                 {r.place === null ? (
-                  <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
+                  <span role="img" aria-label="Left before the end" data-place-disc="n" className="jz-place">
                     <span aria-hidden="true">–</span>
                   </span>
                 ) : (
@@ -193,7 +193,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
                     {ukDay(r.at, now)}, {place}
                   </span>
                 </span>
-                <span className="ap-points">{r.points.toLocaleString("en-GB")}</span>
+                <span className="jz-points">{r.points.toLocaleString("en-GB")}</span>
               </li>
             );
           })}
@@ -213,7 +213,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
       {nextSection}
       {laterSection}
       {!next && results.length === 0 ? null : (resultsList ?? (
-        <section aria-label="Your results" className="ap-section">
+        <section aria-label="Your results" className="jz-page-section">
           <SectionHeader title="Your results" />
           {resultsEmpty}
         </section>
@@ -231,12 +231,12 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
             Tiers
           </Button>
         ) : hub ? (
-          <span className="ap-beta">Beta</span>
+          <span className="jz-beta-pill">Beta</span>
         ) : undefined
       }
       aside={<PageAside panels={["daily", "week"]} />}
     >
-      <div className="ap-stack tn-tab cp-page" data-tournaments-tab={soon ? "closed" : "open"}>
+      <div className="jz-page-stack tn-tab cp-page" data-tournaments-tab={soon ? "closed" : "open"}>
         {/* 1. Ranked play: the rating, tier, bar and gold Find a match (nothing for anyone rated play isn't open to). */}
         <RatedHome />
 

@@ -25,7 +25,8 @@ const standings10 = () => {
   return r;
 };
 const SCREENS: { key: string; screen: ThemeScreen; ready: string }[] = [
-  { key: "standings-10", screen: { name: "standings, 10 players", mode: "room", room: standings10, waitMs: 0 }, ready: "ul li .th-name" },
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  { key: "standings-10", screen: { name: "standings, 10 players", mode: "room", room: standings10, waitMs: 0 }, ready: "ul li .jz-name" },
   { key: "podium-10", screen: { name: "podium, 10 players", mode: "room", room: room("finished", "result", { players: 10, rounds: 6 }), waitMs: 0 }, ready: "[data-podium-place]" },
 ];
 

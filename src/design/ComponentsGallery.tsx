@@ -112,10 +112,10 @@ export function ComponentsGallery() {
       <Block title="List rows">
         <Panel>
           <Row as="button" leading={<MiniCard look={DEFAULT_LOOK} size={44} />} title="Sam_Volt" sub="1,503 · Online">
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="jz-chevron" />
           </Row>
           <Row as="button" data-jz-state="pressed" leading={<MiniCard look={DEFAULT_LOOK} size={44} />} title="KiraPlays" sub="Pressed">
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="jz-chevron" />
           </Row>
           <Row as="button" role="switch" aria-checked={on} aria-label="Show when I’m online" onClick={() => setOn((v) => !v)}>
             <span className="jz-row-title flex-1">Show when I’m online</span>

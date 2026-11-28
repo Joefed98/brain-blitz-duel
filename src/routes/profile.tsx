@@ -160,7 +160,7 @@ function ProfileScreen() {
         </aside>
       }
     >
-      <div className="ap-stack pf-page" data-profile-page={accountName ? "account" : "guest"}>
+      <div className="jz-page-stack pf-page" data-profile-page={accountName ? "account" : "guest"}>
         {wide ? null : cardColumn}
 
         {/* A guest (Joe, 20 Nov 2026: one card and one calm row): where their progress lives, and the beta's Send
@@ -175,7 +175,7 @@ function ProfileScreen() {
                   Saved on this phone. Create an account to keep it everywhere. Pick your card in Customise.
                 </span>
               </span>
-              <Icon name="chevron-right" size={20} className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="jz-chevron" />
             </button>
             <FeedbackLink />
             {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
@@ -266,7 +266,7 @@ function ProfileScreen() {
                   {history.slice(0, 5).map((r) => (
                     <li key={r.key} data-recent-room={r.code} data-icon="place" className="jz-row">
                       {r.place === null ? (
-                        <span role="img" aria-label="Left before the end" data-place-disc="n" className="ap-place">
+                        <span role="img" aria-label="Left before the end" data-place-disc="n" className="jz-place">
                           <span aria-hidden="true">–</span>
                         </span>
                       ) : (
@@ -296,7 +296,7 @@ function ProfileScreen() {
                 and shown only until all three are done. */}
             {loaded && doneCount < steps.length ? (
               <section aria-label="Get started" data-get-started className="pf-section">
-                <SectionHeader title="Get started" right={<span className="ap-meta">{doneCount} of {steps.length}</span>} />
+                <SectionHeader title="Get started" right={<span className="jz-meta-line">{doneCount} of {steps.length}</span>} />
                 <div className="jz-panel">
                   {steps.map((step) => (
                     <button
@@ -309,7 +309,7 @@ function ProfileScreen() {
                       onClick={() => openStep(step.id)}
                       className="jz-row press"
                     >
-                      <span aria-hidden="true" data-done={step.done || undefined} className="ap-check">
+                      <span aria-hidden="true" data-done={step.done || undefined} className="jz-check">
                         {step.done ? <Icon name="check" size={18} /> : null}
                       </span>
                       <span className="jz-row-text">
@@ -318,7 +318,7 @@ function ProfileScreen() {
                           {step.sub}
                         </span>
                       </span>
-                      <Icon name="chevron-right" size={20} className="ap-chevron" />
+                      <Icon name="chevron-right" size={20} className="jz-chevron" />
                     </button>
                   ))}
                 </div>

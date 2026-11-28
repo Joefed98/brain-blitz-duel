@@ -120,7 +120,7 @@ const probe = (selector: string) => (sel: string) => {
     text: cs.getPropertyValue("--jz-text").trim().toUpperCase(),
     apText: (() => {
       const s = document.createElement("span");
-      s.style.color = "var(--ap-text)";
+      s.style.color = "var(--jz-text)"; // Changed with Joe's approval, 28 Nov 2026 (S1: --ap-text retired; the token itself)
       el.appendChild(s);
       const c = getComputedStyle(s).color;
       s.remove();

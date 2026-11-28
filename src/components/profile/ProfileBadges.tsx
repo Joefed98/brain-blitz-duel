@@ -46,7 +46,7 @@ export function ProfileBadges() {
       ) : (
         <Panel>
           <Row as="button" onClick={open} leading={<Icon name="rewards" size={22} tone="text-2" />} title="No badges yet" sub={`${BADGES.length} to earn`} data-profile-badges-none>
-            <Icon name="chevron-right" size={20} className="ap-chevron" />
+            <Icon name="chevron-right" size={20} className="jz-chevron" />
           </Row>
         </Panel>
       )}

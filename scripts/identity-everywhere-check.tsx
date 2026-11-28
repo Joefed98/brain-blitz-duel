@@ -349,7 +349,8 @@ async function runDb(db: LocalDb, rest: RestServer): Promise<void> {
     check(top.length === 3, "the podium's top three as cards");
     check(!!top[0]!.querySelector(".pcard:not(.pcard-strip):not(.pcard-mini)") && !!top[1]!.querySelector(".pcard:not(.pcard-strip):not(.pcard-mini)"), "the accounts on the podium are full cards (PlayerCard)");
     check(!!top[2]!.querySelector("[data-nameplate='plain']") && !top[2]!.querySelector("[data-open-card]"), "a guest on the podium keeps colour and initial, opening nothing");
-    check(top.every((li) => !li.querySelector(".th-score, [data-medal]")), "no score or medal on a podium card");
+    // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+    check(top.every((li) => !li.querySelector(".jz-score, [data-medal]")), "no score or medal on a podium card");
     await act(async () => root.unmount());
     el.remove();
   });

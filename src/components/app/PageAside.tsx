@@ -62,8 +62,8 @@ function NextPublicPanel() {
   const now = useClock(first ? [first.lobbyAt, first.startsAt] : []);
   const next = upcomingGames(now, scheduledGames())[0] ?? null;
   return (
-    <section aria-label="Next public room" data-aside-panel="public" className="ap-section">
-      <h2 className="ap-section-title">Next public room</h2>
+    <section aria-label="Next public room" data-aside-panel="public" className="jz-page-section">
+      <h2 className="jz-section-title">Next public room</h2>
       {next ? (
         <div className="jz-panel">
           <PublicGameNext
@@ -84,7 +84,7 @@ function NextPublicPanel() {
               Public games show here and in Tournaments
             </span>
           </span>
-          <Icon name="chevron-right" size={20} className="ap-chevron" />
+          <Icon name="chevron-right" size={20} className="jz-chevron" />
         </button>
       )}
     </section>
@@ -135,12 +135,12 @@ export function WeekPanel() {
     ["Daily streak", dailyView?.source === "server" ? dailyView.streak : (week?.streak ?? null)],
   ];
   return (
-    <section aria-label="Your week" data-aside-panel="week" className="ap-section">
+    <section aria-label="Your week" data-aside-panel="week" className="jz-page-section">
       <SectionHeader
         title="Your week"
         right={
           <>
-            <span className="ap-meta">Last 7 days</span>
+            <span className="jz-meta-line">Last 7 days</span>
           </>
         }
       />

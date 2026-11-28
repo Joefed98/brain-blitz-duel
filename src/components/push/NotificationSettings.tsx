@@ -81,7 +81,7 @@ function NotificationSettingsPanel() {
 
   return (
     <div className="flex flex-col gap-2" data-push-settings>
-      <span className="ap-group-title">Notifications</span>
+      <span className="jz-group-title">Notifications</span>
       <div className="jz-panel">
         {device === "home-screen" ? (
           <div className="jz-row" data-push-howto>

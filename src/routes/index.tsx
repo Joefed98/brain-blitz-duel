@@ -187,7 +187,7 @@ function Home() {
         </aside>
       }
     >
-      <div className="ap-stack hp-home" data-home>
+      <div className="jz-page-stack hp-home" data-home>
         <PlayerBanner hero={hero} status={status} />
 
         <PlaySlot id="chips" state={hero === null ? "pending" : hero.state === "placed" ? "show" : "hide"}>

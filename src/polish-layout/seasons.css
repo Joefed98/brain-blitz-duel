@@ -13,9 +13,9 @@
   border-radius: 4px;
   background: var(--jz-bg);
   color: var(--jz-white);
-  font-size: 10px;
+  font-size: var(--jz-size-caption);
   font-weight: 900;
-  line-height: 1.2;
+  line-height: var(--jz-line-caption);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }

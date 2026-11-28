@@ -83,7 +83,7 @@ export function TournamentRulesScreen({ kind, onBack }: { kind: TournamentKind; 
           Draft: these rules may change before tournaments open to everyone.
         </p>
         {rulesFor(kind).map((s) => (
-          <section key={s.title} aria-label={s.title} className="ap-section">
+          <section key={s.title} aria-label={s.title} className="jz-page-section">
             <SectionHeader title={s.title} />
             <Panel>
               <ul className="tn-how tn-how-pad">

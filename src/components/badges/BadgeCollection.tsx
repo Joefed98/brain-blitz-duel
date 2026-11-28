@@ -26,7 +26,7 @@ export function BadgeCollection() {
         title="All badges"
         right={
           <>
-            <span className="ap-meta" data-badge-count>
+            <span className="jz-meta-line" data-badge-count>
               {earned.size} of {BADGES.length}
             </span>
           </>

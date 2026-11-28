@@ -31,11 +31,11 @@ export function OfflineRunResult({
   return (
     <div data-offline-result={status} className="flex w-full flex-1 flex-col items-center justify-center gap-5 py-6 text-center">
       <GameIcon type={type} size={72} />
-      <h1 className="text-[22px] font-extrabold leading-tight text-foreground">{PUZZLE_REGISTRY[type]?.name ?? type}</h1>
+      <h1 className="jz-text-heading font-extrabold leading-tight text-foreground">{PUZZLE_REGISTRY[type]?.name ?? type}</h1>
       {status === "confirmed" ? (
         <div className="flex flex-col items-center gap-2">
           <FxCountUp data-offline-score value={run?.score ?? 0} className="of-result-score" />
-          <span className="ap-meta">{run?.improved ? "Confirmed, new best" : "Confirmed"}</span>
+          <span className="jz-meta-line">{run?.improved ? "Confirmed, new best" : "Confirmed"}</span>
           {run?.improved ? <FxNewBest /> : null}
         </div>
       ) : status === "rejected" ? (
@@ -43,7 +43,7 @@ export function OfflineRunResult({
           <span data-offline-score data-pending className="of-result-score">
             Couldn’t be confirmed
           </span>
-          <span className="ap-meta max-w-[300px] whitespace-normal">The server couldn’t check this run, so it doesn’t count.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</span>
+          <span className="jz-meta-line max-w-[300px] whitespace-normal">The server couldn’t check this run, so it doesn’t count.{/* design-lint-ignore: styles unchanged, curly quotes only (F4) */}</span>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
@@ -51,7 +51,7 @@ export function OfflineRunResult({
             <PendingClock className="of-clock-lg" px={24} />
             {run?.provisional != null ? run.provisional : "Score pending"}
           </span>
-          <span data-offline-note className="ap-meta flex max-w-[300px] flex-col items-center gap-0.5 whitespace-normal">
+          <span data-offline-note className="jz-meta-line flex max-w-[300px] flex-col items-center gap-0.5 whitespace-normal" /* design-lint-ignore: the note's measure */>
             {run?.provisional != null ? <span>Provisional score</span> : null}
             <span>
               <Icon name="offline" size={18} className="mr-1 inline" style={{ width: 14, height: 14, verticalAlign: -2 }} />

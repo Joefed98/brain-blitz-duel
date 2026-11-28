@@ -38,7 +38,7 @@ export function NotificationAsk() {
   if (due.kind === "home-screen")
     return (
       <div role="dialog" aria-label="Notifications on iPhone" className="acct-popup" data-push-ask="home-screen">
-        <p className="jz-card-title">Notifications on iPhone</p>
+        <p className="jz-heading">Notifications on iPhone</p>
         <p className="acct-lede">
           Add Joulz to your Home Screen first: tap Share, then Add to Home Screen. Open Joulz from there and turn
           notifications on in Settings.
@@ -60,7 +60,7 @@ export function NotificationAsk() {
 
   return (
     <div role="dialog" aria-label="Turn on notifications" className="acct-popup" data-push-ask="ask">
-      <p className="jz-card-title">Turn on notifications?</p>
+      <p className="jz-heading">Turn on notifications?</p>
       <p className="acct-lede">
         We’ll tell you when a friend wants to play and before your Daily streak ends. Three a day at most, never at night.
       </p>

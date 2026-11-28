@@ -74,7 +74,7 @@ function ShopScreen() {
   return (
     <PhoneShell tabs="shop" title="Shop">
       {shopOn ? (
-        <div className="ap-stack" data-shop-page={part}>
+        <div className="jz-page-stack" data-shop-page={part}>
           <Segmented<Part>
             label="Shop, pass or Plus"
             radio

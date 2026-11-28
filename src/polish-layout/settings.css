@@ -27,6 +27,7 @@
   overflow: hidden;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-overflow: ellipsis;
   text-transform: none;
@@ -50,9 +51,9 @@
 .st-stack {
   gap: var(--jz-space-12);
 }
-/* One heading style for every group, Notifications' own (its component's ap-group-title) included. */
+/* One heading style for every group, Notifications' own (its component's jz-group-title) included. */
 .st-group-title,
-.st-notify .ap-group-title {
+.st-notify .jz-group-title {
   margin: 0;
   padding-inline: 4px;
   color: var(--jz-text-3);
@@ -203,6 +204,7 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
 }

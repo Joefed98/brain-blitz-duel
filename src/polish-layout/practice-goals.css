@@ -10,14 +10,14 @@
   align-items: center;
   gap: var(--jz-space-8);
   color: var(--jz-text-3);
-  font-size: 14px;
-  line-height: 18px;
+  font-size: var(--jz-size-caption);
+  line-height: var(--jz-line-caption);
 }
 .pg-total-earned {
   color: var(--jz-text);
-  font-size: 18px;
+  font-size: var(--jz-size-body);
   font-weight: var(--jz-weight-bold);
-  line-height: 22px;
+  line-height: var(--jz-line-body);
   font-variant-numeric: tabular-nums;
 }
 
@@ -47,15 +47,15 @@
 }
 .pc-name {
   color: var(--jz-text-2);
-  font-size: 12px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
-  line-height: 16px;
+  line-height: var(--jz-line-caption);
 }
 .pc-goal {
   color: var(--jz-text);
-  font-size: 15px;
+  font-size: var(--jz-size-label);
   font-weight: var(--jz-weight-medium);
-  line-height: 20px;
+  line-height: var(--jz-line-label);
 }
 .pc-bar {
   display: flex;
@@ -73,9 +73,9 @@
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-text-3);
-  font-size: 12px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
-  line-height: 16px;
+  line-height: var(--jz-line-caption);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -84,8 +84,8 @@
 }
 .pc-unlock {
   color: var(--jz-text-3);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--jz-size-caption);
+  line-height: var(--jz-line-caption);
 }
 .pc-reward {
   display: inline-flex;
@@ -93,9 +93,9 @@
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-text-3);
-  font-size: 12px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
-  line-height: 16px;
+  line-height: var(--jz-line-caption);
   white-space: nowrap;
 }
 .pc-icon {
@@ -108,8 +108,8 @@
 .pc-note {
   margin-top: calc(-1 * var(--jz-space-4));
   color: var(--jz-text-3);
-  font-size: 14px;
-  line-height: 18px;
+  font-size: var(--jz-size-caption);
+  line-height: var(--jz-line-caption);
 }
 
 /* ------------------------------------------------------------------ Completion moment (wave 2 C1b) */
@@ -136,15 +136,15 @@
 }
 .pc-moment-title {
   color: var(--jz-text-3);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: var(--jz-size-caption);
+  line-height: var(--jz-line-caption);
 }
 .pc-moment-name {
   overflow: hidden;
   color: var(--jz-text);
-  font-size: 15px;
+  font-size: var(--jz-size-label);
   font-weight: var(--jz-weight-bold);
-  line-height: 20px;
+  line-height: var(--jz-line-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -154,15 +154,15 @@
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-gold-ink);
-  font-size: 14px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-bold);
-  line-height: 18px;
+  line-height: var(--jz-line-caption);
   white-space: nowrap;
 }
 .pc-moment-wait {
   margin-left: var(--jz-space-4);
   color: var(--jz-text-3);
-  font-size: 12px;
+  font-size: var(--jz-size-caption);
   font-weight: var(--jz-weight-medium);
 }
 @keyframes pc-moment-in {

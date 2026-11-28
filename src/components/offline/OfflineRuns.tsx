@@ -19,7 +19,7 @@ export function shownOfflineRuns(runs: readonly QueuedRun[], now: number): Queue
 export function RunScore({ run }: { run: QueuedRun }) {
   if (run.status === "confirmed") {
     return (
-      <span data-run-status="confirmed" className="ap-best">
+      <span data-run-status="confirmed" className="jz-best">
         {run.score}
       </span>
     );
@@ -34,7 +34,7 @@ export function RunScore({ run }: { run: QueuedRun }) {
   return (
     <span data-run-status="queued" className="of-mark">
       <PendingClock />
-      {run.provisional !== null ? <span className="text-[15px] text-[var(--ap-text-2)]">{run.provisional}</span> : "Pending"}
+      {run.provisional !== null ? <span className="jz-text-label jz-em-detail">{run.provisional}</span> : "Pending"}
     </span>
   );
 }
@@ -48,8 +48,8 @@ export function OfflineRuns({ runs, now }: { runs: readonly QueuedRun[]; now: nu
   const shown = shownOfflineRuns(runs, now);
   if (shown.length === 0) return null;
   return (
-    <section aria-label="Played offline" data-offline-runs className="ap-section">
-      <h2 className="ap-section-title">Played offline</h2>
+    <section aria-label="Played offline" data-offline-runs className="jz-page-section">
+      <h2 className="jz-section-title">Played offline</h2>
       <div className="jz-panel">
         {shown.map((run) => (
           <div key={run.id} data-offline-run={run.type} data-run-id={run.id} className="jz-row">

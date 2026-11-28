@@ -54,7 +54,7 @@ export function YourChallenges({
         <p data-your-challenges-empty className="gm-empty">
           No friend challenges yet.{" "}
           {onNew ? (
-            <button type="button" onClick={onNew} data-challenge-a-friend className="ap-link press -my-3 inline-flex h-11 items-center align-middle">
+            <button type="button" onClick={onNew} data-challenge-a-friend className="jz-link press -my-3 inline-flex h-11 items-center align-middle">
               Challenge a friend
             </button>
           ) : null}
@@ -63,7 +63,7 @@ export function YourChallenges({
   }
   if (none && onNew)
     return (
-      <section aria-label="Your challenges" className="ap-section">
+      <section aria-label="Your challenges" className="jz-page-section">
         <SectionHeader title="Your challenges" />
         <EmptyState
           data-your-challenges-empty
@@ -77,7 +77,7 @@ export function YourChallenges({
   if (!list || list.length === 0) return null;
   const now = Date.now();
   return (
-    <section aria-label="Your challenges" data-your-challenges className="ap-section">
+    <section aria-label="Your challenges" data-your-challenges className="jz-page-section">
       {variant === "tab" ? null : <SectionHeader title="Your challenges" />}
       <ul className="jz-panel">
         {list.map((c) => (
@@ -90,14 +90,14 @@ export function YourChallenges({
             >
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex items-baseline gap-2">
-                  <span className="text-[16px] font-semibold tracking-[0.12em] text-foreground">
+                  <span className="jz-text-label font-semibold tracking-[0.12em] text-foreground" /* design-lint-ignore: a code's letter spacing */>
                     {c.code}
                   </span>
-                  <span data-ellipsis className="min-w-0 flex-1 truncate text-[13.5px] text-muted-foreground">
+                  <span data-ellipsis className="min-w-0 flex-1 truncate jz-text-caption text-muted-foreground">
                     {c.roundCount} rounds,{" "}
                     {c.myTotal === null ? "not finished" : `you ${c.myTotal}`}
                   </span>
-                  <span className="shrink-0 whitespace-nowrap text-[12.5px] text-muted-foreground">
+                  <span className="shrink-0 whitespace-nowrap jz-text-caption text-muted-foreground">
                     {challengeEndsIn(c.expiresAt, now)}
                   </span>
                 </span>
@@ -125,7 +125,7 @@ export function YourChallenges({
                   </>
                 )}
               </span>
-              <Icon name="chevron-right" size={20} className="ap-chevron" />
+              <Icon name="chevron-right" size={20} className="jz-chevron" />
             </button>
           </li>
         ))}

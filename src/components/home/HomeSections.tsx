@@ -129,11 +129,11 @@ export function RecentlyPlayed({ types }: { types: readonly PuzzleType[] }) {
   const router = useRouter();
   if (!types.length) return null;
   return (
-    <section aria-label="Jump back in" className="ap-section" data-hp-recent>
+    <section aria-label="Jump back in" className="jz-page-section" data-hp-recent>
       <SectionHeader
         title="Jump back in"
         right={
-          <button type="button" onClick={() => openFromHome(router, "/practice")} className="ap-link press -my-2.5 -mr-1 h-11 px-1">
+          <button type="button" onClick={() => openFromHome(router, "/practice")} className="jz-link press -my-2.5 -mr-1 h-11 px-1">
             All games
           </button>
         }
@@ -179,7 +179,7 @@ export function WeeklyCard({ eligible }: { eligible: boolean }) {
           <span className="hp-week-title">This week</span>
           <span className="hp-week-sub">Resets on Monday</span>
         </span>
-        <Icon name="chevron-right" size={20} className="ap-chevron" />
+        <Icon name="chevron-right" size={20} className="jz-chevron" />
       </button>
       <ul className="hp-week-list">
         {challenges.map((c) => (
@@ -216,11 +216,11 @@ export function FriendsRow({ friends }: { friends: readonly OverviewFriend[] }) 
   const now = useClock([]);
   if (!friends.length) return null;
   return (
-    <section aria-label="Friends" className="ap-section" data-hp-friends>
+    <section aria-label="Friends" className="jz-page-section" data-hp-friends>
       <SectionHeader
         title="Friends"
         right={
-          <button type="button" onClick={() => openFromHome(router, "/friends")} className="ap-link press -my-2.5 -mr-1 h-11 px-1">
+          <button type="button" onClick={() => openFromHome(router, "/friends")} className="jz-link press -my-2.5 -mr-1 h-11 px-1">
             All friends
           </button>
         }

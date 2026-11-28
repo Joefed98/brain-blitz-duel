@@ -18,6 +18,7 @@ import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
+import { installPressFeel } from "../lib/pressFeel";
 import { batterySaverOn } from "../lib/battery";
 import { BRAND_INK } from "../components/brand/logoGeometry";
 import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_SPLASHES, APP_TITLE, canonicalUrl, LINK_PREVIEW } from "../lib/brand";
@@ -210,6 +211,8 @@ function RootComponent() {
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).
   useEffect(() => installSoundUnlock(), []);
+  // A tap on any button, link or tab in the chrome: the light touch (lib/pressFeel.ts; S1, 27 Nov 2026).
+  useEffect(() => installPressFeel(), []);
   // Battery saver (lib/battery.ts): marks <html data-battery-saver> from the device's setting.
   useEffect(() => void batterySaverOn(), []);
   // Named cues (docs/sound-cues) play their manifest file once one is set.

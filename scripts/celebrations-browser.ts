@@ -117,8 +117,9 @@ interface Screen extends ThemeScreen {
 const SCREENS: Record<string, Screen> = {
   podium: { name: "podium, 10 players", mode: "room", room: room("finished", "result", { players: 10, rounds: 6 }), ready: "[data-podium-place]", waitMs: 2400 },
   podiumLost: { name: "podium, 10 players, not first", mode: "room", room: podiumLost, ready: "[data-podium-place]", waitMs: 2400 },
-  standings: { name: "standings, 10 players", mode: "room", room: standingsShuffle, ready: "ul li .th-name", waitMs: 2400 },
-  final2: { name: "final results, 2 players", mode: "room", room: room("finished", "result", { rounds: 6 }), ready: ".th-score", waitMs: 2400 },
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  standings: { name: "standings, 10 players", mode: "room", room: standingsShuffle, ready: "ul li .jz-name", waitMs: 2400 },
+  final2: { name: "final results, 2 players", mode: "room", room: room("finished", "result", { rounds: 6 }), ready: ".jz-score", waitMs: 2400 },
   lobby3: { name: "lobby, 3 players", mode: "room", room: room("waiting", "starting", { players: 3 }), ready: "[data-host-label], [data-look-hint], ul li", waitMs: 600 },
   lobby10: { name: "lobby, 10 players", mode: "room", room: room("waiting", "starting", { players: 10 }), ready: "[data-host-label], [data-look-hint], ul li", waitMs: 1400 },
   reveal150: { name: "answer reveal, 150", mode: "room", room: revealWith(150), ready: "[data-reveal-score]", waitMs: 2600, plain: true },
@@ -197,7 +198,8 @@ async function prepare(context: BrowserContext, on: boolean | null, ready: strin
           t: performance.now() - started,
           geo: geometry(),
           boxes,
-          scores: Array.from(root.querySelectorAll(".th-score")).map((e) => e.textContent ?? ""),
+          // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+          scores: Array.from(root.querySelectorAll(".jz-score")).map((e) => e.textContent ?? ""),
           meter: !!root.querySelector("[data-charge-meter]"),
           list: !!root.querySelector("ul li"),
         });
@@ -294,7 +296,8 @@ async function fire(page: Page, body: string) {
 const undate = (html: string) =>
   html
     .replace(/>(Mon|Tue|Wed|Thu|Fri|Sat|Sun)</g, ">#day<")
-    .replace(/(class="ap-date-num">)\d{1,2}</g, "$1#<")
+    // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+    .replace(/(class="jz-date-num">)\d{1,2}</g, "$1#<")
     .replace(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g, "#date");
 
 /** Where two markups part: the differing stretch of each (with 160 characters of context), for a failure line. */
@@ -367,9 +370,11 @@ try {
     if (before && key !== "home" && key !== "rooms") await sameMarkup(o.page, before[key], `off, ${key}`);
     if (before && key === "home") check(true, "home markup is compared before Create");
     offFinal[key] = await o.page.evaluate(() => [
-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
       "|",
-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
     ]);
     await o.close();
   }
@@ -389,9 +394,11 @@ try {
     check(log.some((e) => e.kind === "banner" && e.text === "You win!") && log.some((e) => e.kind === "sound:chime") && log.some((e) => e.kind === "sound:victory"), "podium, winner: no You win!, chime and victory sting");
     await judgeLayout(o.page, "podium");
     const final = await o.page.evaluate(() => [
-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
       "|",
-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
     ]);
     check(JSON.stringify(final) === JSON.stringify(offFinal.podium), `podium: the count-up ends on ${final.join(" ")}, the server's ${offFinal.podium?.join(" ")}`);
     // Taps through the layer while the banner and the hero are up.
@@ -432,9 +439,11 @@ try {
     check(first.join() !== end.join(), "standings: no count-up from the first frame");
     await judgeLayout(o.page, "standings");
     const final = await o.page.evaluate(() => [
-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
       "|",
-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
     ]);
     check(JSON.stringify(final) === JSON.stringify(offFinal.standings), `standings: the count-up ends on ${final.join(" ")}, the server's ${offFinal.standings?.join(" ")}`);
     check((await o.log()).some((e) => e.kind === "burst"), "standings: a climb has no sparks");
@@ -443,9 +452,11 @@ try {
   {
     const o = await open(browser, server.origin, "final2", true);
     const final = await o.page.evaluate(() => [
-      ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-score")).map((e) => e.textContent ?? ""),
       "|",
-      ...Array.from(document.querySelectorAll("#root .th-name")).map((e) => e.textContent ?? ""),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      ...Array.from(document.querySelectorAll("#root .jz-name")).map((e) => e.textContent ?? ""),
     ]);
     check(JSON.stringify(final) === JSON.stringify(offFinal.final2), `final results: the count-up ends on ${final.join(" ")}, the server's ${offFinal.final2?.join(" ")}`);
     await judgeLayout(o.page, "final results");

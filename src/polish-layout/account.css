@@ -50,6 +50,7 @@
   margin: 0;
   color: var(--jz-text);
   font: var(--jz-type-title);
+  font-stretch: var(--jz-width-title);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -89,8 +90,8 @@
   align-items: center;
   gap: var(--jz-space-4);
   color: var(--jz-cyan);
-  font-size: 14px;
-  line-height: 18px;
+  font-size: var(--jz-size-caption);
+  line-height: var(--jz-line-caption);
   font-weight: var(--jz-weight-medium);
 }
 .acct-grow {
@@ -221,7 +222,7 @@
 .acct-code {
   letter-spacing: 0.4em;
   text-align: center;
-  font-size: 22px;
+  font-size: var(--jz-size-heading);
   font-weight: var(--jz-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -260,8 +261,8 @@
   align-items: center;
   gap: var(--jz-space-16);
   color: var(--jz-text-2);
-  font-size: 15px;
-  line-height: 21px;
+  font-size: var(--jz-size-label);
+  line-height: var(--jz-line-label);
 }
 .acct-perk > span:first-child {
   display: grid;
@@ -269,7 +270,7 @@
   width: 36px;
   height: 36px;
   flex: none;
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
   color: var(--jz-gold-ink);
 }
@@ -285,8 +286,8 @@
 .acct-sheet-lede {
   padding: 0 var(--jz-space-20);
   color: var(--jz-text-2);
-  font-size: 15px;
-  line-height: 21px;
+  font-size: var(--jz-size-label);
+  line-height: var(--jz-line-label);
 }
 
 /* The pop-up after the third game: a small card at the bottom, over the result. */
@@ -302,7 +303,7 @@
   flex-direction: column;
   gap: var(--jz-space-12);
   padding: var(--jz-space-16);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   border: 1.5px solid var(--jz-surface-2);
   background: var(--jz-bg-raised);
   box-shadow: var(--jz-shadow-sheet);
@@ -331,7 +332,7 @@
   flex-direction: column;
   gap: var(--jz-space-12);
   padding: var(--jz-space-16);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
   border: 1.5px solid var(--jz-surface-2);
 }

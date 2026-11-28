@@ -45,11 +45,12 @@ const rows = sorted
 </div>`,
   )
   .join("\n");
+// Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*): the section class in the template below.
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>${css}
 *,*::before,*::after{box-sizing:border-box} /* Tailwind's preflight, as in the app */
 html,body{margin:0;background:var(--jz-bg);color:var(--jz-text);font-family:"Archivo",sans-serif}
 .col{box-sizing:border-box;padding:0 16px}</style></head>
-<body><div class="col"><section class="ap-section"><div class="jz-panel">${rows}</div></section></div></body></html>`;
+<body><div class="col"><section class="jz-page-section"><div class="jz-panel">${rows}</div></section></div></body></html>`;
 
 const CHROMIUM = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find((p) => p && existsSync(p));
 const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
