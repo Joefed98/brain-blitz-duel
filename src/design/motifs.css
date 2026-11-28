@@ -182,7 +182,9 @@
   background-image: var(--jz-current-lines);
   background-size: 64px 64px;
   opacity: var(--jz-current-strength);
-  mix-blend-mode: color-dodge;
+  /* overlay: white lines lift mid-to-bright metal and leave near-black and near-white almost untouched (color-dodge
+     turned them white on the dark page). */
+  mix-blend-mode: overlay;
   pointer-events: none;
   animation: jz-current-drift 18s linear infinite;
   will-change: transform;
@@ -195,6 +197,13 @@
 [data-battery-saver] .jz-current::after {
   display: none;
   animation: none;
+}
+/* Battery saver: no endless motion. The crackle rests lit; the arc strikes once and holds lit. */
+[data-battery-saver] .jz-charge[data-crackle] .jz-charge-outline {
+  animation: none;
+}
+[data-battery-saver] .jz-arc-bolt {
+  animation: jz-arc-strike 200ms var(--jz-ease-out) both;
 }
 
 /* ------------------------------------------------------------------ reduced motion */
