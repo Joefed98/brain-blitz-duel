@@ -7,6 +7,7 @@ import { arcadeReducedEffects, watchArcadeFrames } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
+import { hudCut } from "@/lib/gameFrame/hudBands";
 import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 
 /** useLayoutEffect in the browser (before the first paint), a no-op on the server. */
@@ -60,9 +61,7 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
   // world, its drawing and its pointer mapping (the arena element's own box) are unchanged. Everywhere else, all of it.
   const { arena: arenaOn, hudBand } = useArenaMount();
   const panelsHidden = useArenaPanelsHidden();
-  const cropping = arenaOn && ARENA_HUD_IN_PANEL && !panelsHidden && hudBand !== undefined;
-  const crop = cropping ? Math.min(hudBand.top, height / 3) : 0;
-  const cropB = cropping ? Math.min(hudBand.bottom ?? 0, height / 3) : 0;
+  const { top: crop, bottom: cropB } = hudCut(arenaOn && ARENA_HUD_IN_PANEL && !panelsHidden, hudBand, height);
   const slot = useRef<HTMLDivElement | null>(null);
   // The desktop rotate mode (31 Oct 2026, presentation only): the world drawn turned 90° clockwise in a
   // rotor (desktopPresentation.ts); false on every phone and tablet and every other mode.

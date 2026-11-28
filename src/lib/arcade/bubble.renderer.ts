@@ -11,6 +11,7 @@ import { artReady, drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { bubbleFxFor } from "./arcadeFxGames.renderer";
 import { successHud, successFrame } from './success.renderer';
+import { hudInWorld } from "./hudPlacement";
 import { drawHudPill, HUD_PILL_GAP } from "./hudPill.renderer";
 import {
   bubbleGame,
@@ -915,7 +916,8 @@ function drawChestTally(ctx: CanvasRenderingContext2D, state: BubState, right: n
   // 3 Nov 2026 polish (display only): a "Treasure n/6" HUD pill (gold once every chest is out), its chest bubble beside it.
   const got = state.chests ?? 0;
   const w = drawHudPill(ctx, right, top, "Treasure", `${got}/${BUB_V8_CHESTS}`, { h, align: "right", gold: got >= BUB_V8_CHESTS });
-  blitBubble(ctx, BUB_CHEST, right - w - 14 * rs, top + h / 2, 11 * rs, dpr);
+  // With the HUD in the arena's panel the pill is noted there, not drawn: its chest goes with it (P4, 28 Nov 2026).
+  if (hudInWorld()) blitBubble(ctx, BUB_CHEST, right - w - 14 * rs, top + h / 2, 11 * rs, dpr);
 }
 
 let lastFlight = 0;

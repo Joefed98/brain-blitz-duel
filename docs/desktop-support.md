@@ -304,30 +304,34 @@ slot's clip, so the board grows; the world, its drawing and its pointer mapping 
 unchanged. Only the arena's live round, with the panels showing (hidden panels draw the whole world, HUD and all).
 Phones, tablets upright, intros, demos, reveals and replays draw the whole world as before.
 
-| Game | Cut from the top (world units) | Cut from the foot | What stays |
-|---|---|---|---|
-| Meteor | 44 | | the board from 44 |
-| Breaker | 50 | | the top wall at 50 |
-| Rally | 28 | | the lives balls (29..39), the pads' glow |
-| Tempo | 20 | | the fever meter (a tap target, 22..42) |
-| Pinball | 36 | | the table's arch |
-| Spacewalk | 22 | | the helmets (23..33), the astronaut's head on the goal deck |
-| Blockzone | 36 | | the well's glow |
-| Coral Pop | 64 | | the rock ledge |
-| Gemstone | 26 | 95 | the board's tray, the GOAL! / TREASURE! banners (its goals panel goes to the side panel) |
-| Tilt | 118 | 175 | the words strip (140) and the disc with its ticks |
-| Roofbound | 150 | | the cave's roof (never above 152.5) |
-| Grappler | 36 | | the cave's ceiling and its lit lip |
-| Minefield | 44 | | the board's frame |
-| Mahjong | 48 | | the top layer and a matched pair's lift |
-| Free Cell, Five Hands | 44 | | the top row |
-| Summit | 54 | | the peaks |
-| Thirteen | 46 | | the pyramid |
+With a band cut, the shared success layer's frame effects (the flash, the edge and neon frames, the arena glow, the
+colour sweep, the border bulbs and the miss pulse) follow the visible edge and are clipped to it, as the world's edge
+clips them everywhere else (`withArcadeFxInset` in arcadeFx.renderer.ts, set by ArcadeCanvasStage and the own-loop
+stages' HUD wrapper from the same rule as the slot, `hudCut`). Particles, rings, pops and banners keep their places.
 
-None for Hover, Wavefront, Orbit, Rainbow Bridge and Moon Climb (play reaches the world's top), High Rise (its crane's
-cable), Iron Wall (the crosshair goes anywhere), Fission (its lives ships at the very top) and Ball Tracker's world (its
-marble queue); Ball Tracker's strip above the board goes instead. Each band names the stamp it was measured on and
-hud-bands-check fails when a game is dealt on another, so a new stamp is measured again before it can be cut.
+Each band is measured, not reckoned (28 Nov 2026, hud-bands-check): every recorded run of the game on the stamps it is
+dealt on, and bot runs at every level, are drawn twice a second, effects playing as on screen, by the game's own
+renderer at the tablet's and the computer's arena sizes; the band is 3 units inside the highest draw seen (the lowest,
+for a foot band).
+
+| Game | Cut from the top (world units) | Cut from the foot | The nearest draw |
+|---|---|---|---|
+| Meteor | 20 | | a star's pop (23.9); the board from 44 |
+| Breaker | 28 | | the ball's glow and a brick's burst (31.1) |
+| Pinball | 20 | | a bumper's glow (23.1) |
+| Gemstone | | 88 | the PAR SMASHED! banner (91.7 from the foot); its goals panel goes to the side panel |
+| Tilt | 75 | 175 | a marble's success burst (78.6); the table under the disc (190.2 from the foot) |
+| Mahjong | 39 | | a matched pair's lift (42.3) |
+
+Measured and left whole: Rally (the ball's glow, the pads), Tempo (hold-note tails come in from the top), Coral Pop (its
+rock ledge), Roofbound (the runner and its crash shards), Grappler (the canopy, the darkness, the streak meter),
+Spacewalk and Minefield (their success effects) and Gemstone's top (the success flash) reach the world's top;
+Blockzone's well glow (18) and Thirteen's cards (15.6) leave too little to cut; Free Cell, Summit and Five Hands drag a
+card wherever the pointer goes. Never cut: Hover, Wavefront, Orbit, Rainbow Bridge and Moon Climb (play reaches the
+world's top), High Rise (its crane's cable), Iron Wall (the crosshair goes anywhere), Fission (its lives ships at the
+very top) and Ball Tracker's world (its marble queue); Ball Tracker's strip above the board goes instead. Each band
+names the stamps it was measured on and hud-bands-check fails when a level is dealt on another, so a new stamp is
+measured again before it can be cut.
 
 Into the panel too: **Ball Tracker's strip** (not drawn; its pills note their figures inside the frame's draw, the
 board taking its 36 px), **Blockzone's speed** ("Speed 1/6"; it sits beside the well, so the board gains no height from
@@ -360,9 +364,13 @@ Each of these games was left exactly as it was: mouse only, no keys added.
 
 ## Checks
 
-- **hud-bands-check** (desktop size PR 1; ~5 s, no browser): every band belongs to a live game measured on its dealt
-  stamp; only the arena's live arcade round is cut; Blockzone's speed and Gemstone's goals are noted for the panel out
-  of the world and drawn exactly as before in it.
+- **hud-bands-check** (desktop size PR 1; ~2.5 min, no browser): every band belongs to a live game measured on the
+  stamps each level deals; only the arena's live arcade round is cut, by one rule for the slot and the effects' frame;
+  Blockzone's speed and Gemstone's goals are noted for the panel out of the world and drawn exactly as before in it;
+  nothing any game draws enters its band in its recorded runs (replayed to their stored scores) and bot runs at every
+  level, drawn twice a second at the tablet's and the computer's arena sizes (`scripts/draw-bounds-lib.ts` records
+  each draw's box; `scripts/hud-bands-lib.ts` the runs and the arena's drawing; `--report` prints each game's nearest
+  draw); and a band past Meteor's board is caught.
 
 - **desktop-geometry-check** (new; headless Chromium, ~4 min). At 1366×768, 1440×900, 1920×1080 and
   1280×720 it checks the pages (centred column ≤ 480 px, no sideways scroll, text no smaller than the phone's 10 px).
