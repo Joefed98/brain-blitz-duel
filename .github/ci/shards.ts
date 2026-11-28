@@ -511,6 +511,10 @@ export const SHARDS: Record<string, string[]> = {
     // cosmetics-art-check (wave 2 E2, ~2 s): the cosmetics' art data against its sources, every finish on all 32
     // avatars, the emotes, scenes and tile styles, and nothing changed with nothing equipped. No browser.
     "cosmetics-art-check.ts",
+    // identity-art-check (S5 PR A, 28 Nov 2026, ~5 s): the rendered avatars' files (all 22 an avatar, 280 px, within
+    // the size budget, hashed as their URLs), every wrapper pointing at its image, and the tinted composite against
+    // the stored Chromium reference. No browser.
+    "identity-art-check.ts",
     // pass-check (wave 2 D2, 13 Nov 2026, ~20 s): the Season pass, Joules from stored results, the day limits and soft
     // cap, claiming, the premium track and the weekly challenges on a local PostgreSQL through the server-function
     // harness, beside shop-check.

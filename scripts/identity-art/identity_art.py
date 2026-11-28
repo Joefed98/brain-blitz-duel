@@ -20,6 +20,7 @@ Writes <out>/<piece>.png (RGBA, transparent background); default out docs/art/bl
 WebP at quality 90, the masters the contact sheet reads).
 """
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -303,6 +304,15 @@ def tube(name, d, frame, z, radius, mat, tx=0.0, ty=0.0, sc=1.0, about=None, sub
     return ob
 
 
+def subsurf(ob, level=1):
+    """One level of subdivision, in the viewport and the render alike (a new modifier's render level is 2: on the
+    moulded avatar bodies that is 16x the faces, about 9 GB on Hover)."""
+    m = ob.modifiers.new("sub", "SUBSURF")
+    m.levels = level
+    m.render_levels = level
+    return m
+
+
 def lathe(name, profile, frame, mat, steps=96):
     """A body of revolution about the artboard's vertical axis through frame.cx; profile = [(radius, y)] SVG units."""
     mesh = bpy.data.meshes.new(name)
@@ -317,7 +327,7 @@ def lathe(name, profile, frame, mat, steps=96):
     m.render_steps = steps
     m.use_merge_vertices = True
     m.use_smooth_shade = True
-    ob.modifiers.new("sub", "SUBSURF").levels = 1
+    subsurf(ob)
     ob.data.materials.append(mat)
     for p in mesh.polygons:
         p.use_smooth = True
@@ -378,7 +388,8 @@ class Dome:
 
 def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     """A filled outline raised into `dome`'s height field (its back flat at z0 - under): a moulded, toy-like body.
-    Built as a thin slab, remeshed into an even grid, then each top vertex lifted by the field."""
+    Built as a thin slab, remeshed into an even grid (cells no finer than voxel / 8), then each top vertex lifted by
+    the field."""
     import numpy as np
 
     ob = curve_from(name, subs, frame)
@@ -391,8 +402,14 @@ def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     bpy.ops.object.convert(target="MESH")
     rm = ob.modifiers.new("rm", "REMESH")
     rm.mode = "SHARP"
-    rm.octree_depth = 8
+    # Octree depth 8 over the shape's own size, but no cell finer than voxel / 8: a tiny shape (High Rise's twenty
+    # 4-unit windows) remeshed at 256 cells across, then subdivided, came to 3.7M faces and ran Cycles out of memory.
+    import math
+
+    rm.octree_depth = max(4, min(8, math.ceil(math.log2(max(ob.dimensions.x, ob.dimensions.y, 1e-6) / (voxel / 8)))))
     rm.use_remove_disconnected = False
+    if rm.octree_depth < 8 and os.environ.get("AVATAR_DEBUG"):
+        print("remesh depth", rm.octree_depth, name, flush=True)
     bpy.ops.object.modifier_apply(modifier="rm")
     me = ob.data
     co = np.empty(len(me.vertices) * 3)
@@ -405,7 +422,7 @@ def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     me.update()
     for poly in me.polygons:
         poly.use_smooth = True
-    ob.modifiers.new("sub", "SUBSURF").levels = 1
+    subsurf(ob)
     ob.data.materials.append(mat)
     return ob
 
@@ -648,7 +665,7 @@ def _world(sc):
         lobe((-0.18, 0.22, 1.0), 6, "#FFFFFF", 3.2, "overhead"),  # a big overhead softbox (the flat fronts)
         lobe((0.0, 0.0, 1.0), 1.5, "#9AA8C8", 0.6),  # the ceiling round it
         lobe((0.0, -1.0, 0.05), 3.0, "#F4F0EA", 0.7, "floor"),  # floor bounce, below
-        lobe((-0.9, -0.2, 0.2), 6, "#8FDDFF", 1.4),  # a cyan kicker, left
+        lobe((-0.9, -0.2, 0.2), 6, "#8FDDFF", 1.4, "kicker"),  # a cyan kicker, left
         lobe((-0.45, -0.85, -0.1), 5, "#FFFFFF", 0.0, "front"),  # a front softbox (off unless a piece asks)
     ]
     acc = terms[0]

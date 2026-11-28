@@ -167,7 +167,13 @@ check(
   lazyReal.every((p) => !realConfig.media.includes(p) && realConfig.lazyMedia.includes(p)),
   "the real build lists every copied Lovable sound as lazy, none in the install download",
 );
-check(realConfig.lazyMedia.length === lazyReal.length, "nothing else is lazy");
+// Changed with Joe's approval, 28 Nov 2026 (S5 PR A): the rendered identity art is kept lazily too, only once shown.
+const lazyIdentity = realConfig.lazyMedia.filter((p) => p.startsWith("/identity/"));
+check(realConfig.lazyMedia.length === lazyReal.length + lazyIdentity.length, "nothing else is lazy but the identity art");
+check(
+  lazyIdentity.length > 0 && lazyIdentity.every((p) => !realConfig.media.includes(p) && typeof realConfig.mediaHash[p] === "string"),
+  `the identity art (${lazyIdentity.length} files) is lazy with a hash, none of it in the install download`,
+);
 check(lazyReal.every((p) => typeof realConfig.mediaHash[p] === "string"), "every lazy sound has a hash");
 const installBytes = realConfig.media.reduce((sum, p) => sum + statSync(join("public", p)).size, 0);
 const lazyBytes = lazyReal.reduce((sum, p) => sum + statSync(join("public", p)).size, 0);

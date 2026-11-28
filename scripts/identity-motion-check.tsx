@@ -113,12 +113,17 @@ try {
     // sample's own title and tier and rating, which differ between stills (tier cards: "S1 Storm", "Storm I 2,310").
     const P = 2 * pad;
     const inPill = (x: number, y: number) => x >= 160 && x < 400 && y >= 88 && y < 200;
+    // Changed with Joe's approval, 28 Nov 2026 (S5 PR A): the sample's avatar (now a Blender render, proved by its own
+    // checks) is left out, measured from the page, as the pill is.
+    const av = await page.locator("[data-player-card] [data-avatar-layers]").first().boundingBox();
+    const inAvatar = (x: number, y: number) =>
+      !!av && x >= (av.x - box.x) * 2 - 2 && x < (av.x - box.x + av.width) * 2 + 2 && y >= (av.y - box.y) * 2 - 2 && y < (av.y - box.y + av.height) * 2 + 2;
     const meanAt = (ox: number, oy: number, step: number) => {
       let sum = 0;
       let n = 0;
       for (let y = 0; y < 224; y += step)
         for (let x = 0; x < 600; x += step) {
-          if (inPill(x, y)) continue;
+          if (inPill(x, y) || inAvatar(x, y)) continue;
           const bx = x + ox;
           const by = y + oy;
           // Two stills are cropped short of the card's bottom: what isn't in the still isn't compared.

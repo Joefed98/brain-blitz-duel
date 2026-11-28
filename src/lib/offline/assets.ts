@@ -14,7 +14,13 @@ export const OFFLINE_PAGES = ["/", "/practice", "/profile", "/tournaments"] as c
 export const GOOGLE_FONTS_CSS = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
 
 /** Public files that are media: the same file under the same name from build to build (one shared cache). */
-export const MEDIA_DIRS = ["sounds", "tiles", "wordfall"] as const;
+export const MEDIA_DIRS = ["sounds", "tiles", "wordfall", "identity"] as const;
+
+/**
+ * Media folders kept only once used, never fetched on install (S5 step 2, 28 Nov 2026): the identity art's Blender
+ * renders (public/identity/, several MB across every avatar, finish and gem). A phone keeps the ones it has shown.
+ */
+export const LAZY_MEDIA_DIRS = ["identity"] as const;
 
 /** Public files never kept: the link preview image and licence texts are not used by the app itself. */
 export function keepPublicFile(path: string): boolean {
