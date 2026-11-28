@@ -16,7 +16,8 @@
  *  6. The wiring (the card's best is aria-hidden and only describes the button, whose accessible
  *     name stays exactly the game's, as the browser checks find it): practice records and reads under the dealt puzzle's own stamps, the list's cards
  *     read the current stamps, intro-example runs are never recorded, the reveal's moment shows only
- *     in practice on a new best, uses an existing cue, and is skipped with reduced motion or effects;
+ *     in practice on a new best, uses an existing cue, and with reduced motion or effects is the calm fade
+ *     (`.practice-new-best`) with the same cue (changed with Joe's approval, 28 Nov 2026, S1 PR 3);
  *     room code never imports the practice record.
  *
  *   bun scripts/practice-bests-check.ts
@@ -238,8 +239,8 @@ const localStorage = {
   const moment = readFileSync("src/components/duel/NewBestMoment.tsx", "utf8");
   const cue = /soundCue\("([^"]+)"\)/.exec(moment)?.[1];
   check(!!cue && cue in SOUND_MANIFEST && !!(SOUND_MANIFEST as Record<string, { url: string | null }>)[cue]?.url, `the moment plays an existing cue with a file (${cue})`);
-  check(/prefersReducedMotion\(\) \|\| arcadeReducedEffects\(\)/.test(moment) && /if \(calm\.current\) return null;/.test(moment) && /if \(calm\.current\) return;\s*const timer/.test(moment),
-    "reduced motion or reduced effects skip the moment and its sound");
+  check(/prefersReducedMotion\(\) \|\| arcadeReducedEffects\(\)/.test(moment) && /calm\.current \? "practice-new-best" : "new-best-moment"/.test(moment) && !/if \(calm\.current\) return/.test(moment) && /useEffect\(\(\) => \{\s*const timer = window\.setTimeout\(\(\) => soundCue\(/.test(moment),
+    "reduced motion or reduced effects show the calm fade (.practice-new-best) and keep the sound");
   check(/pointer-events-none absolute/.test(moment), "the moment is laid over the reveal (nothing moves)");
 
   for (const file of ["src/routes/duel.$code.tsx", "src/lib/duel/duel.functions.ts", "src/lib/duel/grade.ts", "src/lib/duel/scoring.ts"]) {
