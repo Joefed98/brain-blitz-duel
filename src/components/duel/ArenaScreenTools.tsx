@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Button, Icon } from "@/design/components";
 import {
@@ -14,6 +14,25 @@ import {
   useFullscreen,
 } from "@/lib/gameFrame/screenMode";
 import { gameKey, KEYS_QUERY } from "@/lib/desktop";
+import { readLiveHud, subscribeLiveHud, type LiveHudItem } from "@/lib/rated/liveHud";
+
+import { HudRows } from "./ArenaGamePanel";
+
+const NO_HUD: readonly LiveHudItem[] = [];
+
+/**
+ * A turned board's HUD values with the panels hidden (P4 desktop size PR 2): a turned board never draws its HUD in the
+ * world (its text would lie on its side), so the values the stage notes (liveHud.ts) show here, under the corner tools.
+ */
+function FocusHud() {
+  const items = useSyncExternalStore(subscribeLiveHud, readLiveHud, () => NO_HUD);
+  if (!items.length) return null;
+  return (
+    <div data-arena-focus-hud className="arena-tools-hud">
+      <HudRows items={items} />
+    </div>
+  );
+}
 
 /** Focus is somewhere text is typed (chat, a name field): its keys are never shortcuts. */
 function typing(target: EventTarget | null): boolean {
@@ -33,7 +52,7 @@ function typing(target: EventTarget | null): boolean {
  * Full screen is remembered on this device: a player who left it on is put back by their next click or key here.
  * Presentation only: nothing here reaches the game's input, its clock or its score.
  */
-export function ArenaScreenTools() {
+export function ArenaScreenTools({ turned = false }: { turned?: boolean } = {}) {
   const hidden = useArenaPanelsHidden();
   const full = useFullscreen();
   const [canFull, setCanFull] = useState(false);
@@ -75,6 +94,8 @@ export function ArenaScreenTools() {
   }, []);
 
   return (
+    <>
+    {hidden && turned ? <FocusHud /> : null}
     <div data-arena-tools data-panels-hidden={hidden ? "" : undefined} className="arena-tools">
       {hidden ? <div data-arena-focus-timer className="arena-tools-timer" /> : null}
       {canFull ? (
@@ -100,5 +121,6 @@ export function ArenaScreenTools() {
         {hidden ? "Show panels" : "Hide panels"}
       </Button>
     </div>
+    </>
   );
 }

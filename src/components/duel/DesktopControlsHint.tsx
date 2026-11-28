@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useDesktop } from "@/lib/desktop";
+import { useLandscapeChosen } from "@/lib/gameFrame/landscape";
 import { mouseLine, screenKeys } from "@/lib/desktopKeys";
 import type { PuzzleType } from "@/lib/duel/types";
 import { fullscreenSupported } from "@/lib/gameFrame/screenMode";
@@ -58,7 +59,8 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
     const t = window.setTimeout(() => setShown(false), SHOW_MS);
     return () => window.clearTimeout(t);
   }, [desktop, type]);
-  const keys = screenKeys(type, desktop);
+  const landscape = useLandscapeChosen(type);
+  const keys = screenKeys(type, desktop, landscape);
   const mouse = mouseLine(type);
   const screen = screenModeKeys(type, keys);
   if (!desktop || (!keys && !mouse) || room < MIN_ROOM) return null;

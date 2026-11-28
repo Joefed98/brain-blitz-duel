@@ -1,6 +1,7 @@
 import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { BoardKeySpec } from "@/lib/gameFrame/boardKeys";
+import { landscapeChosen } from "@/lib/gameFrame/landscape";
 
 /**
  * Each game's keyboard controls, as the round intro shows them on desktop (DesktopKeys in
@@ -166,13 +167,16 @@ export const BOARD_KEYS: Partial<Record<PuzzleType, BoardKeySpec>> = {
 
 /**
  * The keys as they work on this game's desktop screen (31 Oct 2026): a rotated game (desktop mode
- * `rotate` with direction keys) names its arrows as they move on the turned screen (the world's left is
- * up there, its right down, its up right); every other game as listed. `desktop` false: as listed.
+ * `rotate` with direction keys, or a landscape board the player has on) names its arrows as they move on the turned
+ * screen (the world's left is up there, its right down, its up right); every other game as listed. `desktop` false:
+ * as listed.
  */
-export function screenKeys(type: PuzzleType, desktop: boolean): readonly (readonly [string, string])[] | undefined {
+export function screenKeys(type: PuzzleType, desktop: boolean, landscape = landscapeChosen(type)): readonly (readonly [string, string])[] | undefined {
   const listed = DESKTOP_KEYS[type];
   const info = DESKTOP_MODES[type];
-  if (!listed || !desktop || info?.mode !== "rotate" || !info.keys) return listed;
+  // A rotate game's keys always turn; a landscape-board game's (lib/gameFrame/landscape.ts) while the player has it on.
+  const turned = info?.mode === "rotate" ? Boolean(info.keys) : Boolean(landscape && info?.landscape);
+  if (!listed || !desktop || !turned) return listed;
   const screenArrow: Record<string, string> = { "←": "↑", "→": "↓", "↑": "→", "↓": "←" };
   return listed.map(([key, action]) => [key.replace(/[←→↑↓]/g, (a) => screenArrow[a] ?? a), action] as const);
 }

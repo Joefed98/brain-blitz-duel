@@ -1237,6 +1237,18 @@
   padding: var(--jz-space-8) var(--jz-space-12);
   background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
 }
+/* A turned board's HUD values with the panels hidden (P4 desktop size PR 2; ArenaScreenTools FocusHud): under the corner
+   tools, upright, on the same dark glass. */
+.arena-tools-hud {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 56px);
+  right: 12px;
+  z-index: 45;
+  width: 200px;
+  padding: var(--jz-space-8) var(--jz-space-12);
+  border-radius: var(--jz-radius-md);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+}
 
 /* The HUD band given back to the board (P4, desktop size PR 1; ArcadeArenaSlot `cropTop`): on the arena with the HUD's
    values in the panel, the world is sized at the largest uniform scale that fits its height less the band (--arena-crop,

@@ -10,6 +10,7 @@ import { useAccount } from "@/lib/account/accountApi";
 import { bestOf, levelStarsOf } from "@/lib/practice/progress";
 import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { useDesktop } from "@/lib/desktop";
+import { landscapeOffered, setLandscape, useLandscapeChosen } from "@/lib/gameFrame/landscape";
 import { screenKeys } from "@/lib/desktopKeys";
 import { puzzleDef, puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -223,6 +224,29 @@ export function SchemeChooser({ type }: { type: PuzzleType }) {
 }
 
 /**
+ * The landscape board's choice (P4 desktop size PR 2; lib/gameFrame/landscape.ts): Upright or Landscape, for a game that
+ * offers it, on a computer. Off (Upright) until the player picks Landscape; kept per game on this device.
+ */
+export function BoardChooser({ type }: { type: PuzzleType }) {
+  const on = useLandscapeChosen(type);
+  if (!landscapeOffered(type)) return null;
+  return (
+    <div data-board-chooser className="arena-scheme">
+      <Segmented<"upright" | "landscape">
+        label="Board"
+        value={on ? "landscape" : "upright"}
+        onChange={(next) => setLandscape(type, next === "landscape")}
+        options={[
+          { value: "upright", label: "Upright" },
+          { value: "landscape", label: "Landscape" },
+        ]}
+        data={{ "data-board": on ? "landscape" : "upright" }}
+      />
+    </div>
+  );
+}
+
+/**
  * The controls tab (replacing the keyboard hint box): a small "Controls" tab at the foot of the panel that pulls up
  * the game's keys and its control choice. Computers with a mouse only (useDesktop); nothing on a touch screen.
  */
@@ -230,8 +254,9 @@ export function ControlsTab({ type, card = false }: { type: PuzzleType; card?: b
   const desktop = useDesktop();
   const [open, setOpen] = useState(false);
   const scheme = useControlScheme(type);
+  const landscape = useLandscapeChosen(type);
   if (!desktop) return null;
-  const keys = scheme === "keys" || scheme === "move" ? screenKeys(type, true) : undefined;
+  const keys = scheme === "keys" || scheme === "move" ? screenKeys(type, true, landscape) : undefined;
   const offered = schemesFor(type);
   if (card)
     // The Cabinet's controls card: the keys as chips, always shown (there is room), and the choice where there is one.
@@ -251,6 +276,7 @@ export function ControlsTab({ type, card = false }: { type: PuzzleType; card?: b
           <span className="arena-scheme-note">{SCHEME_NOTE[scheme]}</span>
         ) : null}
         <SchemeChooser type={type} />
+        <BoardChooser type={type} />
       </section>
     );
   return (
@@ -258,6 +284,7 @@ export function ControlsTab({ type, card = false }: { type: PuzzleType; card?: b
       {open ? (
         <div data-controls-hint aria-label="Controls" className="arena-controls-body">
           <SchemeChooser type={type} />
+          <BoardChooser type={type} />
           {keys?.length ? (
             <ul className="arena-controls-keys">
               {keys.map(([key, action]) => (
@@ -332,7 +359,7 @@ function useLiveHud(on: boolean): readonly LiveHudItem[] {
 }
 
 /** The HUD's values as rows: label left, value right; a Retro readout (one string, no label) on its own; `main` first and big. */
-function HudRows({ items }: { items: readonly LiveHudItem[] }) {
+export function HudRows({ items }: { items: readonly LiveHudItem[] }) {
   const ordered = [...items.filter((i) => i.main), ...items.filter((i) => !i.main)];
   return (
     <ul data-arena-hud-list data-many={ordered.length > 6 ? "" : undefined} className="arena-hud">

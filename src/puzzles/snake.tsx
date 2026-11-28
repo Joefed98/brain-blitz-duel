@@ -46,6 +46,10 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
+import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { arenaDelta, arenaSize } from "@/components/puzzles/tapMapping";
+import { snakeTurnOfDirection, snakeTurnOfSwipe, type SnakeTurn } from "@/lib/arcade/snakeTurns";
+import { UPRIGHT_ON_TURNED, withUprightText } from "@/lib/arcade/uprightText";
 
 /** Fixed intro still: a short trail about to reach the star, and a rock's shadow. */
 /**
@@ -91,14 +95,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // The landscape board (P4 desktop size PR 2; lib/gameFrame/landscape.ts): the world drawn turned in the rotor. Keys
+  // arrive turned back already (useGameKeys), swipes go back through arenaDelta, and text is drawn upright.
+  const turnedRef = useRef(false);
+  turnedRef.current = useDesktopPresentation().rotate;
   // Desktop keys: the arrows (WASD) are the four swipe turns.
   useGameKeys((kind, key, event) => {
     const open = () => !lockedRef.current && !submitted.current && !snakeGame.isOver(state.current);
     const dir = directionOf(key);
     if (!dir) return false;
-    if (kind === "down" && !event.repeat && open()) pending.current.push(dir === "up" ? 0 : dir === "right" ? 1 : dir === "down" ? 2 : 3);
+    if (kind === "down" && !event.repeat && open()) queueTurn(snakeTurnOfDirection(dir));
     return true;
   });
+  /** Queues a turn for the next tick (and, for checks only, onto `window.__duelzPayloads` when a page set it). */
+  const queueTurn = (turn: SnakeTurn) => {
+    pending.current.push(turn);
+    const probe = typeof window !== "undefined" ? (window as unknown as { __duelzPayloads?: unknown[] }).__duelzPayloads : undefined;
+    if (Array.isArray(probe)) probe.push({ k: SNAKE_INPUT_TURN, a: turn });
+  };
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 
@@ -190,7 +204,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) hudDraw(() => snakeArtGame.draw(context, state.current, size));
+      if (size && context)
+        hudDraw(() => withUprightText(context, turnedRef.current ? UPRIGHT_ON_TURNED : 0, () => snakeArtGame.draw(context, state.current, size)));
 
       frameTiming.rendered();
 
@@ -233,7 +248,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
    */
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    const box = wrap.current?.getBoundingClientRect();
+    // The arena's own size (a turned board's on-screen box has its sides swapped; the same box everywhere else).
+    const box = arenaSize(wrap.current);
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = arcadeCanvasRatio();
     const width = Math.floor(box.width + 0.01);
@@ -279,11 +295,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           onPointerMove={(event) => {
             const from = anchor.current;
             if (!from || locked || submitted.current || snakeGame.isOver(state.current)) return;
-            const dx = event.clientX - from.x;
-            const dy = event.clientY - from.y;
-            if (Math.abs(dx) < SNAKE_SWIPE_PX && Math.abs(dy) < SNAKE_SWIPE_PX) return;
-            const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0;
-            pending.current.push(dir);
+            // The swipe as the world sees it (turned back on the landscape board; unchanged everywhere else).
+            const move = arenaDelta(wrap.current, event.clientX - from.x, event.clientY - from.y);
+            const turn = snakeTurnOfSwipe(move.dx, move.dy, SNAKE_SWIPE_PX);
+            if (turn === null) return;
+            queueTurn(turn);
             anchor.current = { x: event.clientX, y: event.clientY };
           }}
           onPointerUp={(event) => {

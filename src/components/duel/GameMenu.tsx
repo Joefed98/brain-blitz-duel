@@ -10,6 +10,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { MENU_DIRECTION_GAMES, useDirectionControls } from "@/lib/directionControls";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "@/lib/gameFrame/screenMode";
+import { landscapeOffered, setLandscape, useLandscapeChosen } from "@/lib/gameFrame/landscape";
 
 // The help copy (instructions.ts) is game code: loaded when the menu's own help first opens, never with the shell.
 const PuzzleHelp = lazy(() => import("./PuzzleInstructions").then((m) => ({ default: m.PuzzleHelp })));
@@ -98,6 +99,8 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                   <SchemeChooser type={type} />
                 </div>
               ) : null}
+              {/* The landscape board (P4, desktop size PR 2; lib/gameFrame/landscape.ts): computers only, per game. */}
+              {type && desktop && landscapeOffered(type) ? <LandscapeRow type={type} /> : null}
               {showHelp ? (
                 <Row
                   as="button"
@@ -152,6 +155,11 @@ function DirectionRow() {
 }
 
 /** One switch row (role="switch"), as the settings sheet's: the label left, the switch right; the whole row toggles. */
+function LandscapeRow({ type }: { type: PuzzleType }) {
+  const on = useLandscapeChosen(type);
+  return <SwitchRow label="Landscape board" icon="expand" on={on} onChange={(next) => setLandscape(type, next)} />;
+}
+
 function SwitchRow({
   label,
   icon,

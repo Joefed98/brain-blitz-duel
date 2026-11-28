@@ -25,6 +25,7 @@ import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { ArenaScreenTools } from "./ArenaScreenTools";
 import { hudBandFor } from "@/lib/gameFrame/hudBands";
+import { useLandscapeChosen } from "@/lib/gameFrame/landscape";
 import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 import { createPortal } from "react-dom";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
@@ -546,10 +547,15 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const [arenaLeftNode, setArenaLeftNode] = useState<HTMLElement | null>(null);
   const modeInfo = gameType ? DESKTOP_MODES[gameType] : undefined;
   const presented = Boolean((desktop && gameScreen) || arena);
+  // The landscape board (P4 desktop size PR 2; lib/gameFrame/landscape.ts): a portrait game the player turned on its
+  // side, on a computer only, drawn and keyed as a `rotate` game while the round is live.
+  const landscapeChoice = useLandscapeChosen(gameType);
+  const landscape = Boolean(desktop && gameScreen && landscapeChoice && modeInfo?.landscape);
+  const turnedPlay = Boolean(presented && play && (modeInfo?.mode === "rotate" || landscape));
   const presentation: DesktopPresentationValue = {
-    mode: presented && modeInfo ? modeInfo.mode : null,
-    rotate: Boolean(presented && play && modeInfo?.mode === "rotate"),
-    keys: desktop && gameScreen && play && modeInfo?.mode === "rotate" ? (modeInfo.keys ?? null) : null,
+    mode: presented && modeInfo ? (turnedPlay ? "rotate" : modeInfo.mode) : null,
+    rotate: turnedPlay,
+    keys: desktop && gameScreen && play ? (modeInfo?.mode === "rotate" ? (modeInfo.keys ?? null) : landscape ? (modeInfo?.landscape?.keys ?? null) : null) : null,
   };
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
@@ -561,7 +567,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   useStandaloneShortfall(arcadePlay && constrained);
   // A turned world (Cue Ball's landscape table, `rotate`) keeps the whole width for itself: one panel, as before.
   // Computers only: a sideways tablet keeps its one panel (its touch screen has the phone's controls on the world).
-  const cabinetWanted = cabinetLeftOn() && desktop && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate";
+  const cabinetWanted = cabinetLeftOn() && desktop && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate" && !turnedPlay;
   // Only where it draws the world no smaller than the single panel does (cabinetFits; read before paint, and on resize).
   const [cabinetRoom, setCabinetRoom] = useState(false);
   const arenaLeft = cabinetWanted && cabinetRoom;
@@ -574,9 +580,9 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       leftMount: arenaLeft ? arenaLeftNode : null,
       setLeftMount: setArenaLeftNode,
       roomPanel: Boolean(panel),
-      hudBand: arena && arcadePlay ? hudBandFor(gameType) : undefined,
+      hudBand: arena && arcadePlay && !turnedPlay ? hudBandFor(gameType) : undefined,
     }),
-    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel, arcadePlay, gameType],
+    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel, arcadePlay, gameType, turnedPlay],
   );
   /** Every game's live round (Polish 2): GameLayout's frame header replaces the app's top bar. */
   const framePlay = Boolean(gameScreen && play);
@@ -702,7 +708,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
           <div ref={setArenaLeftNode} className="arena-panel-mount" />
         </aside>
       ) : null}
-      {arena ? <ArenaScreenTools /> : null}
+      {arena ? <ArenaScreenTools turned={presentation.rotate} /> : null}
       {/* The arena's side panel outside a room (a room's game block is at the top of its room panel). */}
       {arena && !panel ? (
         <aside data-arena-panel aria-label="Game" className="arena-panel" style={{ ["--arena-panel-w" as string]: `${ARENA_PANEL_W}px` }}>
