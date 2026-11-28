@@ -300,6 +300,8 @@
   --category-arcade: #FF4D4D;
   /* Arcade groups (Practice browsing and arcade tile borders only; src/lib/duel/arcadeGroups.ts). */
   --group-retro: #36E2F5;
+  /* Retro tiles' soft glow: --group-retro at 55 % (an rgb value, so practice-switch-check reads its colour). */
+  --group-retro-glow: rgb(54 226 245 / 0.55);
   --group-sports: #4CC24A;
   --group-cards: #FF5C93;
   --group-action: var(--category-arcade);
