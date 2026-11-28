@@ -6,7 +6,8 @@
  */
 import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
 
-import { ACCESSORIES, dressAvatar, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
+import { ACCESSORIES, dressAvatar, FINISHES, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
+import { ANIMATED_COSMETICS } from "./cosmeticsArt.data";
 import { AVATAR_ART } from "./avatarArt.data";
 import { ensureGemShimmer, gemShimmerMarkup } from "./gemShimmer";
 import { AVATARS, GEMS } from "./playerCardArt.data";
@@ -76,8 +77,8 @@ const IMAGE = (href: string, extra = "") =>
  */
 function layeredMarkup(look: AvatarLook, prefix: string, m1: string): string | null {
   const id = BY_ID.has(look.id) ? look.id : DEFAULT_AVATAR_ID;
+  // An unknown finish draws as nothing equipped (as the drawing's dressAvatar did).
   const finish = look.finish ? FINISH_VARIANT[look.finish] : undefined;
-  if (look.finish && !finish) return null;
   let body: string | null;
   const tinted = (set: string) => {
     const [base, gloss, mask] = ["base", "gloss", "mask"].map((k) => artUrl(id, `${set}-${k}`));
@@ -96,10 +97,15 @@ function layeredMarkup(look: AvatarLook, prefix: string, m1: string): string | n
   else body = tinted("tint");
   if (!body) return null;
   if (gemOn) ensureGemShimmer();
+  // An animated finish keeps its approved outer art live over its render (Lightning Core, a Legendary: the pulsing
+  // ring and flickering bolts, `.jzc` motion stopped under reduced motion). The still finishes' render is all of it.
+  const live = finish && look.finish && ANIMATED_COSMETICS.includes(look.finish) ? FINISHES[look.finish] : undefined;
+  const sub = (t: string) => t.replaceAll("{{p}}", prefix).replaceAll("{{m1}}", m1);
+  const outer = live?.outer ? `${live.defs ? `<defs>${sub(live.defs)}</defs>` : ""}${sub(live.outer)}` : "";
   const accessory = look.accessory ? ACCESSORIES[look.accessory] : undefined;
   const acc = accessory ? accessory.replaceAll("{{p}}", `${prefix}ac-`) : "";
   const gemAttr = gemOn ? ` data-gem="${look.gem}"` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style="overflow: visible" aria-hidden="true" data-avatar-layers="${id}"${gemAttr}>${body}${acc}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style="overflow: visible" aria-hidden="true" data-avatar-layers="${id}"${gemAttr}>${body}${outer}${acc}</svg>`;
 }
 
 /** An avatar's svg markup with its ids prefixed (one prefix per drawing on the page). */
