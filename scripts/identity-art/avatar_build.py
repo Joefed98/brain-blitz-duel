@@ -112,7 +112,10 @@ def poly(subs, frame, step=0.5):
 
 
 def inside(xy, polys):
-    """Even-odd point-in-polygon for many points against a shape's rings."""
+    """Even-odd point-in-polygon for many points against a shape's rings (in chunks: a moulded body's every vertex
+    against every edge point at once needs gigabytes)."""
+    if len(xy) > 2048:
+        return np.concatenate([inside(xy[k : k + 2048], polys) for k in range(0, len(xy), 2048)])
     res = np.zeros(len(xy), bool)
     for P in polys:
         if len(P) < 3:
@@ -610,10 +613,63 @@ def apply_variant(b, v, gems):
             for ring in rings:
                 b.extras += surface_tube("fx", ring, under, 0.9 * ia.S, cyan, True, lift=0.003)
     elif v.startswith("gem-"):
+        # A gem colour glows (Joe, 28 Nov 2026), brighter the higher the gem (gem_glow): a rim light behind in the
+        # gem's colour, the jewel rim round the body lit in its light tone, a glowing ring on the disc's edge; the halo
+        # and sparkles are added after the render (gem_post).
         g = gems[v[4:]]
-        set_mat(b.main, gem(v, g["stops"]))
-        rim = ia.metal("jewel-rim", (g["stops"][0], g["stops"][0], g["stops"][1], g["stops"][0]), "polished")
+        k = gem_glow(gems, v[4:])
+        st = g["stops"]
+        set_mat(b.main, gem(v, st))
+        rim = ia.glow("jewel-rim", st[0], 0.6 + 2.4 * k, glass=st[1])
         b.extras += main_outline_tubes(b, 0.9 * ia.S, rim, lift=0.002, field_top=False)
+        b.extras.append(ia.tube("gemring", ia.circle(47.2, 50, 50), ia.Frame(50, 50), 0.085, 0.013,
+                                ia.glow("gem-ring", st[1], 1.5 + 4.5 * k, glass=st[0])))
+        b.extras.append(ia.light("gem-rim", (0.6, 3.2, 1.6), (-62, 8, 180), 2.5, 80 + 420 * k, st[1]))
+
+
+def gem_glow(gems, gem_id):
+    """A gem's glow strength, 0.35 (Amber, the first in GEMS) rising evenly to 1.0 (Diamond, the last)."""
+    order = list(gems)
+    return 0.35 + 0.65 * order.index(gem_id) / (len(order) - 1)
+
+
+SPARKLES = [(-38, 1.0), (212, 0.75), (128, 0.6), (300, 0.85), (18, 0.55)]  # (angle on the rim, relative size)
+
+
+def gem_post(png, stops, k, px):
+    """The halo and sparkles, inside the 100-unit box (the avatar's box, tap area and layout never change): a soft
+    glow round the disc's edge in the gem's colour, fading out before the box's edge, then 2-5 four-point sparkles on
+    the rim (more and bigger the higher the gem), white at the core in the gem's light tone."""
+    from PIL import ImageChops, ImageDraw, ImageFilter
+
+    im = Image.open(png).convert("RGBA")
+    W = im.width
+    u = W / 100.0
+    ring = Image.new("L", (W, W), 0)
+    d = ImageDraw.Draw(ring)
+    d.ellipse([(50 - 48.6) * u, (50 - 48.6) * u, (50 + 48.6) * u, (50 + 48.6) * u], outline=255, width=max(1, round(1.6 * u)))
+    halo = ring.filter(ImageFilter.GaussianBlur(1.3 * u)).point(lambda v: min(255, int(v * (1.2 + 1.6 * k))))
+    col = Image.new("RGB", (W, W), stops[1])
+    glow = ImageChops.multiply(col, Image.merge("RGB", (halo, halo, halo)))
+    rgb = ImageChops.screen(im.convert("RGB"), glow)
+    alpha = ImageChops.lighter(im.getchannel("A"), halo.point(lambda v: int(v * (0.55 + 0.45 * k))))
+    out = rgb.copy()
+    out.putalpha(alpha)
+    n = 2 + round(3 * (k - 0.35) / 0.65)
+    spark = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(spark)
+    for ang, rel in SPARKLES[:n]:
+        cx = (50 + 44.5 * math.cos(math.radians(ang))) * u
+        cy = (50 + 44.5 * math.sin(math.radians(ang))) * u
+        r = (2.2 + 2.6 * k) * rel * u
+        w = r * 0.22
+        for colour, grow in ((stops[0], 1.6), ("#FFFFFF", 1.0)):
+            rr, ww = r * grow if grow > 1 else r, w * grow
+            sd.polygon([(cx, cy - rr), (cx + ww, cy - ww), (cx + rr, cy), (cx + ww, cy + ww), (cx, cy + rr), (cx - ww, cy + ww),
+                        (cx - rr, cy), (cx - ww, cy - ww)], fill=colour)
+    spark = spark.filter(ImageFilter.GaussianBlur(0.25 * u))
+    out.alpha_composite(spark)
+    out.save(png)
 
 
 def neon_halo(folder, px):
@@ -674,6 +730,8 @@ def main():
             ia.render(tmp)
             Image.open(tmp).resize((px, px), Image.LANCZOS).save(out / rec["id"] / f"{v}.png")
             tmp.unlink()
+            if v.startswith("gem-"):
+                gem_post(out / rec["id"] / f"{v}.png", gems[v[4:]]["stops"], gem_glow(gems, v[4:]), px)
             restore(b, saved)
             print("rendered", rec["id"], v, flush=True)
         if "neon-mask" in variants:
