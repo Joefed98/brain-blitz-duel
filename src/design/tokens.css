@@ -259,6 +259,12 @@
   --jz-dur-toast-out: 200ms;
   --jz-dur-toast-hold: 3s;
   --jz-ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+  /* The bolt motifs (S1 PR 2, 27 Nov 2026; DESIGN.md "Bolt motifs", src/design/motifs.css). A surge: about 400 ms in and
+     600 ms out, never more than once a second. The current: thin jagged lines on a 64 px tile, drifting over metal at a
+     faint strength (blended so only the bright metal shows them). */
+  --jz-dur-surge: 1000ms;
+  --jz-current-strength: 0.14;
+  --jz-current-lines: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='white' stroke-width='1' stroke-linejoin='round'%3E%3Cpath d='M0 20 L9 14 L15 19 L27 8 L33 13 L44 4 L51 10 L64 20'/%3E%3Cpath d='M0 52 L11 45 L18 50 L29 40 L36 46 L47 36 L55 42 L64 52'/%3E%3C/g%3E%3C/svg%3E");
 
   /* ------------------------------------------------ game art inside a page (S1, 27 Nov 2026; values unchanged) */
   /* A game's own art inside a skinned screen ([data-skin-off]: a reveal board, a replay) draws on the page tokens it

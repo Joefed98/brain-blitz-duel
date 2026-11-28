@@ -1,0 +1,290 @@
+/*
+ * The four bolt motifs and the "current" texture (S1 PR 2, 27 Nov 2026; DESIGN.md "Bolt motifs"). Electricity is Joulz's
+ * motion language: charge (a fill that builds), arc (a jagged line between two points), spark (a short burst) and surge
+ * (a full-screen gold flash), drawn by src/design/motifs/ and shown on /dev-design. Screens wire them in stages 2a–2c.
+ *
+ * - Transforms and opacity only: every keyframe below moves `transform` or `opacity`, so the compositor runs them and
+ *   nothing waits on React each frame (React only mounts a piece or flips a data attribute to start one).
+ * - Paused off screen: useOffscreenPause (motifs/useOffscreenPause.ts) marks a piece data-jz-offscreen while it is out
+ *   of view, and every animation inside stops there.
+ * - Reduced motion: charge fills in four even steps, an arc fades in and holds (no flicker), a spark is a short fade and
+ *   a surge a soft gold tint. Each runs its own short timing (`!important`, over the global cut in styles.css, as the
+ *   room moments do); charge and arc end visible; a spark and a surge are pure effects whose rest state is gone (listed
+ *   in reduced-motion-end-check's EFFECTS).
+ * - The current texture: a very faint, slow drift of thin electric lines over a metal surface only (tier emblems, the
+ *   podium, trophies), blended so it shows on the bright metal and not on the dark panel round it; off under Battery
+ *   saver and reduced motion, paused off screen.
+ */
+
+.jz-motif {
+  --motif-gold: var(--jz-gold);
+  pointer-events: none;
+}
+/* Gold on a light surface (Joe, 28 Nov 2026): in the light theme a motif's gold fill or stroke (charge, a gold arc, a
+   spark) takes --jz-gold-ink. Game screens, a game's own art and the player card stay dark in the light theme
+   (tokens.css), so a motif there keeps the gold. The surge is a full-screen flash, not a fill on a surface: unchanged. */
+:root[data-theme="light"] .jz-motif {
+  --motif-gold: var(--jz-gold-ink);
+}
+:root[data-theme="light"] :is(.game-screen, [data-skin-off], .pcard) .jz-motif {
+  --motif-gold: var(--jz-gold);
+}
+[data-jz-offscreen],
+[data-jz-offscreen] *,
+[data-jz-offscreen]::after,
+[data-jz-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
+/* ------------------------------------------------------------------ charge: a fill that builds */
+.jz-charge {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+  color: var(--motif-gold);
+}
+.jz-charge > svg {
+  display: block;
+  overflow: visible;
+}
+.jz-charge-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.jz-charge-fill {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(var(--jz-charge-level, 0));
+  transition: transform var(--jz-dur-count) var(--jz-ease);
+}
+.jz-charge[data-shape="bar"] .jz-charge-fill {
+  transform-origin: 0 50%;
+  transform: scaleX(var(--jz-charge-level, 0));
+}
+.jz-charge[data-run] .jz-charge-fill {
+  animation: jz-charge-build var(--jz-charge-ms, var(--jz-dur-count)) var(--jz-ease) both;
+}
+.jz-charge[data-shape="bar"][data-run] .jz-charge-fill {
+  animation-name: jz-charge-build-x;
+}
+/* Full and crackling (the countdown's 1): the outline flickers and always rests lit. */
+.jz-charge[data-crackle] .jz-charge-outline {
+  animation: jz-charge-crackle 900ms steps(1, end) infinite;
+}
+@keyframes jz-charge-build {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes jz-charge-build-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes jz-charge-crackle {
+  0%, 100% { opacity: 1; }
+  30% { opacity: 0.55; }
+  36% { opacity: 1; }
+  62% { opacity: 0.7; }
+  66% { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ arc: a jagged line between two points */
+.jz-arc {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  color: var(--jz-cyan);
+}
+.jz-arc[data-tone="gold"] {
+  color: var(--motif-gold);
+}
+.jz-arc-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.jz-arc-glow {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.22;
+}
+/* Drawn along +x from the start point (the outer group turns it onto the line): it jumps across, then flickers lit. */
+.jz-arc-bolt {
+  transform-origin: 0 0;
+  animation:
+    jz-arc-strike 200ms var(--jz-ease-out) both,
+    jz-arc-flicker 1.6s steps(1, end) 200ms infinite;
+}
+@keyframes jz-arc-strike {
+  from { transform: scaleX(0); opacity: 0.5; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+@keyframes jz-arc-flicker {
+  0%, 100% { opacity: 1; }
+  38% { opacity: 0.6; }
+  42% { opacity: 1; }
+  71% { opacity: 0.75; }
+  74% { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ spark: a short burst of strokes from a point */
+.jz-spark {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  overflow: visible;
+  color: var(--motif-gold);
+}
+.jz-spark-rays {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-origin: 24px 24px;
+  animation: jz-spark-burst 300ms var(--jz-ease-out) both;
+}
+@keyframes jz-spark-burst {
+  0% { transform: scale(0.25); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ surge: a brief full-screen gold flash */
+.jz-surge {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  background: var(--jz-gold);
+  opacity: 0;
+  pointer-events: none;
+}
+.jz-surge[data-on] {
+  animation: jz-surge var(--jz-dur-surge) linear both;
+}
+/* About 400 ms in, 600 ms out. */
+@keyframes jz-surge {
+  0% { opacity: 0; animation-timing-function: var(--jz-ease-out); }
+  40% { opacity: 0.85; animation-timing-function: ease-in; }
+  100% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ the current: metal only */
+.jz-current {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: var(--jz-current-radius, 0);
+  line-height: 0;
+}
+.jz-current::after {
+  content: "";
+  position: absolute;
+  inset: -64px 0 0 -64px;
+  background-image: var(--jz-current-lines);
+  background-size: 64px 64px;
+  opacity: var(--jz-current-strength);
+  /* overlay: white lines lift mid-to-bright metal and leave near-black and near-white almost untouched (color-dodge
+     turned them white on the dark page). */
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: jz-current-drift 18s linear infinite;
+  will-change: transform;
+}
+/* One tile per loop, so the drift never jumps. */
+@keyframes jz-current-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(64px, 64px, 0); }
+}
+[data-battery-saver] .jz-current::after {
+  display: none;
+  animation: none;
+}
+/* Battery saver: no endless motion. The crackle rests lit; the arc strikes once and holds lit. */
+[data-battery-saver] .jz-charge[data-crackle] .jz-charge-outline {
+  animation: none;
+}
+[data-battery-saver] .jz-arc-bolt {
+  animation: jz-arc-strike 200ms var(--jz-ease-out) both;
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  /* Charge: four even steps, ending full; no crackle (the outline rests lit). */
+  .jz-motif.jz-charge[data-run] .jz-charge-fill {
+    animation-duration: var(--jz-charge-ms, var(--jz-dur-count)) !important;
+    animation-timing-function: steps(4, end) !important;
+  }
+  .jz-motif.jz-charge[data-crackle] .jz-charge-outline {
+    animation: none;
+  }
+  /* Arc: a fade to the held line, no jump and no flicker. */
+  .jz-motif.jz-arc .jz-arc-bolt {
+    animation: jz-motif-fade-in var(--jz-dur-reduced) ease-out both !important;
+  }
+  /* Spark: a short fade where the burst would be. */
+  .jz-motif.jz-spark .jz-spark-rays {
+    animation: jz-spark-calm 300ms ease-out both !important;
+  }
+  /* Surge: a soft gold tint. */
+  .jz-motif.jz-surge[data-on] {
+    animation: jz-surge-tint var(--jz-dur-surge) ease-in-out both !important;
+  }
+  /* The current: off. */
+  .jz-current::after {
+    display: none;
+    animation: none;
+  }
+}
+@keyframes jz-motif-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes jz-spark-calm {
+  0% { transform: scale(1); opacity: 0; }
+  40% { opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes jz-surge-tint {
+  0% { opacity: 0; }
+  40% { opacity: 0.16; }
+  100% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ the gallery (/dev-design only) */
+.jz-motif-demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--jz-space-16);
+}
+.jz-motif-stage {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
+  height: 96px;
+  border-radius: var(--jz-radius-lg);
+  background: var(--jz-surface);
+}
+.jz-motif-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: var(--jz-round);
+  background: var(--jz-cyan);
+}
+.jz-motif-podium {
+  display: block;
+  width: 96px;
+  height: 72px;
+  background: var(--jz-metal-gold);
+}
