@@ -406,7 +406,8 @@
   background: var(--category-arcade);
 }
 .jz-tile44[data-tile="challenge"] {
-  background: var(--category-pattern);
+  /* Its category colour deepened, so the white "VS" keeps 4.5:1 (flat #B26BFF gave 3.3:1). */
+  background: color-mix(in oklab, var(--category-pattern) 62%, var(--jz-on-gold));
 }
 .jz-row[data-icon="tile"] {
   --row-inset: 72px;
@@ -572,7 +573,8 @@ html[data-play-cards~="challenge"] [data-play-slot="daily"]:not([data-slot-state
   color: var(--jz-ink-silver);
 }
 .jz-place[data-place-disc="3"] {
-  background: var(--jz-metal-bronze);
+  /* The bronze metal without its dark 70 % stop, which sits under the number on a 36 px disc (4.0:1). */
+  background: linear-gradient(165deg, var(--jz-metal-bronze-1) 0%, var(--jz-metal-bronze-2) 55%, var(--jz-metal-bronze-4) 100%);
   color: var(--jz-ink-bronze);
 }
 .jz-row[data-icon="place"] {
