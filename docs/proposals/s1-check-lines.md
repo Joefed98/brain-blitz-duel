@@ -2,7 +2,9 @@
 
 A proposal only: this branch is never merged and changes nothing else. `s1-check-lines.patch` beside this file is the
 exact change to the check scripts and CLAUDE.md that PR 1 (branch `claude/sweet-noether-bp01mn`, commit 24e273ae) needs.
-It applies cleanly to 24e273ae (`git apply docs/proposals/s1-check-lines.patch`). Nothing is applied to the PR branch until
+Approved by Joe on 28 Nov 2026 except the theme-check hunk, which waits for its own approval
+(revised in the second commit on this branch: the alias scan widened to all of src, `.ap-tile` dropped, every approval
+comment dated 28 Nov 2026). It applies cleanly to 24e273ae (`git apply docs/proposals/s1-check-lines.patch`). Nothing is applied to the PR branch until
 Joe approves these exact lines.
 
 ## What the patch changes (16 files)
@@ -11,14 +13,15 @@ Joe approves these exact lines.
    `var(--jz-text)`), brand-assets-check, celebrations-browser, celebrations-check, identity-everywhere-check,
    identity-screens-check, nav-check, no-wrap-check, practice-challenge-fit-check, safe-area-harness, share-check,
    shots/standings-reveal-shots, standings-reveal-check, theme-check. Each changed line has
-   "Changed with Joe's approval, 27 Nov 2026" beside it. No assertion's condition changes, only the class it finds.
+   "Changed with Joe's approval, 28 Nov 2026" beside it. No assertion's condition changes, only the class it finds.
 2. **theme-check, section 1:** the old assertion "every old font token (`--th-font-*`, `--ap-font`) is `var(--jz-font)`"
    is replaced by two:
-   - no `--th-*` or `--ap-*` custom property is defined or read in tokens.css, theme.css, app-pages.css or
-     room-screens.css;
+   - no `--th-*` or `--ap-*` custom property is defined or read in any `.css`, `.ts` or `.tsx` file under `src`
+     (widened from the four stylesheets on 28 Nov 2026, to match its comment);
    - app chrome's font still resolves to Archivo: every `--font-display`, `--font-body` and `--font-mono` the app's own
      scopes set (styles.css `:root`, the page skin, the tab pages, the room screens) is `var(--jz-font)`, at least 12 of
      them (18 today).
+   - The cards count drops `[data-skin] .ap-tile`, a selector that matched nothing (on main too).
 3. **haptics-check:** `CALL_SITES` gains `"lib/pressFeel.ts": { tick: 1 }`, the light tick on a completed tap in app chrome.
 4. **CLAUDE.md:** the haptics paragraph's "Never on button taps, drags or routine hits" now reads "Every tappable control
    in app chrome (buttons, links, tabs, switches, radios, options, menu items; never inside game art) gets the light
