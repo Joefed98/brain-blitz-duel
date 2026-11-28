@@ -8,6 +8,7 @@ import { PLAYER_COLOURS } from "@/lib/duel/playerLook";
 
 import { ACCESSORIES, dressAvatar, hasCosmetics, type AvatarCosmetics } from "./cosmetics";
 import { AVATAR_ART } from "./avatarArt.data";
+import { ensureGemShimmer, gemShimmerMarkup } from "./gemShimmer";
 import { AVATARS, GEMS } from "./playerCardArt.data";
 
 export interface AvatarLook extends AvatarCosmetics {
@@ -87,14 +88,18 @@ function layeredMarkup(look: AvatarLook, prefix: string, m1: string): string | n
       `${IMAGE(gloss, ' style="mix-blend-mode: screen"')}</g>`
     );
   };
+  // A gem glows (its render: rim light, halo, sparkles) and shimmers live (gemShimmer.ts); a finish takes its place.
+  const gemOn = !finish && look.gem ? artUrl(id, `gem-${look.gem}`) : null;
   if (finish === "neon") body = tinted("neon");
   else if (finish) body = artUrl(id, finish) && IMAGE(artUrl(id, finish)!);
-  else if (look.gem) body = artUrl(id, `gem-${look.gem}`) && IMAGE(artUrl(id, `gem-${look.gem}`)!);
+  else if (gemOn) body = IMAGE(gemOn) + gemShimmerMarkup(prefix);
   else body = tinted("tint");
   if (!body) return null;
+  if (gemOn) ensureGemShimmer();
   const accessory = look.accessory ? ACCESSORIES[look.accessory] : undefined;
   const acc = accessory ? accessory.replaceAll("{{p}}", `${prefix}ac-`) : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style="overflow: visible" aria-hidden="true" data-avatar-layers="${id}">${body}${acc}</svg>`;
+  const gemAttr = gemOn ? ` data-gem="${look.gem}"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style="overflow: visible" aria-hidden="true" data-avatar-layers="${id}"${gemAttr}>${body}${acc}</svg>`;
 }
 
 /** An avatar's svg markup with its ids prefixed (one prefix per drawing on the page). */
