@@ -136,7 +136,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
     <div className="flex min-h-0 w-full flex-1 flex-col" data-arcade-chart="snake">
       {/* "Who's ahead" only when there is more than one player to be ahead of (3 Nov 2026). */}
       {players.length > 1 ? (
-        <p className="mb-0.5 shrink-0 jz-text-caption font-semibold uppercase tracking-widest" style={{ color: TEXT, textShadow: LABEL_SHADOW }}>
+        <p className="mb-0.5 shrink-0 text-[13px] font-semibold uppercase tracking-widest" style={{ color: TEXT, textShadow: LABEL_SHADOW }}>
           Who’s ahead
         </p>
       ) : null}
@@ -198,7 +198,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
                   key={label.text}
                   data-chart-label={label.text}
                   data-chart-label-side={label.side}
-                  className="absolute -translate-y-1/2 font-mono jz-text-caption font-semibold leading-none tabular-nums"
+                  className="absolute -translate-y-1/2 font-mono text-[13px] font-semibold leading-none tabular-nums"
                   style={{ color: TEXT, opacity: LABEL_OPACITY, textShadow: LABEL_SHADOW, top, ...(label.side === "left" ? { right: width - L + gap } : { left: R + gap }) }}
                 >
                   {label.text}
@@ -216,7 +216,7 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
               const text = (
                 // Each name on a pill in the player's own colour (Polish batch R), the text still #F3F1EC.
                 <span
-                  className={`min-w-0 truncate rounded-full px-1.5 py-0.5 jz-text-caption leading-none ${p.isMe ? "font-bold" : "font-semibold"}`}
+                  className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[13px] leading-none ${p.isMe ? "font-bold" : "font-semibold"}`}
                   style={{ ...textStyle, background: `color-mix(in srgb, ${colourOf(p)} 32%, #17171B)`, boxShadow: `inset 0 0 0 1px ${colourOf(p)}`, maxWidth: CHART_NAME_MAX + 8 }}
                 >
                   {p.isMe ? "You" : p.name}
@@ -242,12 +242,12 @@ export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; ty
       </div>
       {view.hidden > 0 ? (
         // In words, no digits: the chart never shows a number but its scale (room-extras-check).
-        <p data-chart-hidden={view.hidden} className="mt-0.5 shrink-0 truncate text-center font-mono jz-text-caption font-semibold" style={{ color: TEXT }}>
+        <p data-chart-hidden={view.hidden} className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
           The top eight{scored.length > CHART_TOP ? " and you" : ""}, everyone on the results
         </p>
       ) : null}
       {pending.length ? (
-        <p data-chart-pending="" data-names className="mt-0.5 shrink-0 truncate text-center font-mono jz-text-caption font-semibold" style={{ color: TEXT }}>
+        <p data-chart-pending="" data-names className="mt-0.5 shrink-0 truncate text-center font-mono text-[13px] font-semibold" style={{ color: TEXT }}>
           Still scoring: {pending.length > 3 ? `${pending.slice(0, 2).map((p) => (p.isMe ? "You" : p.name)).join(", ")} and others` : pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
         </p>
       ) : null}
