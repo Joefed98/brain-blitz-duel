@@ -20,6 +20,7 @@ Writes <out>/<piece>.png (RGBA, transparent background); default out docs/art/bl
 WebP at quality 90, the masters the contact sheet reads).
 """
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -387,7 +388,8 @@ class Dome:
 
 def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     """A filled outline raised into `dome`'s height field (its back flat at z0 - under): a moulded, toy-like body.
-    Built as a thin slab, remeshed into an even grid, then each top vertex lifted by the field."""
+    Built as a thin slab, remeshed into an even grid (cells no finer than voxel / 8), then each top vertex lifted by
+    the field."""
     import numpy as np
 
     ob = curve_from(name, subs, frame)
@@ -400,8 +402,14 @@ def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     bpy.ops.object.convert(target="MESH")
     rm = ob.modifiers.new("rm", "REMESH")
     rm.mode = "SHARP"
-    rm.octree_depth = 8
+    # Octree depth 8 over the shape's own size, but no cell finer than voxel / 8: a tiny shape (High Rise's twenty
+    # 4-unit windows) remeshed at 256 cells across, then subdivided, came to 3.7M faces and ran Cycles out of memory.
+    import math
+
+    rm.octree_depth = max(4, min(8, math.ceil(math.log2(max(ob.dimensions.x, ob.dimensions.y, 1e-6) / (voxel / 8)))))
     rm.use_remove_disconnected = False
+    if rm.octree_depth < 8 and os.environ.get("AVATAR_DEBUG"):
+        print("remesh depth", rm.octree_depth, name, flush=True)
     bpy.ops.object.modifier_apply(modifier="rm")
     me = ob.data
     co = np.empty(len(me.vertices) * 3)
