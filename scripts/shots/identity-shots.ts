@@ -10,7 +10,7 @@
  * dark and light, DPR 2, saved as <out>/<tag>/<screen>.png. --measure then draws the screens that show it at every
  * other size the checks use (VIEWPORTS and ALL_SIZES) and prints the largest box the art takes.
  */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { startSafeAreaServer } from "../safe-area-server";
 import { ALL_SIZES, CHROMIUM_PATHS, VIEWPORTS, fixThemeClock, openThemeScreen, type ThemeScreen, type ThemeViewport } from "../theme-screens";
@@ -22,6 +22,8 @@ const tag = opt("tag") ?? "shot";
 const out = opt("out") ?? ".shots/identity";
 const measure = args.includes("--measure");
 const only = opt("only")?.split(",");
+/** --measure-only=<sizes.json>: skip the phone pass; measure, at the other sizes, only the screens that file lists. */
+const measureOnly = opt("measure-only");
 
 const PHONE: ThemeViewport = { name: "375x667", w: 375, h: 667, scale: 2 };
 
@@ -52,10 +54,12 @@ const largest: { screen: string; viewport: string; w: number }[] = [];
 const shot: string[] = [];
 const sizes = measure ? [...VIEWPORTS, ...ALL_SIZES.filter((s) => !VIEWPORTS.some((v) => v.name === s.name))] : [];
 // The phone pass first (every screen: the shots, and which screens show the art), then the other sizes only for those.
-const draws: { screen: ThemeScreen; viewport: ThemeViewport }[] = screens.map((screen) => ({ screen, viewport: PHONE }));
-const found = new Set<string>();
+const known = measureOnly ? new Set((JSON.parse(readFileSync(measureOnly, "utf8")) as { screen: string }[]).map((r) => r.screen)) : null;
+const draws: { screen: ThemeScreen; viewport: ThemeViewport }[] = known ? [] : screens.map((screen) => ({ screen, viewport: PHONE }));
+const found = new Set<string>(known ?? []);
+if (known) for (const s of screens) if (found.has(s.name)) for (const v of sizes) draws.push({ screen: s, viewport: v });
 for (let i = 0; ; i++) {
-  if (i === screens.length) for (const s of screens) if (found.has(s.name)) for (const v of sizes) draws.push({ screen: s, viewport: v });
+  if (!known && i === screens.length) for (const s of screens) if (found.has(s.name)) for (const v of sizes) draws.push({ screen: s, viewport: v });
   if (i >= draws.length) break;
   const { screen, viewport } = draws[i]!;
   {
@@ -68,6 +72,7 @@ for (let i = 0; ; i++) {
         const w = Math.max(...boxes.map((b) => b.w));
         largest.push({ screen: screen.name, viewport: viewport.name, w });
         found.add(screen.name);
+        writeFileSync(`${out}/${tag}/sizes.json`, JSON.stringify(largest, null, 1)); // as it goes: a long run may be stopped
         if (viewport === PHONE) {
           const file = `${out}/${tag}/${screen.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
           await page.screenshot({ path: file, fullPage: true });

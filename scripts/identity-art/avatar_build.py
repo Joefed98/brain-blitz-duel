@@ -891,6 +891,29 @@ def white_core(ob, strength=1.6):
     return core
 
 
+def camera_only_glow(b):
+    """The cyan visor and ridges keep their look but cast no light into a clear stone: their emission is seen only by
+    camera rays (Light Path), so a colourless gem isn't tinted cyan by them."""
+    for ob in b.rest + b.ink:
+        mats = list(ob.data.materials)
+        for i, m in enumerate(mats):
+            if not m or not m.use_nodes:
+                continue
+            p = m.node_tree.nodes.get("Principled BSDF")
+            if not p or p.inputs["Emission Strength"].default_value <= 0:
+                continue
+            mm = m.copy()
+            nt = mm.node_tree
+            pp = nt.nodes["Principled BSDF"]
+            lp = nt.nodes.new("ShaderNodeLightPath")
+            mu = nt.nodes.new("ShaderNodeMath")
+            mu.operation = "MULTIPLY"
+            mu.inputs[1].default_value = pp.inputs["Emission Strength"].default_value
+            nt.links.new(lp.outputs["Is Camera Ray"], mu.inputs[0])
+            nt.links.new(mu.outputs[0], pp.inputs["Emission Strength"])
+            ob.data.materials[i] = mm
+
+
 def gem_studio(bright=1.0):
     """The jewellery studio: long thin white strips above for crisp facet highlights, the cyan kicker off (it tinted
     a clear stone teal)."""
@@ -930,6 +953,7 @@ def jewel(b, style, gems):
     """Captain Joulz's body as jewellery: style "cut" (one carved stone, big flat facets, light through it) or "pave"
     (polished white gold set with many small brilliant-cut stones)."""
     gem_studio(2.4 if style == "pave" else 1.0)
+    camera_only_glow(b)
     if style == "pave":
         ia.world_gain("overhead", 1.6)  # small stones need more light to flash than one big cut
     stone = diamond_glass("diamond")
