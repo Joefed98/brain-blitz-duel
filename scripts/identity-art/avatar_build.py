@@ -619,9 +619,15 @@ def restore(b, saved):
     for ob in b.extras:
         bpy.data.objects.remove(ob, do_unlink=True)
     b.extras = []
+    for c in getattr(b, "extras_collections", []):
+        bpy.data.collections.remove(c)
+    b.extras_collections = []
     for ob in b.hidden:
         ob.hide_render = False
     b.hidden = []
+    # The jewellery studio's world changes back (identity_art's defaults; the avatar's dimmed overhead).
+    ia.world_gain("kicker", 1.4)
+    ia.world_gain("overhead", 0.7)
     bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
 
 
@@ -695,59 +701,7 @@ def apply_variant(b, v, gems):
     elif v in ("jewel-cut", "jewel-pave"):
         jewel(b, v[6:], gems)
     elif v.startswith("gem-"):
-        # A gem plates the body (Joe, 28 Nov 2026): the moulded main shapes become the stone, faceted where the stone
-        # is cut; a translucent stone has a glowing core inside it (lit from within). Its glow, by the gem's place in
-        # GEMS (gem_glow): a light behind the figure, the jewel rim and the disc's ring lit; the backlight, bloom and
-        # sparkles are added after the render (gem_post).
-        gid = v[4:]
-        g = gems[gid]
-        k = gem_glow(gems, gid)
-        st = g["stops"]
-        kind, faceted = GEM_LOOK[gid]
-        light = glow_colour(gid, st)
-        body = gem(v, gid, st)
-        for ob in b.main:
-            if ob.type != "MESH":
-                set_mat([ob], body)
-                continue
-            cp = ob.copy()
-            cp.data = ob.data.copy()
-            bpy.context.collection.objects.link(cp)
-            for mod in list(cp.modifiers):
-                cp.modifiers.remove(mod)
-            if faceted:
-                # About 80 facets a body (Obsidian 50, coarser and sharper): big enough to read at 36 px.
-                dec = cp.modifiers.new("facets", "DECIMATE")
-                dec.ratio = min(1.0, (50 if kind == "obsidian" else 80) / max(1, len(cp.data.polygons)))
-                for poly in cp.data.polygons:
-                    poly.use_smooth = False
-            else:
-                cp.modifiers.new("sub", "SUBSURF").levels = 1
-            set_mat([cp], body)
-            b.extras.append(cp)
-            b.hidden.append(ob)
-            ob.hide_render = True
-            if kind in ("diamond", "stone"):
-                core = ob.copy()
-                core.data = ob.data.copy()
-                core.hide_render = False  # the copy of a hidden original starts hidden
-                bpy.context.collection.objects.link(core)
-                xs = [vv.co.x for vv in core.data.vertices]
-                ys = [vv.co.y for vv in core.data.vertices]
-                cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
-                for vv in core.data.vertices:
-                    vv.co.x = cx + (vv.co.x - cx) * 0.62
-                    vv.co.y = cy + (vv.co.y - cy) * 0.62
-                    vv.co.z = vv.co.z * 0.55
-                strength = 9.0 if kind == "diamond" else (1.2 + 5.0 * k) * (1.8 if kind == "amber" else 1.0)
-                set_mat([core], emit("core", "#FFFFFF" if kind == "diamond" else light, strength))
-                b.extras.append(core)
-        rim = ia.glow("jewel-rim", st[0], 0.6 + 2.4 * k, glass=st[1])
-        b.extras += main_outline_tubes(b, 0.9 * ia.S, rim, lift=0.002, field_top=False)
-        b.extras.append(ia.tube("gemring", ia.circle(47.2, 50, 50), ia.Frame(50, 50), 0.085, 0.013,
-                                ia.glow("gem-ring", light, 1.5 + 4.5 * k, glass=st[0])))
-        # A light behind the figure, low and aimed at its back edge (not the well): it rims the body in the gem's light.
-        b.extras.append(ia.light("gem-rim", (0.0, 2.2, 0.35), (-95, 0, 180), 1.2, 40 + 160 * k, light))
+        gem_cut(b, v[4:], gems)
 
 
 def gem_glow(gems, gem_id):
@@ -786,7 +740,7 @@ def gem_post(png, figure_png, main_png, gem_id, stops, k, px):
     out = rgb.copy()
     out.putalpha(alpha)
     # Sparkles on the body's own brightest highlights, at least 9 units apart; 2 (Amber) to 5 (Diamond).
-    n = 2 + round(3 * (k - 0.35) / 0.65)
+    n = 1 if k < 0.7 else 2  # Joe: one or two small sparkles at most; the stone carries the look
     stone = Image.open(main_png).convert("L").resize((W, W), Image.LANCZOS).filter(ImageFilter.MinFilter(5))
     L = np.asarray(rgb.convert("L"), float) * (np.asarray(stone, float) / 255.0)
     picks = []
@@ -800,7 +754,7 @@ def gem_post(png, figure_png, main_png, gem_id, stops, k, px):
     spark = Image.new("RGBA", (W, W), (0, 0, 0, 0))
     sd = ImageDraw.Draw(spark)
     for i, (cx, cy) in enumerate(picks):
-        r = (2.6 + 3.0 * k) * (1.0 if i == 0 else 0.7) * u
+        r = (1.6 + 1.6 * k) * (1.0 if i == 0 else 0.7) * u
         w = r * 0.2
         tint = prism[i % len(prism)] if gem_id == "diamond" else stops[0]
         for colour, grow in ((tint, 1.5), ("#FFFFFF", 1.0)):
@@ -918,6 +872,7 @@ def gem_studio(bright=1.0):
     """The jewellery studio: long thin white strips above for crisp facet highlights, the cyan kicker off (it tinted
     a clear stone teal)."""
     ia.world_gain("kicker", 0.0)
+    strips = []
     for i, (x, rz) in enumerate(((-1.6, 30), (0.0, 0), (1.6, -30))):
         ld = bpy.data.lights.new(f"strip{i}", "AREA")
         ld.shape = "RECTANGLE"
@@ -927,6 +882,8 @@ def gem_studio(bright=1.0):
         ob.location = (x, 1.2 - abs(x) * 0.3, 2.4)
         ob.rotation_euler = (math.radians(-25), math.radians(x * 18), math.radians(rz))
         bpy.context.collection.objects.link(ob)
+        strips.append(ob)
+    return strips
 
 
 def foil_back(b, mat):
@@ -952,7 +909,7 @@ def foil_back(b, mat):
 def jewel(b, style, gems):
     """Captain Joulz's body as jewellery: style "cut" (one carved stone, big flat facets, light through it) or "pave"
     (polished white gold set with many small brilliant-cut stones)."""
-    gem_studio(2.4 if style == "pave" else 1.0)
+    b.extras += gem_studio(2.4 if style == "pave" else 1.0)
     camera_only_glow(b)
     if style == "pave":
         ia.world_gain("overhead", 1.6)  # small stones need more light to flash than one big cut
@@ -1017,6 +974,120 @@ def jewel(b, style, gems):
                 st.data.materials.append(stone)
             b.extras.append(st)
         ob.evaluated_get(dg).to_mesh_clear()
+
+
+# Joe's pick (28 Nov 2026): every gem is (b), the solid cut gem. Per gem: its body material, its facets (None: smooth),
+# its foil (under a see-through stone), its inner light (lit from within).
+CUT = {
+    "amber": dict(facets=40, foil="gold"),
+    "rose-quartz": dict(facets=40, foil="silver", ior=1.54),
+    "ruby": dict(facets=40, foil="silver", ior=1.77),
+    "jade": dict(facets=40, foil=None),
+    "amethyst": dict(facets=40, foil="silver", ior=1.54),
+    "aquamarine": dict(facets=40, foil="silver", ior=1.58),
+    "sapphire": dict(facets=40, foil="silver", ior=1.77),
+    "pearl": dict(facets=None, foil=None),
+    "obsidian": dict(facets=30, foil=None),
+    "diamond": dict(facets=40, foil="silver", ior=2.42),
+}
+
+
+def cut_material(gid, stops):
+    """A gem's stone (Joe's notes, 28 Nov 2026)."""
+    if gid == "diamond":
+        # Colourless, with strong rainbow fire: dispersion pushed well past a real diamond's.
+        return diamond_glass("diamond", abbe=5.0)
+    if gid == "pearl":
+        return gem("pearl", "pearl", stops)  # smooth nacre shifting pink, green and blue
+    if gid == "obsidian":
+        # Cut black glass: black body, mirror-sharp facet highlights.
+        m, nt, p = ia._principled("obsidian-cut")
+        p.inputs["Base Color"].default_value = ia.hexc("#030407")
+        p.inputs["Roughness"].default_value = 0.0
+        p.inputs["IOR"].default_value = 1.9
+        p.inputs["Specular IOR Level"].default_value = 1.0
+        return m
+    if gid == "jade":
+        # A cut stone in jade: translucent green with a polished face.
+        m, nt, p = ia._principled("jade-cut")
+        p.inputs["Base Color"].default_value = ia.hexc(stops[1])
+        p.inputs["Subsurface Weight"].default_value = 0.9
+        p.inputs["Subsurface Radius"].default_value = (0.25, 0.9, 0.4)
+        p.inputs["Subsurface Scale"].default_value = 0.25
+        p.inputs["Roughness"].default_value = 0.02
+        p.inputs["IOR"].default_value = 1.66
+        return m
+    if gid == "amber":
+        # Honey-orange glass with depth (the inner light warms it from the middle).
+        m, nt, p = ia._principled("amber-cut")
+        p.inputs["Base Color"].default_value = ia.hexc("#FF9A1F")
+        p.inputs["Roughness"].default_value = 0.0
+        p.inputs["Transmission Weight"].default_value = 1.0
+        p.inputs["IOR"].default_value = 1.54
+        return m
+    # Sapphire, Ruby, Amethyst, Aquamarine, Rose Quartz: a cut transparent stone in its colour.
+    m, nt, p = ia._principled(f"{gid}-cut")
+    p.inputs["Base Color"].default_value = ia.hexc(stops[1])
+    p.inputs["Roughness"].default_value = 0.0
+    p.inputs["Transmission Weight"].default_value = 1.0
+    p.inputs["IOR"].default_value = CUT[gid]["ior"]
+    p.inputs["Transmission Dispersion Scale"].default_value = 0.6
+    p.inputs["Transmission Dispersion Abbe Number"].default_value = 30.0
+    return m
+
+
+def gem_cut(b, gid, gems):
+    """A gem avatar: the main body as one carved stone (facets, a foil back under a see-through stone, a light inside),
+    lit by the jewellery studio's strips. The strips light the stone only (light linking), so the disc stays the
+    approved dark, toned-down disc. The backlight, rim bloom and one or two sparkles come after (gem_post)."""
+    st = gems[gid]["stops"]
+    k = gem_glow(gems, gid)
+    spec = CUT[gid]
+    strips = gem_studio(1.0)
+    b.extras += strips
+    camera_only_glow(b)
+    stone = cut_material(gid, st)
+    stones = bpy.data.collections.new("stones")
+    bpy.context.scene.collection.children.link(stones)
+    foil = None
+    if spec["foil"] == "silver":
+        foil = ia.metal("foil", ("#FFFFFF", "#F4F6FB", "#D3DCEF", "#FFFFFF"), "polished")
+    elif spec["foil"] == "gold":
+        foil = ia.metal("foil-gold", ia.METALS["gold"], "polished")
+    originals = [ob for ob in b.main if ob.type == "MESH"]
+    for ob in b.main:
+        if ob.type != "MESH":
+            set_mat([ob], stone)
+    if foil:
+        for f in foil_back(b, foil):
+            b.extras.append(f)
+    for ob in originals:
+        b.hidden.append(ob)
+        ob.hide_render = True
+        cp = ob.copy()
+        cp.data = ob.data.copy()
+        cp.hide_render = False
+        stones.objects.link(cp)
+        for mod in list(cp.modifiers):
+            cp.modifiers.remove(mod)
+        if spec["facets"]:
+            dec = cp.modifiers.new("facets", "DECIMATE")
+            dec.ratio = min(1.0, spec["facets"] / max(1, len(cp.data.polygons)))
+            for poly in cp.data.polygons:
+                poly.use_smooth = False
+            cp.scale.z = 0.93
+        else:
+            cp.modifiers.new("sub", "SUBSURF").levels = 1
+        set_mat([cp], stone)
+        b.extras.append(cp)
+        if spec["foil"]:
+            colour = "#FFFFFF" if gid == "diamond" else ("#FFB347" if gid == "amber" else st[0])
+            core = white_core(ob, (1.0 + 1.4 * k) * (1.6 if gid == "amber" else 1.0))
+            set_mat([core], emit("core", colour, (1.0 + 1.4 * k) * (1.6 if gid == "amber" else 1.0)))
+            b.extras.append(core)
+    for strip in strips:
+        strip.light_linking.receiver_collection = stones
+    b.extras_collections = getattr(b, "extras_collections", []) + [stones]
 
 
 def camera_ortho():
