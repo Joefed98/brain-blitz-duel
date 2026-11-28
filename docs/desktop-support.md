@@ -272,12 +272,71 @@ Hover, Rally, Meteor, Pinball, Spacewalk, High Rise, Coral Pop, Gemstone, Ball T
 `useArenaHudDraw()` (`src/lib/gameFrame/arenaHud.ts`), which does what ArcadeCanvasStage does round its draw: the
 painters skip the world on the arena only, and the values go to the store. Phones, tablets upright, intro demos,
 reveals, replays and every check's render draw exactly as before (the flag is read only inside a live stage's draw on
-the arena). Left in the world for the desktop brief after F1 (Joe, 27 Nov 2026): Ball Tracker's strip above its
-board (`BtHud`, drawn outside the frame loop), Blockzone's speed gauge and Gemstone's colour-goal sizes under the board
-(each drawn by the game's own code, not the shared painters).
+the arena). Since the desktop size PR 1 (27 Nov 2026) Ball Tracker's strip above its board, Blockzone's speed and
+Gemstone's goals panel go to the side panel too (below).
 
 Games whose HUD is drawn some other way and would keep it in the world: Rainbow Bridge, Curl Champ, Top Bins, Home Run,
 Crazy Golf, Cue Ball (its upright strip), Apex; Tenfall, Bonk and Pull! have DOM HUDs, already mirrored in "This run".
+
+## Desktop size, PR 1 (27 Nov 2026): full screen, hidden panels, the HUD row given back
+
+### Full screen and hiding the panels (`src/lib/gameFrame/screenMode.ts`, `ArenaScreenTools.tsx`)
+
+- **Full screen**: on the arena's live round (a computer, or a sideways tablet), a button in the screen's top right corner
+  and the **F** key; **Esc** leaves it (the browser's own). The browser's Fullscreen API on the whole page, offered
+  wherever the browser has one and never on an iPhone (its Safari has no page full screen); Android phones have it as a
+  "Full screen" switch in the game menu. Remembered on the device (`duelz-fullscreen:v1`): a player who left it on is
+  put back into full screen by their next click or key on a game screen (browsers allow it from one only); leaving it
+  any way turns the choice off.
+- **Hidden panels**: the **H** key and the "Hide panels" button hide the rail and every side panel (the Cabinet's two,
+  the single panel, a room's panel) during play; the same key or button brings them back (kept for the visit). With
+  them hidden the world takes the whole screen at its largest uniform scale, each game draws its own HUD in the world
+  again (the panel that listed it is gone) and the timer moves to the corner beside the buttons.
+- F and H are shortcuts only where the game doesn't use the letter: checked after the game's own key listeners have run
+  (`defaultPrevented`), so Minefield's F (Reveal / Flag), Tempo's F lane and the six word games that type letters keep
+  them (the buttons work there). DesktopControlsHint names F and H only where they work.
+
+### The HUD row given back (`src/lib/gameFrame/hudBands.ts`)
+
+With the HUD's values in the panel, the strip each arcade game kept for its HUD holds only backdrop on a computer.
+ArcadeArenaSlot sizes the world as if that strip were not there and draws it that much higher, the strip above the
+slot's clip, so the board grows; the world, its drawing and its pointer mapping (the arena element's own box) are
+unchanged. Only the arena's live round, with the panels showing (hidden panels draw the whole world, HUD and all).
+Phones, tablets upright, intros, demos, reveals and replays draw the whole world as before.
+
+With a band cut, the shared success layer's frame effects (the flash, the edge and neon frames, the arena glow, the
+colour sweep, the border bulbs and the miss pulse) follow the visible edge and are clipped to it, as the world's edge
+clips them everywhere else (`withArcadeFxInset` in arcadeFx.renderer.ts, set by ArcadeCanvasStage and the own-loop
+stages' HUD wrapper from the same rule as the slot, `hudCut`). Particles, rings, pops and banners keep their places.
+
+Each band is measured, not reckoned (28 Nov 2026, hud-bands-check): every recorded run of the game on the stamps it is
+dealt on, and bot runs at every level, are drawn twice a second, effects playing as on screen, by the game's own
+renderer at the tablet's and the computer's arena sizes; the band is 3 units inside the highest draw seen (the lowest,
+for a foot band).
+
+| Game | Cut from the top (world units) | Cut from the foot | The nearest draw |
+|---|---|---|---|
+| Meteor | 20 | | a star's pop (23.9); the board from 44 |
+| Breaker | 28 | | the ball's glow and a brick's burst (31.1) |
+| Pinball | 20 | | a bumper's glow (23.1) |
+| Gemstone | | 88 | the PAR SMASHED! banner (91.7 from the foot); its goals panel goes to the side panel |
+| Tilt | 75 | 175 | a marble's success burst (78.6); the table under the disc (190.2 from the foot) |
+| Mahjong | 39 | | a matched pair's lift (42.3) |
+
+Measured and left whole: Rally (the ball's glow, the pads), Tempo (hold-note tails come in from the top), Coral Pop (its
+rock ledge), Roofbound (the runner and its crash shards), Grappler (the canopy, the darkness, the streak meter),
+Spacewalk and Minefield (their success effects) and Gemstone's top (the success flash) reach the world's top;
+Blockzone's well glow (18) and Thirteen's cards (15.6) leave too little to cut; Free Cell, Summit and Five Hands drag a
+card wherever the pointer goes. Never cut: Hover, Wavefront, Orbit, Rainbow Bridge and Moon Climb (play reaches the
+world's top), High Rise (its crane's cable), Iron Wall (the crosshair goes anywhere), Fission (its lives ships at the
+very top) and Ball Tracker's world (its marble queue); Ball Tracker's strip above the board goes instead. Each band
+names the stamps it was measured on and hud-bands-check fails when a level is dealt on another, so a new stamp is
+measured again before it can be cut.
+
+Into the panel too: **Ball Tracker's strip** (not drawn; its pills note their figures inside the frame's draw, the
+board taking its 36 px), **Blockzone's speed** ("Speed 1/6"; it sits beside the well, so the board gains no height from
+it) and **Gemstone's goals panel** (Ice, Treasure, Big lines and each goal by its gem's shape, its count or a tick; its
+strip under the board given back). A long list (Gemstone's) is two columns of smaller rows.
 
 ## Decisions for Joe
 
@@ -304,6 +363,14 @@ Each of these games was left exactly as it was: mouse only, no keys added.
    were judged equal and given keys. Say if you'd rather treat them like Bonk.
 
 ## Checks
+
+- **hud-bands-check** (desktop size PR 1; ~2.5 min, no browser): every band belongs to a live game measured on the
+  stamps each level deals; only the arena's live arcade round is cut, by one rule for the slot and the effects' frame;
+  Blockzone's speed and Gemstone's goals are noted for the panel out of the world and drawn exactly as before in it;
+  nothing any game draws enters its band in its recorded runs (replayed to their stored scores) and bot runs at every
+  level, drawn twice a second at the tablet's and the computer's arena sizes (`scripts/draw-bounds-lib.ts` records
+  each draw's box; `scripts/hud-bands-lib.ts` the runs and the arena's drawing; `--report` prints each game's nearest
+  draw); and a band past Meteor's board is caught.
 
 - **desktop-geometry-check** (new; headless Chromium, ~4 min). At 1366×768, 1440×900, 1920×1080 and
   1280×720 it checks the pages (centred column ≤ 480 px, no sideways scroll, text no smaller than the phone's 10 px).

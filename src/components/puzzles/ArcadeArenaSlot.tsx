@@ -6,6 +6,9 @@ import { reducedMotion } from "@/lib/arcade/art.renderer";
 import { arcadeReducedEffects, watchArcadeFrames } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
+import { hudCut } from "@/lib/gameFrame/hudBands";
+import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 
 /** useLayoutEffect in the browser (before the first paint), a no-op on the server. */
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -52,6 +55,13 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
   sceneUnderHeader?: boolean | undefined;
   children: ReactNode;
 }) {
+  // The HUD band given back to the board (P4, desktop size PR 1; lib/gameFrame/hudBands.ts): on the arena's live round,
+  // with the HUD's values in the panel and the panels showing, the world is sized as if its game's HUD band (and
+  // Gemstone's goals panel at its foot) were not there and drawn that much higher, the band outside the slot's clip; the
+  // world, its drawing and its pointer mapping (the arena element's own box) are unchanged. Everywhere else, all of it.
+  const { arena: arenaOn, hudBand } = useArenaMount();
+  const panelsHidden = useArenaPanelsHidden();
+  const { top: crop, bottom: cropB } = hudCut(arenaOn && ARENA_HUD_IN_PANEL && !panelsHidden, hudBand, height);
   const slot = useRef<HTMLDivElement | null>(null);
   // The desktop rotate mode (31 Oct 2026, presentation only): the world drawn turned 90° clockwise in a
   // rotor (desktopPresentation.ts); false on every phone and tablet and every other mode.
@@ -236,7 +246,8 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
       data-arena-play-centred={playCentre ? "" : undefined}
       data-scene={scene ? "" : undefined}
       data-arena-rotate={rotate ? "" : undefined}
-      style={{ "--arena-w": width, "--arena-h": height } as CSSProperties}
+      data-arena-crop={(crop || cropB) && !rotate ? "" : undefined}
+      style={{ "--arena-w": width, "--arena-h": height, ...((crop || cropB) && !rotate ? { "--arena-crop": crop, "--arena-crop-b": cropB } : null) } as CSSProperties}
     >
       {rotate ? <div data-arena-rotor="">{children}</div> : children}
       {host && scene

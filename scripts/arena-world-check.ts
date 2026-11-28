@@ -8,7 +8,10 @@
  *  - the drawn world shows exactly that world: its box has the world's aspect ratio within a pixel (turned through
  *    90° on a rotate game's computer and tablet, so the turned box has the swapped ratio), so nothing extra and
  *    nothing cut;
- *  - the whole world is on screen, inside every clipping ancestor;
+ *  - the whole world is on screen, inside every clipping ancestor,
+ *    except the HUD band a game declares cut on the arena (src/lib/gameFrame/hudBands.ts: the slot's --arena-crop above, (Changed with Joe's approval, 28 Nov 2026)
+ *    --arena-crop-b below, in world units), drawn out of view by design; hud-bands-check proves nothing the game draws (Changed with Joe's approval, 28 Nov 2026)
+ *    reaches into it. A turned game may not declare a cut band; (Changed with Joe's approval, 28 Nov 2026)
  *    (within 2.5 px: the rotor and the slot round the world's box down to whole pixels);
  *  - on the tablet and the computer, it is drawn at least as large as on the phone (the arena uses the space), except a
  *    game whose computer world is capped for its frame rate (desktopModes.ts maxWorldWidth: Apex), on the computer.
@@ -54,6 +57,9 @@ interface Seen {
   worldH: number;
   box: { x: number; y: number; w: number; h: number } | null;
   turned: boolean;
+  /** The HUD band the slot declares cut, in world units (hudBands.ts): above and below. (Changed with Joe's approval, 28 Nov 2026) */
+  crop: number; // Changed with Joe's approval, 28 Nov 2026
+  cropB: number; // Changed with Joe's approval, 28 Nov 2026
   clipped: string | null;
   arena: boolean;
 }
@@ -65,14 +71,20 @@ function probe(): Seen {
   const worldW = Number(style?.getPropertyValue("--arena-w").trim() || NaN);
   const worldH = Number(style?.getPropertyValue("--arena-h").trim() || NaN);
   const r = arena?.getBoundingClientRect() ?? null;
+  const crop = Number(style?.getPropertyValue("--arena-crop").trim() || 0); // Changed with Joe's approval, 28 Nov 2026
+  const cropB = Number(style?.getPropertyValue("--arena-crop-b").trim() || 0); // Changed with Joe's approval, 28 Nov 2026
+  // The declared band is out of view by design: the box's on-screen part starts that far down and ends that far up. (Changed with Joe's approval, 28 Nov 2026)
+  const scale = r && worldH > 0 ? r.height / worldH : 0; // Changed with Joe's approval, 28 Nov 2026
+  const cutTop = crop * scale; // Changed with Joe's approval, 28 Nov 2026
+  const cutBottom = cropB * scale; // Changed with Joe's approval, 28 Nov 2026
   let clipped: string | null = null;
   if (r) {
-    if (r.left < -0.75 || r.top < -0.75 || r.right > innerWidth + 0.75 || r.bottom > innerHeight + 0.75) clipped = "off screen";
+    if (r.left < -0.75 || r.top + cutTop < -0.75 || r.right > innerWidth + 0.75 || r.bottom - cutBottom > innerHeight + 0.75) clipped = "off screen"; // Changed with Joe's approval, 28 Nov 2026
     for (let el = arena!.parentElement; el && !clipped; el = el.parentElement) {
       const s = getComputedStyle(el);
       if (s.overflow === "visible" && s.overflowX === "visible" && s.overflowY === "visible") continue;
       const c = el.getBoundingClientRect();
-      if (r.left < c.left - 0.75 || r.top < c.top - 0.75 || r.right > c.right + 0.75 || r.bottom > c.bottom + 0.75)
+      if (r.left < c.left - 0.75 || r.top + cutTop < c.top - 0.75 || r.right > c.right + 0.75 || r.bottom - cutBottom > c.bottom + 0.75) // Changed with Joe's approval, 28 Nov 2026
         clipped = `cut by ${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(" ")[0]}` : ""}`;
     }
   }
@@ -81,6 +93,8 @@ function probe(): Seen {
     worldH,
     box: r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null,
     turned: Boolean(arena?.closest("[data-arena-rotor]")),
+    crop, // Changed with Joe's approval, 28 Nov 2026
+    cropB, // Changed with Joe's approval, 28 Nov 2026
     clipped,
     arena: Boolean(document.querySelector("[data-arena]")),
   };
@@ -111,6 +125,7 @@ try {
         }
         const wantRotate = device.arena && DESKTOP_MODES[type].mode === "rotate";
         if (s.turned !== wantRotate) failures.push(`${where}: world ${s.turned ? "turned" : "upright"}, want ${wantRotate ? "turned" : "upright"}`);
+        if (s.turned && (s.crop !== 0 || s.cropB !== 0)) failures.push(`${where}: a turned game may not declare a cut band`); // Changed with Joe's approval, 28 Nov 2026
         // The visible area is exactly the world: the box's ratio is the world's (swapped when turned).
         const [ww, wh] = s.turned ? [s.worldH, s.worldW] : [s.worldW, s.worldH];
         // Whole pixels: the computer rounds the world's width down to 2 px and its height to 1 px, so the box matches the

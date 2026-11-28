@@ -23,6 +23,9 @@ import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
+import { ArenaScreenTools } from "./ArenaScreenTools";
+import { hudBandFor } from "@/lib/gameFrame/hudBands";
+import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 import { createPortal } from "react-dom";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
 import { ArenaMount, useArenaLayout, useArenaMount, cabinetFits, cabinetLeftOn, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
@@ -533,6 +536,10 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   // The arena (phase 2 step 4 pass 2): a live round on a computer or a sideways tablet; the header's timer, score and
   // menu move to one side panel (the room panel's top in a room), and the world fills the height.
   const arena = useArenaLayout(layout, Boolean(gameScreen && play));
+  // Full screen and hidden panels (P4, desktop size PR 1): the corner tools on the arena's live round; hidden panels
+  // give the world the whole screen (lib/gameFrame/screenMode.ts).
+  const panelsHiddenChoice = useArenaPanelsHidden();
+  const panelsHidden = arena && panelsHiddenChoice;
   const panel = (desktop || arena) && !tabPage && roomPanel ? roomPanel : null;
   const [arenaMountNode, setArenaMountNode] = useState<HTMLElement | null>(null);
   // The Cabinet (polish plan B1): the left panel on arcade play screens outside a room (arenaLeft, below the screen flags).
@@ -560,8 +567,16 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const arenaLeft = cabinetWanted && cabinetRoom;
   const cabinetGroup = arenaLeft && gameType ? arcadeGroupOf(gameType) : null;
   const arenaValue = useMemo(
-    () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
-    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel],
+    () => ({
+      arena,
+      mount: arenaMountNode,
+      setMount: setArenaMountNode,
+      leftMount: arenaLeft ? arenaLeftNode : null,
+      setLeftMount: setArenaLeftNode,
+      roomPanel: Boolean(panel),
+      hudBand: arena && arcadePlay ? hudBandFor(gameType) : undefined,
+    }),
+    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel, arcadePlay, gameType],
   );
   /** Every game's live round (Polish 2): GameLayout's frame header replaces the app's top bar. */
   const framePlay = Boolean(gameScreen && play);
@@ -629,6 +644,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       data-room-panel={panel ? "" : undefined}
       data-arena={arena ? "" : undefined}
       data-arena-left={arenaLeft ? "" : undefined}
+      data-panels-hidden={panelsHidden ? "" : undefined}
       data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
       style={
         gameScreen
@@ -686,6 +702,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
           <div ref={setArenaLeftNode} className="arena-panel-mount" />
         </aside>
       ) : null}
+      {arena ? <ArenaScreenTools /> : null}
       {/* The arena's side panel outside a room (a room's game block is at the top of its room panel). */}
       {arena && !panel ? (
         <aside data-arena-panel aria-label="Game" className="arena-panel" style={{ ["--arena-panel-w" as string]: `${ARENA_PANEL_W}px` }}>

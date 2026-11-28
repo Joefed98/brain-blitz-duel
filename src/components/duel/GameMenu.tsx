@@ -9,6 +9,7 @@ import { ARROW_PAD_GAMES, setArrowControl, useArrowControl } from "@/lib/arrowCo
 import type { PuzzleType } from "@/lib/duel/types";
 import { MENU_DIRECTION_GAMES, useDirectionControls } from "@/lib/directionControls";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
+import { enterFullscreen, exitFullscreen, fullscreenSupported, useFullscreen } from "@/lib/gameFrame/screenMode";
 
 // The help copy (instructions.ts) is game code: loaded when the menu's own help first opens, never with the shell.
 const PuzzleHelp = lazy(() => import("./PuzzleInstructions").then((m) => ({ default: m.PuzzleHelp })));
@@ -32,6 +33,9 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
   const showHelp = onHelp ?? (type ? () => setOwnHelp(true) : undefined);
   // The Attention overhaul: Labyrinth's arrows / joystick switch lives here (and in Settings), not beside the pad.
   const [direction, setDirection] = useDirectionControls();
+  const full = useFullscreen();
+  const [fullOk, setFullOk] = useState(false);
+  useEffect(() => setFullOk(fullscreenSupported()), []);
   return (
     <div data-game-menu data-sound-controls="menu" className="game-frame-sound">
       <button
@@ -71,6 +75,10 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                 onChange={(on) => setMusicMuted(!on)}
               />
               <VolumeSliders />
+              {/* Full screen (P4, desktop size PR 1): where the browser has it (Android, computers; never an iPhone). */}
+              {fullOk ? (
+                <SwitchRow label="Full screen" icon={full ? "collapse" : "expand"} on={full} onChange={(on) => (on ? void enterFullscreen() : void exitFullscreen())} />
+              ) : null}
               {/* Pattern overhaul (15 Nov 2026): the arrows / joystick choice for the games played with the arrow pad,
                   the same setting as Settings → Game controls (lib/arrowControl.ts); the pad has no switch of its own. */}
               {type && !desktop && ARROW_PAD_GAMES.has(type) ? <DirectionRow /> : null}

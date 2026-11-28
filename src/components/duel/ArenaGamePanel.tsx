@@ -17,6 +17,7 @@ import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, 
 
 import { BoardKeys } from "@/components/puzzles/KeyCursor";
 import { readLiveHud, subscribeLiveHud, type LiveHudItem } from "@/lib/rated/liveHud";
+import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
 import { readLiveScore, wantLiveScore } from "@/lib/rated/liveScore";
 import { ARENA_HUD_IN_PANEL } from "@/lib/gameFrame/arena";
 
@@ -83,11 +84,16 @@ export function ArenaGamePanel({
     </div>
   );
   const pingNode = ping ? <div className="arena-game-ping">{ping}</div> : null;
-  const timerNode = timer ? (
+  // With the panels hidden (screenMode.ts) the timer moves to the corner tools (ArenaScreenTools), once, never twice.
+  const panelsHidden = useArenaPanelsHidden();
+  const focusTimer = useFocusTimerMount(panelsHidden);
+  const timerBody = timer ? (
     <div data-frame-timer className="arena-game-timer">
       {timer}
     </div>
   ) : null;
+  const timerNode = panelsHidden ? null : timerBody;
+  const focusTimerNode = panelsHidden && focusTimer && timerBody ? createPortal(timerBody, focusTimer) : null;
   const scoreNode = (
     <div className="arena-game-score">
       {opponent ? <span className="game-frame-avatar">{opponent}</span> : null}
@@ -122,6 +128,7 @@ export function ArenaGamePanel({
     return (
       <div data-arena-game data-cabinet="" className="arena-game cab-col">
         {createPortal(left, leftMount)}
+        {focusTimerNode}
         {goalNode ? (
           <section className="cab-card cab-goal" aria-label="Goal">
             <span className="cab-caption">Goal</span>
@@ -145,6 +152,7 @@ export function ArenaGamePanel({
   return (
     <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
       {stats}
+      {focusTimerNode}
       <BoardStatus hud />
       {goalNode}
       {practice && type ? <NextChallenges type={type} /> : null}
@@ -152,6 +160,23 @@ export function ArenaGamePanel({
       {keys}
     </div>
   );
+}
+
+/** The corner tools' timer slot while the panels are hidden (ArenaScreenTools renders it), found after it mounts. */
+function useFocusTimerMount(on: boolean): HTMLElement | null {
+  const [node, setNode] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!on) {
+      setNode(null);
+      return;
+    }
+    const find = () => document.querySelector<HTMLElement>("[data-arena-focus-timer]");
+    const found = find();
+    if (found) return setNode(found);
+    const frame = requestAnimationFrame(() => setNode(find()));
+    return () => cancelAnimationFrame(frame);
+  }, [on]);
+  return node;
 }
 
 /**
@@ -310,7 +335,7 @@ function useLiveHud(on: boolean): readonly LiveHudItem[] {
 function HudRows({ items }: { items: readonly LiveHudItem[] }) {
   const ordered = [...items.filter((i) => i.main), ...items.filter((i) => !i.main)];
   return (
-    <ul data-arena-hud-list className="arena-hud">
+    <ul data-arena-hud-list data-many={ordered.length > 6 ? "" : undefined} className="arena-hud">
       {ordered.map((item, i) => (
         <li
           key={i}

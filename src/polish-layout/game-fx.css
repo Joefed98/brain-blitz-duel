@@ -693,6 +693,28 @@
 .arena-hud-row[data-gold] .arena-hud-value {
   color: var(--jz-gold);
 }
+/* A long list (Gemstone's goals): two columns of smaller rows, so the card fits a 768 px tall screen. */
+.arena-hud[data-many] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--jz-space-16);
+}
+.arena-hud[data-many] .arena-hud-row {
+  padding: var(--jz-space-4) 0;
+}
+.arena-hud[data-many] .arena-hud-row:nth-child(2) {
+  border-top: 0;
+}
+.arena-hud[data-many] .arena-hud-row[data-main] {
+  grid-column: 1 / -1;
+}
+.arena-hud[data-many] .arena-hud-label {
+  font-size: 12px;
+}
+.arena-hud[data-many] .arena-hud-value {
+  font-size: 14px;
+  line-height: 18px;
+}
 .arena-game-challenges {
   display: flex;
   flex-direction: column;
@@ -1178,4 +1200,57 @@
   right: 6px;
   height: 2px;
   margin-top: -1px;
+}
+
+/* ------------------------------------------------------------------ Full screen and hidden panels (P4, desktop size
+ * PR 1, 27 Nov 2026; components/duel/ArenaScreenTools.tsx, lib/gameFrame/screenMode.ts). The arena's live round: the
+ * corner tools in the screen's top right corner (over the panel's empty corner; the single panel's own content starts
+ * below them). Hidden panels: the rail and every side panel gone, the world centred on the whole screen at its largest
+ * uniform scale (the slot's own rule), the timer kept in the corner. */
+.arena-tools {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.arena-tools .jz-btn:is([data-variant="icon"], [data-variant="secondary"]) {
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+}
+[data-arena]:not([data-arena-left]):not([data-room-panel]) > .arena-panel {
+  padding-top: 68px;
+}
+.game-screen[data-arena][data-panels-hidden][data-layout] {
+  padding-left: 0;
+  padding-right: 0;
+}
+[data-arena][data-panels-hidden] > :is([data-app-rail], .arena-panel, .arena-panel-left, .dk-room-panel, [data-dk-fade]) {
+  display: none;
+}
+.arena-tools-timer:empty {
+  display: none;
+}
+.arena-tools-timer .arena-game-timer {
+  width: 200px;
+  padding: var(--jz-space-8) var(--jz-space-12);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+}
+
+/* The HUD band given back to the board (P4, desktop size PR 1; ArcadeArenaSlot `cropTop`): on the arena with the HUD's
+   values in the panel, the world is sized at the largest uniform scale that fits its height less the band (--arena-crop,
+   world units) and drawn that much higher, the band above the slot's clip. The world's own box (its whole drawing and its
+   pointer mapping) is unchanged; only its place and scale on screen are. */
+[data-arena-slot][data-arena-crop] > [data-game-arena],
+[data-arcade-play] .game-column [data-arena-slot][data-arena-crop] > [data-game-arena] {
+  --crop-k: min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop) - var(--arena-crop-b, 0))));
+  width: round(down, calc(var(--crop-k) * var(--arena-w)), 2px);
+  height: round(down, calc(var(--crop-k) * var(--arena-h)), 1px);
+  margin-top: round(up, calc(-1 * var(--crop-k) * var(--arena-crop)), 1px);
+  margin-bottom: round(up, calc(-1 * var(--crop-k) * var(--arena-crop-b, 0)), 1px);
+}
+[data-arena-slot][data-arena-crop]::after,
+[data-arena-slot][data-arena-crop][data-arena-centred]::before {
+  width: round(down, calc(min(calc(100cqw / var(--arena-w)), calc(100cqh / (var(--arena-h) - var(--arena-crop) - var(--arena-crop-b, 0)))) * var(--arena-w)), 2px);
 }
