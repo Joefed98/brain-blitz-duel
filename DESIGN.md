@@ -23,11 +23,14 @@ colours kept on game screens, art drawn in-house (no paid commissions).
    is the exception (section 9): Press Start 2P for Retro art and JetBrains Mono where canvas art names it. No Space Grotesk, Inter, Saira, Manrope or JetBrains Mono in new work.
 4. **Gold means act, you, or first place.** Nothing else is gold. At most one gold button per screen.
 5. **Gradients only on metal.** Gold buttons, the podium, medals, trophies and rank emblems. No gradient text, no
-   glow or sheen on app chrome. Game worlds may glow; the frame around them may not.
+   glow or sheen on app chrome. Game worlds may glow; the frame around them may not. **The current texture on metal
+   only:** the faint drifting lines (`Current`, section 7) go on those same metal surfaces and nowhere else, never on
+   a panel, a button face, text or a game world.
 6. **Sentence case.** Capitals only for the JOULZ wordmark, room codes and the LIVE tag, set with
    `text-transform: uppercase` (not typed in capitals) so screen readers read words, not letters.
 7. **Curly apostrophes and quotes** in every string players read: ’ “ ”.
 8. **Every animation ends visible.** Under reduced motion, elements jump to their final visible state.
+   Exception: the calm versions named in this file (the calm fades, the charge filling in four steps, the timer's steady red) run their calm form instead, and still end in a visible state.
 9. **No change to gameplay** in any design PR. Scores, timings, hit areas and seeds stay identical.
 
 ---
@@ -88,6 +91,25 @@ Colour is never the only signal: right and wrong also carry a tick or cross, up 
 
 The screen edge (`--screen-edge`: below a short page, under the home bar, the gaps round an arcade world) is
 #070709, kept apart from `--jz-bg` (the arcade backdrops fade towards it, and the fill checks tell them apart).
+
+### The game timer (28 Nov 2026)
+
+The timer is a charge running down, in five colours that apply to every timer look (bar, ring and chip; the shape
+is stage 2a's).
+
+| Token | Value | When |
+|---|---|---|
+| `--jz-timer-1` | `#2FBF71` | The first quarter of the round before its last 10 seconds |
+| `--jz-timer-2` | `#8BD86A` | The second quarter |
+| `--jz-timer-3` | `#F2D04B` | The third quarter |
+| `--jz-timer-4` | `#F28C38` | The fourth quarter |
+| `--jz-timer-5` | `#E5484D` | Exactly the last 10 seconds, pulsing (a steady red under reduced motion) |
+
+- Each is at least 3:1 on the game header's background (`--jz-bg` 5.2–13.4:1, `--jz-surface` 4.4–11.4:1). Game
+  screens stay dark in the light theme, so the timer never draws on a light surface.
+- The colour steps, it never blends.
+- No seconds or numbers on screen. Screen readers still hear the time through the timer's label.
+- These five are the timer's own. `--jz-red` and `--jz-loss` keep their meanings, and the timer never uses gold.
 
 ### Category and player colours
 
@@ -278,6 +300,27 @@ No emoji in app chrome; emoji stay in chat reactions only.
 
 Keep the existing signature solve burst and room moments (Prepare to Duel, round titles, winner reveal). They are
 the only places motion gets theatrical. No bounce easing on app chrome. Reduced motion: hard rule 8.
+
+### Bolt motifs (28 Nov 2026)
+
+Electricity is Joulz's motion language. Four motifs and one texture, in `src/design/motifs/` (import from
+`@/design/motifs`), shown on `/dev-design`:
+
+| Motif | What it is | Use |
+|---|---|---|
+| **Charge** | A fill that builds inside the bolt or a bar; `crackle` flickers the outline once full | The 3-2-1 countdown, the timer, loaders, the reveal meter |
+| **Arc** | A jagged line struck between two points, then flickering lit; cyan, or gold for wins | Versus screens, transitions, brackets |
+| **Spark** | Eight strokes bursting from a point, about 300 ms | Taps, correct moves, finished pings |
+| **Surge** | A full-screen gold flash, about 400 ms in and 600 ms out, at most once a second | GO, wins, promotion |
+| **The current** | Faint thin lines drifting slowly over metal | Metal surfaces only (hard rule 5) |
+
+- Transforms and opacity only; each motif pauses while off screen.
+- Gold follows hard rule 4. On a light surface a motif's gold is `--jz-gold-ink`; on dark surfaces (game screens,
+  game art, the player card) it stays `--jz-gold`.
+- Battery saver: the current is off, and the crackle and the arc's flicker stop, resting lit.
+- Reduced motion: the charge fills in four steps and ends full, the arc fades in and holds, the spark is a short
+  fade, the surge a soft gold tint, and the current is off. Spark and surge are effects whose rest state is gone
+  (listed in reduced-motion-end-check).
 
 ---
 
