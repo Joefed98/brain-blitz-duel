@@ -92,6 +92,14 @@
   --jz-place-1: #E2C07A;
   --jz-place-2: #D3DCEF;
   --jz-place-3: #E2AB76;
+  /* The game timer's charge colours (DESIGN.md section 2 "The game timer", Joe, 28 Nov 2026): 1–4 split the round
+     before its last 10 s into equal quarters, 5 is the last 10 s. Each at least 3:1 on --jz-bg and --jz-surface; game
+     screens stay dark in the light theme, so they have no light values. Wired into the timers by stage 2a. */
+  --jz-timer-1: #2FBF71;
+  --jz-timer-2: #8BD86A;
+  --jz-timer-3: #F2D04B;
+  --jz-timer-4: #F28C38;
+  --jz-timer-5: #E5484D;
   /* The JOULZ wordmark's letters only (DESIGN.md section 2's wordmark: white). */
   --jz-white: #FFFFFF;
 
