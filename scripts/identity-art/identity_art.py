@@ -303,6 +303,15 @@ def tube(name, d, frame, z, radius, mat, tx=0.0, ty=0.0, sc=1.0, about=None, sub
     return ob
 
 
+def subsurf(ob, level=1):
+    """One level of subdivision, in the viewport and the render alike (a new modifier's render level is 2: on the
+    moulded avatar bodies that is 16x the faces, about 9 GB on Hover)."""
+    m = ob.modifiers.new("sub", "SUBSURF")
+    m.levels = level
+    m.render_levels = level
+    return m
+
+
 def lathe(name, profile, frame, mat, steps=96):
     """A body of revolution about the artboard's vertical axis through frame.cx; profile = [(radius, y)] SVG units."""
     mesh = bpy.data.meshes.new(name)
@@ -317,7 +326,7 @@ def lathe(name, profile, frame, mat, steps=96):
     m.render_steps = steps
     m.use_merge_vertices = True
     m.use_smooth_shade = True
-    ob.modifiers.new("sub", "SUBSURF").levels = 1
+    subsurf(ob)
     ob.data.materials.append(mat)
     for p in mesh.polygons:
         p.use_smooth = True
@@ -405,7 +414,7 @@ def inflate(name, subs, frame, z0, dome, mat, voxel=0.012, under=0.02):
     me.update()
     for poly in me.polygons:
         poly.use_smooth = True
-    ob.modifiers.new("sub", "SUBSURF").levels = 1
+    subsurf(ob)
     ob.data.materials.append(mat)
     return ob
 

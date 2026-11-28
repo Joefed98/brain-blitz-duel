@@ -25,6 +25,7 @@ where the old drawing did and every tap box is unchanged). Renders at 2x and dow
 """
 import json
 import math
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -534,7 +535,12 @@ def build_avatar(src, rec, font):
     grow = (sc, 0, 0, sc, 50 * (1 - sc), 50 * (1 - sc))
 
     field = Field()
+    import os
+
+    debug = os.environ.get("AVATAR_DEBUG")
     for i, (el, m, o) in enumerate(items):
+        if debug:
+            print("element", i, el.tag.split("}")[-1], (el.get("d") or "")[:40], flush=True)
         if o < 0.45:
             continue
         m = (lambda p, q: (p[0] * q[0] + p[2] * q[1], p[1] * q[0] + p[3] * q[1], p[0] * q[2] + p[2] * q[3],
@@ -749,11 +755,11 @@ def gem_post(png, figure_png, main_png, gem_id, stops, k, px):
     out = rgb.copy()
     out.putalpha(alpha)
     # Sparkles on the body's own brightest highlights, at least 9 units apart; 2 (Amber) to 5 (Diamond).
-    n = 1 if k < 0.7 else 2  # Joe: one or two small sparkles at most; the stone carries the look
+    n = 0  # Joe, 28 Nov 2026: no sparkles at all; the cut stone, inner light and rim bloom carry the look
     stone = Image.open(main_png).convert("L").resize((W, W), Image.LANCZOS).filter(ImageFilter.MinFilter(5))
     L = np.asarray(rgb.convert("L"), float) * (np.asarray(stone, float) / 255.0)
     picks = []
-    for idx in np.argsort(L.ravel(), kind="stable")[::-1][:4000]:
+    for idx in (np.argsort(L.ravel(), kind="stable")[::-1][:4000] if n else []):
         y, x = divmod(int(idx), W)
         if all((x - qx) ** 2 + (y - qy) ** 2 > (9 * u) ** 2 for qx, qy in picks):
             picks.append((x, y))
@@ -991,7 +997,7 @@ CUT = {
     "amber": dict(facets=40, foil="gold"),
     "rose-quartz": dict(facets=40, foil="silver", ior=1.54),
     "ruby": dict(facets=40, foil="silver", ior=1.77),
-    "jade": dict(facets=40, foil=None),
+    "jade": dict(facets=40, foil="silver"),
     "amethyst": dict(facets=40, foil="silver", ior=1.54),
     "aquamarine": dict(facets=40, foil="silver", ior=1.58),
     "sapphire": dict(facets=40, foil="silver", ior=1.77),
@@ -1005,7 +1011,8 @@ def cut_material(gid, stops):
     """A gem's stone (Joe's notes, 28 Nov 2026)."""
     if gid == "diamond":
         # Colourless, with strong rainbow fire: dispersion pushed well past a real diamond's.
-        return diamond_glass("diamond", abbe=5.0)
+        # Joe, 28 Nov 2026: the top prize; the fire must show clearly from 96 px (the shader's strongest dispersion).
+        return diamond_glass("diamond", abbe=1.5)
     if gid == "pearl":
         return gem("pearl", "pearl", stops)  # smooth nacre shifting pink, green and blue
     if gid == "obsidian":
@@ -1017,13 +1024,23 @@ def cut_material(gid, stops):
         p.inputs["Specular IOR Level"].default_value = 1.0
         return m
     if gid == "jade":
-        # A cut stone in jade: translucent green with a polished face.
+        # Joe, 28 Nov 2026: a cut stone, not paint. Translucent marbled green glass (deep and pale jade swirling
+        # through it) over the foil, lit from within like the other cut stones.
         m, nt, p = ia._principled("jade-cut")
-        p.inputs["Base Color"].default_value = ia.hexc(stops[1])
-        p.inputs["Subsurface Weight"].default_value = 0.9
-        p.inputs["Subsurface Radius"].default_value = (0.25, 0.9, 0.4)
-        p.inputs["Subsurface Scale"].default_value = 0.25
-        p.inputs["Roughness"].default_value = 0.02
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        nz = nt.nodes.new("ShaderNodeTexNoise")
+        nz.inputs["Scale"].default_value = 3.2
+        nz.inputs["Detail"].default_value = 6.0
+        nz.inputs["Distortion"].default_value = 1.4
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = ia.hexc(stops[2])
+        ramp.color_ramp.elements[1].color = ia.hexc(stops[0])
+        ramp.color_ramp.elements.new(0.5).color = ia.hexc(stops[1])
+        nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
+        nt.links.new(nz.outputs["Fac"], ramp.inputs["Fac"])
+        nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+        p.inputs["Roughness"].default_value = 0.0
+        p.inputs["Transmission Weight"].default_value = 0.85
         p.inputs["IOR"].default_value = 1.66
         return m
     if gid == "amber":
@@ -1087,7 +1104,7 @@ def gem_cut(b, gid, gems):
                 poly.use_smooth = False
             cp.scale.z = 0.93
         else:
-            cp.modifiers.new("sub", "SUBSURF").levels = 1
+            ia.subsurf(cp)
         set_mat([cp], stone)
         b.extras.append(cp)
         if spec["foil"]:
@@ -1126,6 +1143,11 @@ def main():
         _MATS.clear()
         font = bpy.data.fonts.load(opts.get("font", str(src / "archivo-900.ttf")))
         b = build_avatar(src, rec, font)
+        if os.environ.get("AVATAR_DEBUG"):
+            import resource
+
+            print("built; peak MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024,
+                  "faces", sum(len(o.data.polygons) for o in bpy.data.objects if o.type == "MESH"), flush=True)
         ia.world_gain("floor", 0.0)
         # Straight down (the orthographic camera), the flat well mirrors the overhead softbox whole: dimmed for avatars.
         ia.world_gain("overhead", 0.7)
