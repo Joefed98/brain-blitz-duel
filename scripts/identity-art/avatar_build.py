@@ -873,7 +873,7 @@ def brilliant_mesh(name, r=1.0):
     return me
 
 
-def white_core(ob, strength=7.0):
+def white_core(ob, strength=1.6):
     """A white light inside a clear stone (a smaller copy of the body), so light comes through it white and the
     dispersion shows as rainbow fire, not the visor's cyan."""
     core = ob.copy()
@@ -884,9 +884,9 @@ def white_core(ob, strength=7.0):
     ys = [v.co.y for v in core.data.vertices]
     cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
     for v in core.data.vertices:
-        v.co.x = cx + (v.co.x - cx) * 0.6
-        v.co.y = cy + (v.co.y - cy) * 0.6
-        v.co.z = v.co.z * 0.5
+        v.co.x = cx + (v.co.x - cx) * 0.42
+        v.co.y = cy + (v.co.y - cy) * 0.42
+        v.co.z = v.co.z * 0.4
     set_mat([core], emit("white-core", "#FFFFFF", strength))
     return core
 
