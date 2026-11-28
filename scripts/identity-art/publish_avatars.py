@@ -1,10 +1,10 @@
 """
 The avatar renders into the app (S5 step 2, PR A).
 
-    python scripts/identity-art/publish_avatars.py <renders dir> [--check]
+    python scripts/identity-art/publish_avatars.py <renders dir> [--px=N] [--check]
 
-Reads <renders>/<id>/<variant>.png (avatar_build.py) and writes public/identity/avatars/<id>/<variant>.webp (the paint's
-mask and gloss lossless, everything else WebP quality 88) and src/design/identity/avatarArt.data.ts: every avatar's
+Reads <renders>/<id>/<variant>.png (avatar_build.py) and writes public/identity/avatars/<id>/<variant>.webp (the two
+masks lossless greyscale, everything else WebP quality 88; --px resizes the masters to the shipped size) and src/design/identity/avatarArt.data.ts: every avatar's
 variants with a content hash, which the app puts on each URL so a re-rendered file is fetched again. --check rebuilds
 both in memory and fails if either differs from what is on disk.
 """
@@ -21,8 +21,10 @@ DATA = ROOT / "src/design/identity/avatarArt.data.ts"
 LOSSLESS = {"tint-mask", "neon-mask"}
 
 
-def encode(png, variant):
+def encode(png, variant, px=None):
     im = Image.open(png).convert("RGBA")
+    if px and im.width != px:
+        im = im.resize((px, px), Image.LANCZOS)
     buf = io.BytesIO()
     if variant in LOSSLESS:
         im.convert("L").save(buf, "WEBP", lossless=True, method=6)
@@ -34,11 +36,12 @@ def encode(png, variant):
 def main():
     src = Path(sys.argv[1])
     check = "--check" in sys.argv
+    px = next((int(a[5:]) for a in sys.argv if a.startswith("--px=")), None)
     files, table = {}, {}
     for d in sorted(p for p in src.iterdir() if p.is_dir()):
         for png in sorted(d.glob("*.png")):
             v = png.stem
-            data = encode(png, v)
+            data = encode(png, v, px)
             files[OUT / d.name / f"{v}.webp"] = data
             table.setdefault(d.name, {})[v] = hashlib.sha256(data).hexdigest()[:10]
     lines = [

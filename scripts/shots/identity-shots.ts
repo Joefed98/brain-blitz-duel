@@ -7,8 +7,8 @@
  * Opens every harness screen (scripts/theme-screens.ts and the area files, dark and light; the real routes with the
  * network stubbed) and finds the art by its own markup: an avatar is an svg holding the avatar drawing's clip
  * (`…av<n>c`) or the layered drawing's `data-avatar-layers`. Shots: each screen that shows the art, at 375 × 667,
- * dark and light, DPR 2, saved as <out>/<tag>/<screen>.png. --measure also draws every screen at every size the
- * checks use (VIEWPORTS and ALL_SIZES) and prints the largest box the art takes, per screen and overall.
+ * dark and light, DPR 2, saved as <out>/<tag>/<screen>.png. --measure then draws the screens that show it at every
+ * other size the checks use (VIEWPORTS and ALL_SIZES) and prints the largest box the art takes.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
@@ -51,8 +51,14 @@ mkdirSync(`${out}/${tag}`, { recursive: true });
 const largest: { screen: string; viewport: string; w: number }[] = [];
 const shot: string[] = [];
 const sizes = measure ? [...VIEWPORTS, ...ALL_SIZES.filter((s) => !VIEWPORTS.some((v) => v.name === s.name))] : [];
-for (const screen of screens) {
-  for (const viewport of [PHONE, ...sizes]) {
+// The phone pass first (every screen: the shots, and which screens show the art), then the other sizes only for those.
+const draws: { screen: ThemeScreen; viewport: ThemeViewport }[] = screens.map((screen) => ({ screen, viewport: PHONE }));
+const found = new Set<string>();
+for (let i = 0; ; i++) {
+  if (i === screens.length) for (const s of screens) if (found.has(s.name)) for (const v of sizes) draws.push({ screen: s, viewport: v });
+  if (i >= draws.length) break;
+  const { screen, viewport } = draws[i]!;
+  {
     const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport).catch(() => ({ context: null, page: null }));
     if (!page || !context) continue;
     try {
@@ -61,6 +67,7 @@ for (const screen of screens) {
       if (boxes.length) {
         const w = Math.max(...boxes.map((b) => b.w));
         largest.push({ screen: screen.name, viewport: viewport.name, w });
+        found.add(screen.name);
         if (viewport === PHONE) {
           const file = `${out}/${tag}/${screen.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
           await page.screenshot({ path: file, fullPage: true });

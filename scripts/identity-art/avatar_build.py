@@ -242,10 +242,10 @@ def carbon(name):
     tc = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")
     mp.inputs["Rotation"].default_value = (0, 0, math.radians(45))
-    mp.inputs["Scale"].default_value = (34, 34, 34)
+    mp.inputs["Scale"].default_value = (16, 16, 16)
     ck = nt.nodes.new("ShaderNodeTexChecker")
-    ck.inputs["Color1"].default_value = ia.hexc("#14171E")
-    ck.inputs["Color2"].default_value = ia.hexc("#2E333F")
+    ck.inputs["Color1"].default_value = ia.hexc("#15181F")
+    ck.inputs["Color2"].default_value = ia.hexc("#4A5163")
     nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
     nt.links.new(mp.outputs["Vector"], ck.inputs["Vector"])
     nt.links.new(ck.outputs["Color"], p.inputs["Base Color"])
@@ -281,18 +281,36 @@ def comic(name):
 
 
 def wire(name):
-    """Wireframe: a dark body drawn in glowing cyan mesh lines (the moulded body's own even grid)."""
+    """Wireframe: a dark body under an even grid of glowing cyan lines (a blueprint wire, about 3 viewBox units apart)."""
     m, nt, p = ia._principled(name)
     p.inputs["Base Color"].default_value = ia.hexc("#06080F")
     p.inputs["Roughness"].default_value = 0.2
-    wf = nt.nodes.new("ShaderNodeWireframe")
-    wf.use_pixel_size = False
-    wf.inputs["Size"].default_value = 0.006
-    p.inputs["Emission Color"].default_value = ia.hexc(WIRE)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], sep.inputs[0])
+    lines = []
+    for axis in ("X", "Y"):
+        mul = nt.nodes.new("ShaderNodeMath")
+        mul.operation = "MULTIPLY"
+        mul.inputs[1].default_value = 1 / (3.2 * ia.S)
+        nt.links.new(sep.outputs[axis], mul.inputs[0])
+        fr = nt.nodes.new("ShaderNodeMath")
+        fr.operation = "FRACT"
+        nt.links.new(mul.outputs[0], fr.inputs[0])
+        lt = nt.nodes.new("ShaderNodeMath")
+        lt.operation = "LESS_THAN"
+        lt.inputs[1].default_value = 0.16
+        nt.links.new(fr.outputs[0], lt.inputs[0])
+        lines.append(lt)
+    mx = nt.nodes.new("ShaderNodeMath")
+    mx.operation = "MAXIMUM"
+    nt.links.new(lines[0].outputs[0], mx.inputs[0])
+    nt.links.new(lines[1].outputs[0], mx.inputs[1])
     mu = nt.nodes.new("ShaderNodeMath")
     mu.operation = "MULTIPLY"
-    mu.inputs[1].default_value = 2.5
-    nt.links.new(wf.outputs[0], mu.inputs[0])
+    mu.inputs[1].default_value = 3.0
+    nt.links.new(mx.outputs[0], mu.inputs[0])
+    p.inputs["Emission Color"].default_value = ia.hexc(WIRE)
     nt.links.new(mu.outputs[0], p.inputs["Emission Strength"])
     return m
 
@@ -552,6 +570,13 @@ def apply_variant(b, v, gems):
         set_mat(b.main, emit("mask", "#FFFFFF", 4.0))
         set_mat(others, black())
         bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
+    if v == "figure-mask":
+        # Not published: every part of the figure white, the disc black (neon_halo keeps the halo off the figure).
+        white = emit("fig", "#FFFFFF", 4.0)
+        set_mat(b.main + b.rest + b.ink, white)
+        set_mat(b.disc, black())
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
+        return
     if v.startswith("neon-"):
         # Neon Glow: the paint (tinted) under a thin white neon line, a halo in the player's colour round the body.
         if v == "neon-base":
@@ -560,9 +585,8 @@ def apply_variant(b, v, gems):
             m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
             set_mat(b.main, m)
         line = emit("neon", "#FFFFFF", 3.0) if v == "neon-base" else black()
-        halo = soft_glow("halo", "#FFFFFF", 4.0 if v == "neon-mask" else 1.6) if v != "neon-gloss" else black()
         b.extras += main_outline_tubes(b, 0.65 * ia.S, line, lift=0.006)
-        b.extras += main_outline_tubes(b, 4.0 * ia.S, halo, lift=-0.02, field_top=False)
+        # The halo is added after the render, from the mask (neon_halo): a soft glow can't be a solid in Blender.
     elif v == "chrome":
         set_mat(b.main, ia.chrome("chrome"))
     elif v == "holographic":
@@ -590,6 +614,25 @@ def apply_variant(b, v, gems):
         set_mat(b.main, gem(v, g["stops"]))
         rim = ia.metal("jewel-rim", (g["stops"][0], g["stops"][0], g["stops"][1], g["stops"][0]), "polished")
         b.extras += main_outline_tubes(b, 0.9 * ia.S, rim, lift=0.002, field_top=False)
+
+
+def neon_halo(folder, px):
+    """Neon Glow's halo, after its three layers are rendered: the body's mask blurred into a soft glow outside the body,
+    added to the base as white light and to the mask (so the app tints it in the player's colour, as the body)."""
+    from PIL import ImageChops, ImageFilter
+
+    base = Image.open(folder / "neon-base.png").convert("RGBA")
+    mask = Image.open(folder / "neon-mask.png").convert("L")
+    figure = Image.open(folder / "figure-mask.png").convert("L")
+    glow = mask.filter(ImageFilter.GaussianBlur(px * 0.05))
+    halo = ImageChops.multiply(glow, ImageChops.invert(figure)).point(lambda v: min(255, int(v * 1.6)))
+    rgb = ImageChops.add(base.convert("RGB"), Image.merge("RGB", (halo, halo, halo)))
+    alpha = ImageChops.lighter(base.getchannel("A"), halo)
+    out = rgb.copy()
+    out.putalpha(alpha)
+    out.save(folder / "neon-base.png")
+    ImageChops.lighter(mask, halo).convert("RGBA").save(folder / "neon-mask.png")
+    (folder / "figure-mask.png").unlink()
 
 
 def camera_ortho():
@@ -633,6 +676,14 @@ def main():
             tmp.unlink()
             restore(b, saved)
             print("rendered", rec["id"], v, flush=True)
+        if "neon-mask" in variants:
+            apply_variant(b, "figure-mask", gems)
+            tmp = out / rec["id"] / "figure-mask.full.png"
+            ia.render(tmp)
+            Image.open(tmp).resize((px, px), Image.LANCZOS).save(out / rec["id"] / "figure-mask.png")
+            tmp.unlink()
+            restore(b, saved)
+            neon_halo(out / rec["id"], px)
 
 
 if __name__ == "__main__":
