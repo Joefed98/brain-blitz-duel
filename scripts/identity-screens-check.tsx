@@ -377,13 +377,16 @@ for (const [who, n, shows] of [
   const children = header ? [...header.children].map((c) => (c as unknown as HTMLElement).className || c.tagName) : [];
   // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: page headers show only the
   // avatar and the title, the wordmark and the sound controls gone; the counter keeps its place on the right).
-  if (shows) check(!!header?.querySelector(".ap-header-tools [data-coin-counter]"), `header, ${who}: the counter on the header's right`);
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  if (shows) check(!!header?.querySelector(".jz-header-tools [data-coin-counter]"), `header, ${who}: the counter on the header's right`);
   else
     check(
-      !!header && header.children.length === 1 && !header.querySelector(".ap-header-tools, [data-coin-counter]"),
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      !!header && header.children.length === 1 && !header.querySelector(".jz-header-tools, [data-coin-counter]"),
       `header, ${who}: the avatar and title only, no counter (${children.join(" | ")})`,
     );
-  check(!!header && !header.querySelector("[data-sound-controls], .ap-wordmark-text"), `header, ${who}: no wordmark or sound controls`);
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  check(!!header && !header.querySelector("[data-sound-controls], .jz-wordmark-text"), `header, ${who}: no wordmark or sound controls`);
   act(() => root.unmount());
 }
 

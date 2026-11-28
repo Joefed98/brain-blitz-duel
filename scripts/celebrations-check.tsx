@@ -298,8 +298,9 @@ const podiumProps = (mineFirst: boolean) => ({
   onPlayAgain: () => {},
   onLeave: () => {},
 });
-const scoreTexts = (host: Element) => Array.from(host.querySelectorAll(".th-score")).map((el) => el.textContent);
-const listNames = (host: Element) => Array.from(host.querySelectorAll("ul li .th-name")).map((el) => el.textContent);
+// Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+const scoreTexts = (host: Element) => Array.from(host.querySelectorAll(".jz-score")).map((el) => el.textContent);
+const listNames = (host: Element) => Array.from(host.querySelectorAll("ul li .jz-name")).map((el) => el.textContent);
 
 // 3a. The podium: winner and not.
 for (const mineFirst of [true, false]) {
@@ -340,7 +341,8 @@ for (const mineFirst of [true, false]) {
   check(early.every((n, i) => n >= C.countUpFrom(standingsRows[i]!) && n <= finals[i]!) && early.some((n, i) => n < finals[i]!), `standings do not count up from the round before: ${early.join(",")}`);
   await wait(C.COUNT_UP_MS + 300);
   check(JSON.stringify(scoreTexts(view.host)) === JSON.stringify(standingsRows.map((r) => String(r.total))), `standings end on ${scoreTexts(view.host).join(",")}`);
-  check(JSON.stringify(Array.from(view.host.querySelectorAll("li .th-name")).map((e) => e.textContent)) === JSON.stringify(standingsRows.map((r) => r.name)), "standings order is not the server's");
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  check(JSON.stringify(Array.from(view.host.querySelectorAll("li .jz-name")).map((e) => e.textContent)) === JSON.stringify(standingsRows.map((r) => r.name)), "standings order is not the server's");
   check(requests.some((r) => r.kind === "burst") && sounds.filter((s) => s === "overtake").length === 1 && !sounds.includes("zap"), `a climb has no sparks and one overtake zap: ${sounds.join(",")}`);
   // The count-up ticks, at most COUNT_TICKS_PER_S a second, then dings (rows landing together share the slot's gap).
   const ticks = sounds.filter((s) => s === "countTick").length;
@@ -404,7 +406,8 @@ for (const mineFirst of [true, false]) {
   C.resetCelebrationMemory();
   const first = await mount(React.createElement(AppWordmark));
   check(!!first.host.querySelector("[data-logo-charge] animate"), "the app's first header does not charge in");
-  const plain = await mount(React.createElement(LogoMark, { width: 17, height: 22, className: "ap-wordmark-mark" }));
+  // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+  const plain = await mount(React.createElement(LogoMark, { width: 17, height: 22, className: "jz-wordmark-mark" }));
   check(!plain.host.querySelector("[data-logo-charge], clipPath, animate, g"), "a mark without the charge-in is not the plain mark");
   check(first.host.querySelectorAll("[data-logo-line]").length === 2 && Array.from(first.host.querySelectorAll("[data-logo-line]")).every((l) => l.getAttribute("vector-effect") === "non-scaling-stroke" && l.getAttribute("stroke-width") === plain.host.querySelector("[data-logo-line]")!.getAttribute("stroke-width")), "the charge-in does not draw #133's hairline speed lines");
   await wait(C.LOGO_CHARGE_MS + 250);

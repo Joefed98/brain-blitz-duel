@@ -1061,7 +1061,9 @@ outside the repo.
   (`feel` in `gameSounds.ts`), the arcade buzzer (`impact`, arcadeFeedback); the podium / two-player final for the
   winner (`celebrate`); the between-rounds chat toast keeps its tick (chat-notice-check asserts it). In-game moments
   pass `{ inGame: true }`: only with a live `[data-game-stage]` on screen, never in an intro demo, replay or answer
-  reveal (`holdHaptics`). Never on button taps, drags or routine hits: **don't call `navigator.vibrate` or add a
+  reveal (`holdHaptics`). Every tappable control in app chrome (buttons, links, tabs, switches, radios, options, menu
+  items; never inside game art) gets the light `tick` on a completed tap through `src/lib/pressFeel.ts` (Joe's
+  decision, 27 Nov 2026); never on drags or routine in-game hits: **don't call `navigator.vibrate` or add a
   `haptic()` call outside the listed sites** (haptics-check's `CALL_SITES` pins them). Settings → Haptics, on by
   default (`duelz-haptics:v1`), "Not supported on this device" where there is none. haptics-check (~16 s, happy-dom).
 - **Joe's quick fixes** (1 Nov 2026; display, sound and room draw only, no stamps): Orbit's SET CHECKPOINT (orbitRev 12–13)

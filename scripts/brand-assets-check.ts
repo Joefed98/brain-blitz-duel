@@ -50,7 +50,8 @@ ok(LOGO_COLOURS.gold.upper[0] === BRAND_GOLD && LOGO_COLOURS.inverted.upper[0] =
 const wordmark = readFileSync("src/components/brand/AppWordmark.tsx", "utf8");
 ok(!/wordmark-last|slice\(-1\)/.test(wordmark), "AppWordmark has no separately coloured last letter");
 const css = readFileSync("src/polish-layout/app-pages.css", "utf8");
-const rule = /\.ap-wordmark-text \{([^}]*)\}/.exec(css)?.[1] ?? "";
+// Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+const rule = /\.jz-wordmark-text \{([^}]*)\}/.exec(css)?.[1] ?? "";
 ok(
   /font-weight: var\(--jz-weight-black\)/.test(rule) && rule.includes(`font-stretch: ${WORDMARK_STRETCH}%`) && /text-transform: uppercase/.test(rule) && /color: var\(--jz-white\)/.test(rule),
   "the header wordmark: Archivo 900, 118 %, white, capitals by CSS",
