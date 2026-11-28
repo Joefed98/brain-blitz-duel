@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 import { Window } from "happy-dom";
+import { AVATAR_ART } from "../src/design/identity/avatarArt.data";
 
 let passes = 0;
 const failures: string[] = [];
@@ -108,18 +109,23 @@ for (const a of av.AVATARS) {
 }
 check(dressed === 32 * 2 * 7, `${dressed} dressed avatars drawn`);
 
-/* 4. nothing equipped: exactly as before */
+/* 4. nothing equipped: the avatar's own art (S5: its render where it has one), the same with an unknown item */
+// Changed with Joe's approval, 28 Nov 2026 (S5 PR A): a rendered avatar draws its tinted render, not the flat drawing.
 let same = 0;
 for (const a of av.AVATARS) {
   for (const colour of [-1, 0, 7, 31]) {
     const look = { id: a.id, colour, gem: null };
     const [m0, m1, m2] = av.avatarStops(look);
     const before = a.svg.replaceAll("{{p}}", "x-").replace("{{m0}}", m0).replace("{{m1}}", m1).replace("{{m2}}", m2);
-    if (av.avatarMarkup(look, "x-") === before && av.avatarMarkup({ ...look, finish: null, accessory: null, special: null }, "x-") === before) same++;
-    if (av.avatarMarkup({ ...look, finish: "avatar-finish.nope" }, "x-") === before) same++;
+    const plain = av.avatarMarkup(look, "x-");
+    const own = AVATAR_ART[a.id]
+      ? plain.includes(`data-avatar-layers="${a.id}"`) && plain.includes(`/identity/avatars/${a.id}/tint-base.webp`) && plain.includes(`fill="${m1}"`)
+      : plain === before;
+    if (own && av.avatarMarkup({ ...look, finish: null, accessory: null, special: null }, "x-") === plain) same++;
+    if (av.avatarMarkup({ ...look, finish: "avatar-finish.nope" }, "x-") === plain) same++;
   }
 }
-check(same === 32 * 4 * 2, `with nothing equipped (or an unknown item) every avatar is exactly as before (${same} of ${32 * 4 * 2})`);
+check(same === 32 * 4 * 2, `with nothing equipped (or an unknown item) every avatar draws its own art, tinted (${same} of ${32 * 4 * 2})`);
 check(!cos.hasCosmetics(null) && !cos.hasCosmetics({}) && cos.hasCosmetics({ finish: "avatar-finish.chrome" }), "hasCosmetics");
 
 /* 5. motion stops under reduced motion */
