@@ -527,7 +527,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   check(recs.some((r) => isArt(r, ".ice-fall")) && recs.some((r) => isArt(r, ".ice-broken > .ice-art")) && recs.some((r) => isArt(r, ".ice-portal > .ice-art")), "fx: reduced motion doesn't show the fall, the crack or the portal");
   root.unmount();
 
-  // The reveal: a solve's payoff is the kit's win on the reveal's result card, silent; never on an unfinished one.
+  // The reveal: a solve calls the template's win (onWin) once; never on an unfinished one. // Changed with Joe's approval, 27 Nov 2026
   forceGameFxVariant("full");
   const card = document.createElement("div");
   card.className = "answer-reveal-content";
@@ -535,13 +535,14 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-o
   document.body.appendChild(card);
   const rroot = createRoot(card.querySelector(".x") as unknown as Element);
   const p5 = { ...fixture.puzzles.find((x) => x.era === "rev4")!.puzzle, slideRev: 5 };
+  let wins = 0; // Changed with Joe's approval, 27 Nov 2026
   clear();
-  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: false, myMsRemaining: 0, myExtra: null } as never));
+  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: false, myMsRemaining: 0, myExtra: null, onWin: () => wins++ } as never)); // Changed with Joe's approval, 27 Nov 2026
   await sleep(60);
-  check(!kit.some((k) => k.kind === "win"), "fx: an unfinished reveal plays the win");
-  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: true, myMsRemaining: 30_000, myExtra: null } as never));
+  check(wins === 0 && !kit.some((k) => k.kind === "win"), "fx: an unfinished reveal plays the win"); // Changed with Joe's approval, 27 Nov 2026
+  rroot.render(React.createElement(iceSlidePuzzle.Reveal, { puzzle: p5, myAnswer: "", myCorrect: true, myMsRemaining: 30_000, myExtra: null, onWin: () => wins++ } as never)); // Changed with Joe's approval, 27 Nov 2026
   await sleep(60);
-  check(kit.filter((k) => k.kind === "win" && k.sound === null).length === 1 && recs.some((r) => isArt(r, "[data-verdict-row]")), `fx: the solved reveal isn't the kit's silent win on the result card (${JSON.stringify(kit)})`);
+  check(wins === 1 && !kit.some((k) => k.kind === "win"), `fx: the solved reveal doesn't call the template's win once (${wins})`); // Changed with Joe's approval, 27 Nov 2026
   rroot.unmount();
 
   forceGameFxVariant(null);

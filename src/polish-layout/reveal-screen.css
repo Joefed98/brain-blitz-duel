@@ -533,6 +533,22 @@
   display: flex;
   justify-content: center;
 }
+/* A game's view the player got right or wrong (A2, 27 Nov 2026: Attention's trays, grids and pictures): a small dot
+   after its label, gold for right, the warning colour for wrong; the label stays the name. */
+.reveal-views [data-view-tone="good"]::after,
+.reveal-views [data-view-tone="bad"]::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  vertical-align: middle;
+  background: var(--jz-gold);
+}
+.reveal-views [data-view-tone="bad"]::after {
+  background: var(--warn);
+}
 .reveal-facts {
   display: grid;
   grid-template-columns: repeat(var(--reveal-facts-n, 3), minmax(0, 1fr));

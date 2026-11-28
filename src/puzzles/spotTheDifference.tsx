@@ -22,7 +22,8 @@ import {
 
 import { playDifferenceGlow } from "./doubleTakeArt";
 import { attentionArt, spotSprite } from "@/components/puzzles/attention/attentionArt";
-import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
@@ -655,10 +656,17 @@ function DifferenceCard({
   );
 }
 
+/** Double Take's second control: the panel shown (the bottom picture first, where the differences were tapped). */
+const DT_PANEL_VIEWS = [
+  { id: "top", label: "Top picture" },
+  { id: "bottom", label: "Bottom picture" },
+] as const;
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  const [shown, setShown] = useState<number | null>(null);
-  const [panelSide, setPanelSide] = useState<"top" | "bottom">("bottom");
-  if (puzzle.type !== "spotdiff") return null;
+  return puzzle.type === "spotdiff" ? <SpotReveal puzzle={puzzle} myAnswer={myAnswer} /> : null;
+}
+
+function SpotReveal({ puzzle, myAnswer }: { puzzle: SpotPuzzleData; myAnswer: string | null | undefined }) {
   const scenes = spotScenes(puzzle);
   const twoPictures = scenes.length > 1;
   const differences = puzzle.differences ?? [];
@@ -684,7 +692,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // One picture at a time on spotRev 1; the first with a miss opens first.
   // spotRev 2: with nothing missed, the picture that hid the seventh difference opens, so its line shows.
   const firstMiss = pictures.findIndex((p) => p.found.length < p.own.length);
-  const open = shown ?? (firstMiss >= 0 ? firstMiss : Math.max(0, pictures.findIndex((p) => p.bonus !== null)));
+  // The picture tabs, then the panel tabs, are the reveal template's views controls (G6, A2, 27 Nov 2026): two rows above
+  // the stage, each picture marked right or wrong.
+  const open = Number(
+    useRevealViews(
+      pictures.map((p, i) => ({ id: String(i), label: i === 0 ? "Sweet shop" : "Rock pool", tone: p.found.length === p.own.length ? ("good" as const) : ("bad" as const) })),
+      { initial: String(firstMiss >= 0 ? firstMiss : Math.max(0, pictures.findIndex((p) => p.bonus !== null))), label: "Pictures" },
+    ),
+  );
+  const panelSide = useRevealViews(DT_PANEL_VIEWS, { initial: "bottom", group: "panels", label: "Panels" }) as "top" | "bottom";
   const pic = pictures[open]!;
   const totalFound = pictures.reduce((n, p) => n + p.found.length, 0);
   const totalDiffs = twoPictures ? differences.length : SPOT_DIFFERENCES;
@@ -700,23 +716,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // rings, every difference as a small before → after picture (found ringed gold, missed dashed), the numbers as tiles.
   return (
     <div className="attn-rv min-h-0 flex-1" data-attn-reveal="spotdiff">
-      {twoPictures ? (
-        <RevealTabs
-          label="Pictures"
-          value={open}
-          onChange={setShown}
-          options={pictures.map((p, i) => ({ value: i, label: i === 0 ? "Sweet shop" : "Rock pool", tone: p.found.length === p.own.length ? "good" : "bad" }))}
-        />
-      ) : null}
-      <RevealTabs
-        label="Panels"
-        value={panelSide}
-        onChange={setPanelSide}
-        options={[
-          { value: "top" as const, label: "Top picture" },
-          { value: "bottom" as const, label: "Bottom picture" },
-        ]}
-      />
       <div className="dt-reveal-panels dt-arena w-full overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme} data-dt-reveal-side={panelSide}>
         <div className="w-full overflow-hidden rounded-lg">
           <Panel
