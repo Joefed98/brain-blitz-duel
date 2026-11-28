@@ -891,7 +891,7 @@ def white_core(ob, strength=7.0):
     return core
 
 
-def gem_studio():
+def gem_studio(bright=1.0):
     """The jewellery studio: long thin white strips above for crisp facet highlights, the cyan kicker off (it tinted
     a clear stone teal)."""
     ia.world_gain("kicker", 0.0)
@@ -899,7 +899,7 @@ def gem_studio():
         ld = bpy.data.lights.new(f"strip{i}", "AREA")
         ld.shape = "RECTANGLE"
         ld.size, ld.size_y = 0.12, 3.2
-        ld.energy = 170
+        ld.energy = 170 * bright
         ob = bpy.data.objects.new(f"strip{i}", ld)
         ob.location = (x, 1.2 - abs(x) * 0.3, 2.4)
         ob.rotation_euler = (math.radians(-25), math.radians(x * 18), math.radians(rz))
@@ -929,7 +929,9 @@ def foil_back(b, mat):
 def jewel(b, style, gems):
     """Captain Joulz's body as jewellery: style "cut" (one carved stone, big flat facets, light through it) or "pave"
     (polished white gold set with many small brilliant-cut stones)."""
-    gem_studio()
+    gem_studio(2.4 if style == "pave" else 1.0)
+    if style == "pave":
+        ia.world_gain("overhead", 1.6)  # small stones need more light to flash than one big cut
     stone = diamond_glass("diamond")
     silver = ia.metal("foil", ("#FFFFFF", "#F4F6FB", "#D3DCEF", "#FFFFFF"), "polished")
     for ob in b.main:
@@ -958,7 +960,7 @@ def jewel(b, style, gems):
     # Pavé: the body in polished white gold, stones set over its top surface on an even grid.
     gold = ia.metal("white-gold", ("#FFFFFF", "#E9ECF2", "#B9C0CF", "#F7F8FB"), "polished")
     me = brilliant_mesh("brilliant")
-    spacing = 3.1 * ia.S
+    spacing = 3.8 * ia.S
     for ob in b.hidden:
         cp = ob.copy()
         cp.data = ob.data.copy()
