@@ -17,7 +17,17 @@
  */
 
 .jz-motif {
+  --jz-motif-gold: var(--jz-gold);
   pointer-events: none;
+}
+/* Gold on a light surface (Joe, 28 Nov 2026): in the light theme a motif's gold fill or stroke (charge, a gold arc, a
+   spark) takes --jz-gold-ink. Game screens, a game's own art and the player card stay dark in the light theme
+   (tokens.css), so a motif there keeps the gold. The surge is a full-screen flash, not a fill on a surface: unchanged. */
+:root[data-theme="light"] .jz-motif {
+  --jz-motif-gold: var(--jz-gold-ink);
+}
+:root[data-theme="light"] :is(.game-screen, [data-skin-off], .pcard) .jz-motif {
+  --jz-motif-gold: var(--jz-gold);
 }
 [data-jz-offscreen],
 [data-jz-offscreen] *,
@@ -32,7 +42,7 @@
   display: inline-block;
   flex: none;
   line-height: 0;
-  color: var(--jz-gold);
+  color: var(--jz-motif-gold);
 }
 .jz-charge > svg {
   display: block;
@@ -89,7 +99,7 @@
   color: var(--jz-cyan);
 }
 .jz-arc[data-tone="gold"] {
-  color: var(--jz-gold);
+  color: var(--jz-motif-gold);
 }
 .jz-arc-line {
   fill: none;
@@ -132,7 +142,7 @@
   height: 48px;
   margin: -24px 0 0 -24px;
   overflow: visible;
-  color: var(--jz-gold);
+  color: var(--jz-motif-gold);
 }
 .jz-spark-rays {
   fill: none;
