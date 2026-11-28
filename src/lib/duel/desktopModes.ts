@@ -37,6 +37,12 @@ export interface DesktopModeInfo {
    */
   maxWorldWidth?: number;
   keys?: RotatedKeys;
+  /**
+   * The landscape board (P4 desktop size PR 2, 28 Nov 2026; lib/gameFrame/landscape.ts): a portrait world the player
+   * may choose to see turned 90° clockwise on a computer, as `rotate` draws Cue Ball (off by default, per game). `keys`
+   * names its keys that are directions on the screen and so turn with the world. Presentation and input mapping only.
+   */
+  landscape?: { keys: RotatedKeys };
   /** One line for the report: why this mode. */
   why: string;
 }
@@ -153,7 +159,7 @@ export const DESKTOP_MODES: Record<PuzzleType, DesktopModeInfo> = {
   // Top-down worlds that stay upright (Joe, 31 Oct 2026: only Cue Ball rotates).
   minigolf: { mode: "tall", why: "top-down course, kept upright at full height" },
   orbit: { mode: "tall", why: "top-down space flight, kept upright at full height" },
-  snake: { mode: "tall", why: "top-down grid, kept upright at full height" },
+  snake: { mode: "tall", landscape: { keys: "all" }, why: "top-down grid, kept upright at full height; the landscape board turns it on its side (its arrows and WASD turn with it)" },
   tilt: { mode: "tall", why: "top-down maze, kept upright at full height" },
   cross: { mode: "tall", why: "top-down space lanes (Spacewalk), kept upright at full height" },
   curling: { mode: "tall", why: "top-down sheet, kept upright at full height" },

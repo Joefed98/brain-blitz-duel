@@ -141,6 +141,8 @@ export function ArcadeArenaSlot({ width, height, centre = false, playCentre = fa
           top: height - (s.width - fx) / scale,
           bottom: height + fx / scale,
           scale,
+          // Above the world is the screen's right once turned: fill it to the screen's edge (P4 desktop size PR 2).
+          boxTop: height - (s.width - fx) / scale,
         };
         ctx.save();
         ctx.beginPath();

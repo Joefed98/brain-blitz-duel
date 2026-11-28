@@ -338,6 +338,58 @@ board taking its 36 px), **Blockzone's speed** ("Speed 1/6"; it sits beside the 
 it) and **Gemstone's goals panel** (Ice, Treasure, Big lines and each goal by its gem's shape, its count or a tick; its
 strip under the board given back). A long list (Gemstone's) is two columns of smaller rows.
 
+## Desktop size, PR 2 (28 Nov 2026): the landscape board, Meteor first
+
+### The setting (`src/lib/gameFrame/landscape.ts`)
+
+A computer setting, per game, off by default: **Board: Upright | Landscape** in the arena's Controls card (or its
+Controls tab) and **Landscape board** in the game menu, for a game whose desktop entry (`desktopModes.ts`) has a
+`landscape` field; today Meteor alone (`landscape: { keys: "all" }`). Kept on the device (`duelz-landscape:v1`, the ids
+switched on). Computers only: PhoneShell turns a board only on the desktop layout's game screen, never a phone or a
+tablet (a sideways tablet keeps the upright arena), and only while the round is live (intros, reveals and replays stay
+upright). Allowed in every mode (practice, rooms, the Daily, challenges, rated play, tournaments): it changes nothing
+anyone else sees.
+
+### What turns (presentation and input mapping only)
+
+The game's own world, the same size (Meteor's 15 × 28 board in its 468 × 868 world), drawn turned 90° clockwise in the
+`rotate` mode's rotor, as Cue Ball's table; no new board, deal, rule or stamp.
+
+- **Keys:** `useGameKeys` turns the direction keys the entry names (Meteor: the arrows and WASD) back to the world, so a
+  key pressed for a screen direction moves the comet that way on screen. The intro, the controls hint and the Controls
+  card name the arrows as they work on the turned board (`screenKeys`).
+- **Swipes and the mouse:** a swipe's screen movement goes back through `arenaDelta` before Meteor reads it
+  (`snakeTurnOfSwipe`, `src/lib/arcade/snakeTurns.ts`, the one mapping the stage and the check share); the canvas is sized
+  from the arena's own box (`arenaSize`).
+- **Text is never drawn rotated:** while turned, the stage draws inside `withUprightText` (`src/lib/arcade/uprightText.ts`),
+  which turns every text back about its own ink centre, whoever paints it (the Retro pops, the success layer's pops and
+  banners). The HUD is never drawn in a turned world: its values stay in the panel, and with the panels hidden they show
+  in the corner under the timer (`ArenaScreenTools` FocusHud).
+- **No HUD band and no Cabinet left panel on a turned board** (one panel, as Cue Ball), and the board keeps the turned
+  worlds' 1,000 px width cap (60 fps). The scenery runs to the screen's edges past the world's top (the turned view's
+  `boxTop`).
+
+Frame times (arcade-play-check `--desktop`, warmed dev server, same machine): Meteor upright 16.7 and 16.9 ms, turned
+16.7 and 16.7 ms.
+
+### The proofs (`scripts/landscape-check.ts`)
+
+1. The setting: offered by Meteor alone, off on a fresh device, kept per game; computers and live rounds only; no band;
+   the HUD out of the world; the stage maps through the shared functions.
+2. Recorded runs replay identically with landscape on: 36 recorded Meteor runs (replay-runs.json, retro-demos.json,
+   d5-levels-legacy.json.gz: every revision and level there), each turn made as the landscape player would (the screen
+   key, WASD or swipe that moves that way on the turned board), through the stage's own mapping: the same bytes as
+   recorded and the stored score.
+3. The same intended moves give byte-identical input logs: 300 seeded scripts of turns by arrows, WASD and swipes, made
+   upright and turned, encode to the same bytes and end state.
+4. No text drawn rotated: every text in 240 turned frames of a recorded run (its pops) reads upright on screen, no HUD
+   text in the world; with no turn the wrapper draws the same pixels.
+5. The real stage in Chromium: off by default; the Board choice turns it and back; at 1440x900, 1366x768 and 1920x1080
+   the screen's arrows, WASD and mouse swipes queue the world turns the upright board queues for the same intended
+   moves; a phone and a sideways tablet with landscape stored on are never turned.
+
+The brief's third proof, arcade-self-replay-check staying green, is that check's own run.
+
 ## Decisions for Joe
 
 *21 Nov 2026: superseded for Flash, Bonk, Tenfall, Pull!, Ascend and Cue Ball, which now have keys (Joe: every game

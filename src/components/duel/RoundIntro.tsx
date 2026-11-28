@@ -37,6 +37,7 @@ import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroStage } from "./IntroStage";
 import { useDesktop } from "@/lib/desktop";
+import { useLandscapeChosen } from "@/lib/gameFrame/landscape";
 import { screenKeys } from "@/lib/desktopKeys";
 import { countdownStrike, goStrike } from "@/lib/fx/celebrations";
 import { useCelebrationsOn } from "@/components/fx/useCelebration";
@@ -451,7 +452,8 @@ export function RoundIntro({
  */
 function DesktopKeys({ type }: { type: PuzzleType }) {
   const desktop = useDesktop();
-  const keys = screenKeys(type, desktop);
+  const landscape = useLandscapeChosen(type);
+  const keys = screenKeys(type, desktop, landscape);
   if (!desktop || !keys) return null;
   return (
     <p data-desktop-keys="" className="desktop-keys shrink-0" aria-label="Keyboard controls">

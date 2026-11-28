@@ -92,7 +92,7 @@ const ok = (line: string) => {
   assert.match(own, /const cut = hudCut\(Boolean\(onArena && ARENA_HUD_IN_PANEL\) && !arenaPanelsHidden\(\), hudBandRef\.current\);/, "the own-loop stages cut the effects' frame by the same rule");
   assert.match(own, /withArcadeFxInset\(cut\.top, cut\.bottom, draw\)/, "the own-loop stages draw inside the effects' visible frame");
   const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
-  assert.match(shell, /hudBand: arena && arcadePlay \? hudBandFor\(gameType\) : undefined,/, "the shell gives a band only to the arena's arcade play screen");
+  assert.match(shell, /hudBand: arena && arcadePlay && !turnedPlay \? hudBandFor\(gameType\) : undefined,/, "the shell gives a band only to the arena's arcade play screen, never to a turned board");
   ok("only the arena's live arcade round, with the HUD in the panel and the panels showing, is cut");
 }
 
