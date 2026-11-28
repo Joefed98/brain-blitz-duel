@@ -10,7 +10,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { GOOGLE_FONTS_CSS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
+import { GOOGLE_FONTS_CSS, LAZY_MEDIA_DIRS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
 import { SOUND_MANIFEST } from "../fx/manifest";
 import { NEW_GAME_SOUND_FILES } from "../fx/newGameSounds";
 import { KEPT_UNUSED_URLS } from "../fx/keptUnusedSounds";
@@ -75,7 +75,10 @@ export function offlineWorkerSource(opts: {
     ...opts.bundleFiles.filter((f) => !f.endsWith(".map") && f !== "sw.js").map((f) => `/${f}`),
     ...publicFiles.filter((p) => !isMedia(p)),
   ];
-  const lazy = new Set(opts.lazyMedia ?? []);
+  const lazy = new Set([
+    ...(opts.lazyMedia ?? []),
+    ...publicFiles.filter((p) => LAZY_MEDIA_DIRS.some((dir) => p.startsWith(`/${dir}/`))),
+  ]);
   const config = {
     version: opts.version,
     app: [...new Set(app)].sort(),
