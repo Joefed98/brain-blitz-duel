@@ -648,7 +648,7 @@ def _world(sc):
         lobe((-0.18, 0.22, 1.0), 6, "#FFFFFF", 3.2, "overhead"),  # a big overhead softbox (the flat fronts)
         lobe((0.0, 0.0, 1.0), 1.5, "#9AA8C8", 0.6),  # the ceiling round it
         lobe((0.0, -1.0, 0.05), 3.0, "#F4F0EA", 0.7, "floor"),  # floor bounce, below
-        lobe((-0.9, -0.2, 0.2), 6, "#8FDDFF", 1.4),  # a cyan kicker, left
+        lobe((-0.9, -0.2, 0.2), 6, "#8FDDFF", 1.4, "kicker"),  # a cyan kicker, left
         lobe((-0.45, -0.85, -0.1), 5, "#FFFFFF", 0.0, "front"),  # a front softbox (off unless a piece asks)
     ]
     acc = terms[0]

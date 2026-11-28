@@ -318,26 +318,102 @@ def wire(name):
     return m
 
 
-def gem(name, stops):
-    """A gem colour: a polished jewel in the gem's three stops (light at the rim, the colour, deep in the body)."""
+# Each gem's body (Joe, 28 Nov 2026: plated, the body becomes the stone): (kind, faceted). Facets: the moulded body cut
+# into flat planes (a decimated copy, flat shaded), so the cut reads at 36 px.
+GEM_LOOK = {
+    "amber": ("amber", False),
+    "rose-quartz": ("stone", True),
+    "ruby": ("stone", True),
+    "jade": ("jade", False),
+    "amethyst": ("stone", True),
+    "aquamarine": ("stone", True),
+    "sapphire": ("stone", True),
+    "pearl": ("pearl", False),
+    "obsidian": ("obsidian", True),
+    "diamond": ("diamond", True),
+}
+
+
+def glow_colour(gem_id, stops):
+    """The colour a gem's light takes: its main stop, or a cool violet-blue for the dark Obsidian (it must radiate)."""
+    return "#8EA2FF" if gem_id == "obsidian" else stops[1]
+
+
+def gem(name, gem_id, stops):
+    """A gem's body: the stone itself, not paint."""
+    kind = GEM_LOOK[gem_id][0]
     m, nt, p = ia._principled(name)
-    p.inputs["Base Color"].default_value = ia.hexc(stops[1])
-    p.inputs["Roughness"].default_value = 0.04
-    p.inputs["IOR"].default_value = 1.76
-    p.inputs["Subsurface Weight"].default_value = 0.35
-    p.inputs["Subsurface Radius"].default_value = (0.3, 0.3, 0.3)
-    p.inputs["Specular Tint"].default_value = ia.hexc(stops[0])
-    p.inputs["Coat Weight"].default_value = 1.0
-    p.inputs["Coat Roughness"].default_value = 0.0
-    p.inputs["Coat Tint"].default_value = ia.hexc(stops[0])
-    lw = nt.nodes.new("ShaderNodeLayerWeight")
-    lw.inputs["Blend"].default_value = 0.45
-    ramp = nt.nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].color = ia.hexc(stops[1])
-    ramp.color_ramp.elements[1].color = ia.hexc(stops[2])
-    nt.links.new(lw.outputs["Facing"], ramp.inputs["Fac"])
-    nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
-    p.inputs["Thin Film Thickness"].default_value = 140.0
+    p.inputs["Roughness"].default_value = 0.0
+    p.inputs["Coat Weight"].default_value = 0.0
+    if kind == "diamond":
+        # Clear, high refraction, the light split into the spectrum (prism flashes).
+        p.inputs["Base Color"].default_value = ia.hexc("#FFFFFF")
+        p.inputs["Transmission Weight"].default_value = 1.0
+        p.inputs["IOR"].default_value = 2.42
+        p.inputs["Transmission Dispersion Scale"].default_value = 1.0
+        p.inputs["Transmission Dispersion Abbe Number"].default_value = 12.0
+    elif kind == "stone":
+        # A faceted translucent stone in its colour.
+        p.inputs["Base Color"].default_value = ia.hexc(stops[1])
+        p.inputs["Transmission Weight"].default_value = 0.92
+        p.inputs["IOR"].default_value = 1.77
+        p.inputs["Transmission Dispersion Scale"].default_value = 0.4
+    elif kind == "amber":
+        # Translucent honey with depth.
+        # Not see-through (the dark well and the cyan visor turned it khaki): a deep honey body glowing warm from the
+        # middle out under a glassy coat.
+        p.inputs["Base Color"].default_value = ia.hexc(stops[1])
+        p.inputs["IOR"].default_value = 1.54
+        p.inputs["Subsurface Weight"].default_value = 0.7
+        p.inputs["Subsurface Radius"].default_value = (1.0, 0.45, 0.1)
+        p.inputs["Subsurface Scale"].default_value = 0.4
+        p.inputs["Roughness"].default_value = 0.1
+        p.inputs["Coat Weight"].default_value = 1.0
+        lw = nt.nodes.new("ShaderNodeLayerWeight")
+        lw.inputs["Blend"].default_value = 0.4
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = ia.hexc(stops[0])
+        ramp.color_ramp.elements[1].color = ia.hexc(stops[2])
+        nt.links.new(lw.outputs["Facing"], ramp.inputs["Fac"])
+        nt.links.new(ramp.outputs["Color"], p.inputs["Emission Color"])
+        p.inputs["Emission Strength"].default_value = 0.9
+    elif kind == "jade":
+        # Polished stone: translucent green with a waxy depth and a hard polish.
+        p.inputs["Base Color"].default_value = ia.hexc(stops[1])
+        p.inputs["Subsurface Weight"].default_value = 0.85
+        p.inputs["Subsurface Radius"].default_value = (0.3, 0.8, 0.45)
+        p.inputs["Subsurface Scale"].default_value = 0.2
+        p.inputs["Roughness"].default_value = 0.12
+        p.inputs["Coat Weight"].default_value = 1.0
+        p.inputs["Coat Roughness"].default_value = 0.02
+    elif kind == "pearl":
+        # Nacre: a soft lustre with the rainbow of its layers.
+        lw = nt.nodes.new("ShaderNodeLayerWeight")
+        lw.inputs["Blend"].default_value = 0.5
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        cr = ramp.color_ramp
+        cr.elements[0].color = ia.hexc("#FFFFFF")
+        cr.elements[1].position = 1.0
+        cr.elements[1].color = ia.hexc("#B9E6FF")
+        cr.elements.new(0.45).color = ia.hexc("#F7E6FF")
+        cr.elements.new(0.75).color = ia.hexc("#FFE3EE")
+        nt.links.new(lw.outputs["Facing"], ramp.inputs["Fac"])
+        nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+        p.inputs["Subsurface Weight"].default_value = 0.4
+        p.inputs["Roughness"].default_value = 0.25
+        p.inputs["Sheen Weight"].default_value = 1.0
+        p.inputs["Sheen Tint"].default_value = ia.hexc(stops[2])
+        p.inputs["Coat Weight"].default_value = 1.0
+        p.inputs["Coat Roughness"].default_value = 0.05
+        p.inputs["Thin Film Thickness"].default_value = 420.0
+        p.inputs["Thin Film IOR"].default_value = 1.6
+    elif kind == "obsidian":
+        # Glassy black volcanic glass: black, mirror-sharp highlights.
+        p.inputs["Base Color"].default_value = ia.hexc("#05060A")
+        p.inputs["Specular IOR Level"].default_value = 0.8
+        p.inputs["Coat Weight"].default_value = 1.0
+        p.inputs["Coat Roughness"].default_value = 0.0
+        p.inputs["Coat Tint"].default_value = ia.hexc(stops[0])
     return m
 
 
@@ -392,6 +468,7 @@ class Built:
         self.rest = []  # every other figure object
         self.disc = []
         self.extras = []
+        self.hidden = []  # originals hidden while a variant shows its own copy
 
 
 def build_avatar(src, rec, font):
@@ -542,6 +619,9 @@ def restore(b, saved):
     for ob in b.extras:
         bpy.data.objects.remove(ob, do_unlink=True)
     b.extras = []
+    for ob in b.hidden:
+        ob.hide_render = False
+    b.hidden = []
     bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 1.0
 
 
@@ -612,19 +692,62 @@ def apply_variant(b, v, gems):
         for rings, under, _is_main, _closed in b.outlines:
             for ring in rings:
                 b.extras += surface_tube("fx", ring, under, 0.9 * ia.S, cyan, True, lift=0.003)
+    elif v in ("jewel-cut", "jewel-pave"):
+        jewel(b, v[6:], gems)
     elif v.startswith("gem-"):
-        # A gem colour glows (Joe, 28 Nov 2026), brighter the higher the gem (gem_glow): a rim light behind in the
-        # gem's colour, the jewel rim round the body lit in its light tone, a glowing ring on the disc's edge; the halo
-        # and sparkles are added after the render (gem_post).
-        g = gems[v[4:]]
-        k = gem_glow(gems, v[4:])
+        # A gem plates the body (Joe, 28 Nov 2026): the moulded main shapes become the stone, faceted where the stone
+        # is cut; a translucent stone has a glowing core inside it (lit from within). Its glow, by the gem's place in
+        # GEMS (gem_glow): a light behind the figure, the jewel rim and the disc's ring lit; the backlight, bloom and
+        # sparkles are added after the render (gem_post).
+        gid = v[4:]
+        g = gems[gid]
+        k = gem_glow(gems, gid)
         st = g["stops"]
-        set_mat(b.main, gem(v, st))
+        kind, faceted = GEM_LOOK[gid]
+        light = glow_colour(gid, st)
+        body = gem(v, gid, st)
+        for ob in b.main:
+            if ob.type != "MESH":
+                set_mat([ob], body)
+                continue
+            cp = ob.copy()
+            cp.data = ob.data.copy()
+            bpy.context.collection.objects.link(cp)
+            for mod in list(cp.modifiers):
+                cp.modifiers.remove(mod)
+            if faceted:
+                # About 80 facets a body (Obsidian 50, coarser and sharper): big enough to read at 36 px.
+                dec = cp.modifiers.new("facets", "DECIMATE")
+                dec.ratio = min(1.0, (50 if kind == "obsidian" else 80) / max(1, len(cp.data.polygons)))
+                for poly in cp.data.polygons:
+                    poly.use_smooth = False
+            else:
+                cp.modifiers.new("sub", "SUBSURF").levels = 1
+            set_mat([cp], body)
+            b.extras.append(cp)
+            b.hidden.append(ob)
+            ob.hide_render = True
+            if kind in ("diamond", "stone"):
+                core = ob.copy()
+                core.data = ob.data.copy()
+                core.hide_render = False  # the copy of a hidden original starts hidden
+                bpy.context.collection.objects.link(core)
+                xs = [vv.co.x for vv in core.data.vertices]
+                ys = [vv.co.y for vv in core.data.vertices]
+                cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+                for vv in core.data.vertices:
+                    vv.co.x = cx + (vv.co.x - cx) * 0.62
+                    vv.co.y = cy + (vv.co.y - cy) * 0.62
+                    vv.co.z = vv.co.z * 0.55
+                strength = 9.0 if kind == "diamond" else (1.2 + 5.0 * k) * (1.8 if kind == "amber" else 1.0)
+                set_mat([core], emit("core", "#FFFFFF" if kind == "diamond" else light, strength))
+                b.extras.append(core)
         rim = ia.glow("jewel-rim", st[0], 0.6 + 2.4 * k, glass=st[1])
         b.extras += main_outline_tubes(b, 0.9 * ia.S, rim, lift=0.002, field_top=False)
         b.extras.append(ia.tube("gemring", ia.circle(47.2, 50, 50), ia.Frame(50, 50), 0.085, 0.013,
-                                ia.glow("gem-ring", st[1], 1.5 + 4.5 * k, glass=st[0])))
-        b.extras.append(ia.light("gem-rim", (0.6, 3.2, 1.6), (-62, 8, 180), 2.5, 80 + 420 * k, st[1]))
+                                ia.glow("gem-ring", light, 1.5 + 4.5 * k, glass=st[0])))
+        # A light behind the figure, low and aimed at its back edge (not the well): it rims the body in the gem's light.
+        b.extras.append(ia.light("gem-rim", (0.0, 2.2, 0.35), (-95, 0, 180), 1.2, 40 + 160 * k, light))
 
 
 def gem_glow(gems, gem_id):
@@ -633,42 +756,58 @@ def gem_glow(gems, gem_id):
     return 0.35 + 0.65 * order.index(gem_id) / (len(order) - 1)
 
 
-SPARKLES = [(-38, 1.0), (212, 0.75), (128, 0.6), (300, 0.85), (18, 0.55)]  # (angle on the rim, relative size)
-
-
-def gem_post(png, stops, k, px):
-    """The halo and sparkles, inside the 100-unit box (the avatar's box, tap area and layout never change): a soft
-    glow round the disc's edge in the gem's colour, fading out before the box's edge, then 2-5 four-point sparkles on
-    the rim (more and bigger the higher the gem), white at the core in the gem's light tone."""
+def gem_post(png, figure_png, main_png, gem_id, stops, k, px):
+    """The gem's light after the render, inside the 100-unit box (the avatar's box, tap area and layout never change):
+    a soft backlight in the gem's colour round the figure's silhouette (lit from within), bloom on the highlights and
+    a soft bloom on the disc's rim, then sparkles on the body's own brightest highlights (prism-coloured on Diamond).
+    All stronger with k."""
     from PIL import ImageChops, ImageDraw, ImageFilter
 
     im = Image.open(png).convert("RGBA")
     W = im.width
     u = W / 100.0
+    light = glow_colour(gem_id, stops)
+    figure = Image.open(figure_png).convert("L").resize((W, W), Image.LANCZOS)
+    # The backlight round the silhouette, under the figure.
+    halo = figure.filter(ImageFilter.GaussianBlur(2.6 * u))
+    halo = ImageChops.multiply(halo, ImageChops.invert(figure)).point(lambda v: min(255, int(v * (0.7 + 1.5 * k))))
+    # The rim's bloom: the disc's edge, blurred wide.
     ring = Image.new("L", (W, W), 0)
-    d = ImageDraw.Draw(ring)
-    d.ellipse([(50 - 48.6) * u, (50 - 48.6) * u, (50 + 48.6) * u, (50 + 48.6) * u], outline=255, width=max(1, round(1.6 * u)))
-    halo = ring.filter(ImageFilter.GaussianBlur(1.3 * u)).point(lambda v: min(255, int(v * (1.2 + 1.6 * k))))
-    col = Image.new("RGB", (W, W), stops[1])
-    glow = ImageChops.multiply(col, Image.merge("RGB", (halo, halo, halo)))
-    rgb = ImageChops.screen(im.convert("RGB"), glow)
-    alpha = ImageChops.lighter(im.getchannel("A"), halo.point(lambda v: int(v * (0.55 + 0.45 * k))))
+    ImageDraw.Draw(ring).ellipse([(50 - 47.6) * u] * 2 + [(50 + 47.6) * u] * 2, outline=255, width=max(1, round(1.4 * u)))
+    ring = ring.filter(ImageFilter.GaussianBlur(1.6 * u)).point(lambda v: min(255, int(v * (0.8 + 1.6 * k))))
+    glow = ImageChops.lighter(halo, ring)
+    col = Image.new("RGB", (W, W), light)
+    rgb = ImageChops.screen(im.convert("RGB"), ImageChops.multiply(col, Image.merge("RGB", (glow,) * 3)))
+    # Bloom: the brightest parts spread a little.
+    lum = rgb.convert("L").point(lambda v: 255 if v > 225 else 0)
+    bloom = lum.filter(ImageFilter.GaussianBlur(1.2 * u)).point(lambda v: int(v * (0.35 + 0.6 * k)))
+    rgb = ImageChops.screen(rgb, Image.merge("RGB", (bloom,) * 3))
+    alpha = ImageChops.lighter(im.getchannel("A"), ring.point(lambda v: int(v * 0.8)))
     out = rgb.copy()
     out.putalpha(alpha)
+    # Sparkles on the body's own brightest highlights, at least 9 units apart; 2 (Amber) to 5 (Diamond).
     n = 2 + round(3 * (k - 0.35) / 0.65)
+    stone = Image.open(main_png).convert("L").resize((W, W), Image.LANCZOS).filter(ImageFilter.MinFilter(5))
+    L = np.asarray(rgb.convert("L"), float) * (np.asarray(stone, float) / 255.0)
+    picks = []
+    for idx in np.argsort(L.ravel(), kind="stable")[::-1][:4000]:
+        y, x = divmod(int(idx), W)
+        if all((x - qx) ** 2 + (y - qy) ** 2 > (9 * u) ** 2 for qx, qy in picks):
+            picks.append((x, y))
+        if len(picks) == n:
+            break
+    prism = ["#FFFFFF", "#9FE8FF", "#FFB3E6", "#FFF1A8", "#B7FFCF"]
     spark = Image.new("RGBA", (W, W), (0, 0, 0, 0))
     sd = ImageDraw.Draw(spark)
-    for ang, rel in SPARKLES[:n]:
-        cx = (50 + 44.5 * math.cos(math.radians(ang))) * u
-        cy = (50 + 44.5 * math.sin(math.radians(ang))) * u
-        r = (2.2 + 2.6 * k) * rel * u
-        w = r * 0.22
-        for colour, grow in ((stops[0], 1.6), ("#FFFFFF", 1.0)):
-            rr, ww = r * grow if grow > 1 else r, w * grow
-            sd.polygon([(cx, cy - rr), (cx + ww, cy - ww), (cx + rr, cy), (cx + ww, cy + ww), (cx, cy + rr), (cx - ww, cy + ww),
-                        (cx - rr, cy), (cx - ww, cy - ww)], fill=colour)
-    spark = spark.filter(ImageFilter.GaussianBlur(0.25 * u))
-    out.alpha_composite(spark)
+    for i, (cx, cy) in enumerate(picks):
+        r = (2.6 + 3.0 * k) * (1.0 if i == 0 else 0.7) * u
+        w = r * 0.2
+        tint = prism[i % len(prism)] if gem_id == "diamond" else stops[0]
+        for colour, grow in ((tint, 1.5), ("#FFFFFF", 1.0)):
+            rr, ww = r * grow, w * grow
+            sd.polygon([(cx, cy - rr), (cx + ww, cy - ww), (cx + rr, cy), (cx + ww, cy + ww), (cx, cy + rr),
+                        (cx - ww, cy + ww), (cx - rr, cy), (cx - ww, cy - ww)], fill=colour)
+    out.alpha_composite(spark.filter(ImageFilter.GaussianBlur(0.22 * u)))
     out.save(png)
 
 
@@ -689,6 +828,169 @@ def neon_halo(folder, px):
     out.save(folder / "neon-base.png")
     ImageChops.lighter(mask, halo).convert("RGBA").save(folder / "neon-mask.png")
     (folder / "figure-mask.png").unlink()
+
+
+# ----------------------------------------------------------------------------------- jewellery (Joe, 28 Nov 2026)
+
+
+def diamond_glass(name, abbe=16.0):
+    """Colourless diamond: clear, refraction 2.42, dispersion strong enough for visible rainbow fire."""
+    m, nt, p = ia._principled(name)
+    p.inputs["Base Color"].default_value = ia.hexc("#FFFFFF")
+    p.inputs["Roughness"].default_value = 0.0
+    p.inputs["Transmission Weight"].default_value = 1.0
+    p.inputs["IOR"].default_value = 2.42
+    p.inputs["Transmission Dispersion Scale"].default_value = 1.0
+    p.inputs["Transmission Dispersion Abbe Number"].default_value = abbe
+    return m
+
+
+def brilliant_mesh(name, r=1.0):
+    """One round brilliant-cut stone of radius r (Blender units) at the origin, table up: an octagonal table, eight
+    crown kites to a 16-point girdle, eight pavilion facets to the culet. Flat shaded: each facet a plane."""
+    import bmesh
+
+    bm = bmesh.new()
+    n = 16
+    table = [bm.verts.new((0.55 * r * math.cos(2 * math.pi * k / 8 + math.pi / 8), 0.55 * r * math.sin(2 * math.pi * k / 8 + math.pi / 8), 0.32 * r)) for k in range(8)]
+    girdle = [bm.verts.new((r * math.cos(2 * math.pi * k / n), r * math.sin(2 * math.pi * k / n), 0.0)) for k in range(n)]
+    culet = bm.verts.new((0, 0, -0.86 * r))
+    bm.faces.new(table)
+    for k in range(8):
+        a, b = table[k], table[(k + 1) % 8]
+        g0, g1, g2 = girdle[(2 * k) % n], girdle[(2 * k + 1) % n], girdle[(2 * k + 2) % n]
+        bm.faces.new([a, g0, g1])
+        bm.faces.new([a, g1, b])
+        bm.faces.new([b, g1, g2])
+    for k in range(n):
+        bm.faces.new([girdle[k], culet, girdle[(k + 1) % n]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    for p in me.polygons:
+        p.use_smooth = False
+    return me
+
+
+def white_core(ob, strength=7.0):
+    """A white light inside a clear stone (a smaller copy of the body), so light comes through it white and the
+    dispersion shows as rainbow fire, not the visor's cyan."""
+    core = ob.copy()
+    core.data = ob.data.copy()
+    core.hide_render = False
+    bpy.context.collection.objects.link(core)
+    xs = [v.co.x for v in core.data.vertices]
+    ys = [v.co.y for v in core.data.vertices]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    for v in core.data.vertices:
+        v.co.x = cx + (v.co.x - cx) * 0.6
+        v.co.y = cy + (v.co.y - cy) * 0.6
+        v.co.z = v.co.z * 0.5
+    set_mat([core], emit("white-core", "#FFFFFF", strength))
+    return core
+
+
+def gem_studio():
+    """The jewellery studio: long thin white strips above for crisp facet highlights, the cyan kicker off (it tinted
+    a clear stone teal)."""
+    ia.world_gain("kicker", 0.0)
+    for i, (x, rz) in enumerate(((-1.6, 30), (0.0, 0), (1.6, -30))):
+        ld = bpy.data.lights.new(f"strip{i}", "AREA")
+        ld.shape = "RECTANGLE"
+        ld.size, ld.size_y = 0.12, 3.2
+        ld.energy = 170
+        ob = bpy.data.objects.new(f"strip{i}", ld)
+        ob.location = (x, 1.2 - abs(x) * 0.3, 2.4)
+        ob.rotation_euler = (math.radians(-25), math.radians(x * 18), math.radians(rz))
+        bpy.context.collection.objects.link(ob)
+
+
+def foil_back(b, mat):
+    """A polished silver plate just under each main body (the foil a rhinestone is set on): light through the stone
+    comes back out white instead of showing the dark well."""
+    out = []
+    for ob in b.main:
+        if ob.type != "MESH":
+            continue
+        cp = ob.copy()
+        cp.data = ob.data.copy()
+        cp.hide_render = False
+        bpy.context.collection.objects.link(cp)
+        for mod in list(cp.modifiers):
+            cp.modifiers.remove(mod)
+        for v in cp.data.vertices:
+            v.co.z = min(v.co.z, 0.004)
+        set_mat([cp], mat)
+        out.append(cp)
+    return out
+
+
+def jewel(b, style, gems):
+    """Captain Joulz's body as jewellery: style "cut" (one carved stone, big flat facets, light through it) or "pave"
+    (polished white gold set with many small brilliant-cut stones)."""
+    gem_studio()
+    stone = diamond_glass("diamond")
+    silver = ia.metal("foil", ("#FFFFFF", "#F4F6FB", "#D3DCEF", "#FFFFFF"), "polished")
+    for ob in b.main:
+        if ob.type != "MESH":
+            continue
+        b.hidden.append(ob)
+        ob.hide_render = True
+    if style == "cut":
+        b.extras += foil_back(b, silver)
+        for ob in b.hidden:
+            cp = ob.copy()
+            cp.data = ob.data.copy()
+            cp.hide_render = False
+            bpy.context.collection.objects.link(cp)
+            for mod in list(cp.modifiers):
+                cp.modifiers.remove(mod)
+            dec = cp.modifiers.new("facets", "DECIMATE")
+            dec.ratio = min(1.0, 40 / max(1, len(cp.data.polygons)))
+            for poly in cp.data.polygons:
+                poly.use_smooth = False
+            cp.scale.z = 0.93  # the cut stands a little under the moulded surface the visor sits on
+            set_mat([cp], stone)
+            b.extras.append(cp)
+            b.extras.append(white_core(ob))
+        return
+    # Pavé: the body in polished white gold, stones set over its top surface on an even grid.
+    gold = ia.metal("white-gold", ("#FFFFFF", "#E9ECF2", "#B9C0CF", "#F7F8FB"), "polished")
+    me = brilliant_mesh("brilliant")
+    spacing = 3.1 * ia.S
+    for ob in b.hidden:
+        cp = ob.copy()
+        cp.data = ob.data.copy()
+        cp.hide_render = False
+        bpy.context.collection.objects.link(cp)
+        set_mat([cp], gold)
+        b.extras.append(cp)
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = ob.evaluated_get(dg).to_mesh()
+        taken = set()
+        mw = ob.matrix_world
+        for v in ev.vertices:
+            if v.normal.z < 0.2:
+                continue
+            co = mw @ v.co
+            key = (round(co.x / spacing + (0.5 if round(co.y / (spacing * 0.866)) % 2 else 0)), round(co.y / (spacing * 0.866)))
+            if key in taken:
+                continue
+            gx = (key[0] - (0.5 if key[1] % 2 else 0)) * spacing
+            gy = key[1] * spacing * 0.866
+            if (co.x - gx) ** 2 + (co.y - gy) ** 2 > (0.22 * spacing) ** 2:
+                continue
+            taken.add(key)
+            st = bpy.data.objects.new("pave", me)
+            st.location = co + v.normal * 0.004
+            st.rotation_euler = v.normal.to_track_quat("Z", "Y").to_euler()
+            st.scale = (0.5 * spacing,) * 3
+            bpy.context.collection.objects.link(st)
+            if not st.data.materials:
+                st.data.materials.append(stone)
+            b.extras.append(st)
+        ob.evaluated_get(dg).to_mesh_clear()
 
 
 def camera_ortho():
@@ -731,9 +1033,22 @@ def main():
             Image.open(tmp).resize((px, px), Image.LANCZOS).save(out / rec["id"] / f"{v}.png")
             tmp.unlink()
             if v.startswith("gem-"):
-                gem_post(out / rec["id"] / f"{v}.png", gems[v[4:]]["stops"], gem_glow(gems, v[4:]), px)
+                fig = out / rec["id"] / "figure-mask.gem.png"
+                main = out / rec["id"] / "main-mask.gem.png"
+                if not fig.exists():
+                    restore(b, saved)  # the gem's own extras out first: the masks are the figure alone
+                    apply_variant(b, "figure-mask", gems)
+                    ia.render(fig)
+                    restore(b, saved)
+                    apply_variant(b, "tint-mask", gems)
+                    ia.render(main)
+                    restore(b, saved)
+                gem_post(out / rec["id"] / f"{v}.png", fig, main, v[4:], gems[v[4:]]["stops"], gem_glow(gems, v[4:]), px)
             restore(b, saved)
             print("rendered", rec["id"], v, flush=True)
+        if not opts.get("keep-mask"):
+            (out / rec["id"] / "figure-mask.gem.png").unlink(missing_ok=True)
+            (out / rec["id"] / "main-mask.gem.png").unlink(missing_ok=True)
         if "neon-mask" in variants:
             apply_variant(b, "figure-mask", gems)
             tmp = out / rec["id"] / "figure-mask.full.png"
