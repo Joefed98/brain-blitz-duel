@@ -1,0 +1,15 @@
+--- a/scripts/reduced-motion-end-check.ts
++++ b/scripts/reduced-motion-end-check.ts
+@@ -113,6 +113,12 @@
+   "logic-nono-colour": "Mosaic solve colour wave",
+   "logic-sudoku-light": "Box Six solve light",
+   "logic-wire-spark": "Bomb Defusal wire spark",
++  // Changed with Joe's approval, 28 Nov 2026 (S1 PR 2: the bolt motifs, src/design/motifs.css): a spark and a
++  // surge are pure effects whose rest state is gone; the owner mounts a spark for the moment, and the surge layer
++  // stays mounted at opacity 0 between flashes. Under reduced motion each runs its calm version (jz-spark-calm,
++  // jz-surge-tint).
++  "jz-spark-burst": "bolt motif spark: eight strokes burst out and fade (a short fade, jz-spark-calm, under reduced motion)",
++  "jz-surge": "bolt motif surge: the full-screen gold flash fades to nothing (a soft gold tint, jz-surge-tint, under reduced motion)",
+ };
+ 
+ /* ------------------------------------------------------------------ parsing */
