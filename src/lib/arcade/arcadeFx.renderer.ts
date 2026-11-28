@@ -663,6 +663,32 @@ let clock: () => number = () =>
     ? performance.now()
     : Date.now();
 
+/**
+ * The world's visible part on the arena (P4, desktop size PR 1, 28 Nov 2026; lib/gameFrame/hudBands.ts): with a HUD
+ * band cut, the strip above `top` and below `bottom` (world units from the world's top and foot) is out of view, so the
+ * layer's frame effects (the flash, the edge and neon frames, the arena glow, the colour sweep, the border bulbs and the
+ * miss pulse) follow the visible edge. 0 and 0 everywhere else, where every frame effect is drawn exactly as before.
+ * Particles, rings, pops and banners keep their places. Display only.
+ */
+let visibleInset = { top: 0, bottom: 0 };
+export function withArcadeFxInset<T>(top: number, bottom: number, draw: () => T): T {
+  const previous = visibleInset;
+  visibleInset = { top: Math.max(0, top), bottom: Math.max(0, bottom) };
+  try {
+    return draw();
+  } finally {
+    visibleInset = previous;
+  }
+}
+
+/** The part of the effects' clip that is on screen (the clip itself when nothing is cut). */
+function visibleFrame(spec: { height: number }, clip: { x: number; y: number; w: number; h: number }): { x: number; y: number; w: number; h: number } {
+  if (!visibleInset.top && !visibleInset.bottom) return clip;
+  const y0 = Math.max(clip.y, visibleInset.top);
+  const y1 = Math.min(clip.y + clip.h, spec.height - visibleInset.bottom);
+  return y1 > y0 ? { x: clip.x, y: y0, w: clip.w, h: y1 - y0 } : clip;
+}
+
 /** Test hook: drive the presentation clock by hand. Returns a restore function. */
 export function setArcadeFxClock(next: () => number): () => void {
   const previous = clock;
@@ -895,7 +921,7 @@ function spawn<S>(
     if (!(current?.strong && !strong && now - m.bulbsAt < m.bulbsMs / 2)) {
       m.bulbsAt = now;
       m.bulbsMs = ms;
-      const clip = spec.clip ?? { x: 0, y: 0, w: spec.width, h: spec.height };
+      const clip = visibleFrame(spec, spec.clip ?? { x: 0, y: 0, w: spec.width, h: spec.height });
       m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong, origin: borderAlong(clip, point), level: Math.max(0, Math.min(1, b.level ?? 1)) };
     }
   }
@@ -1389,6 +1415,8 @@ function paint<S>(
 ): void {
   const theme = ARCADE_WORLD_THEMES[spec.world];
   const clip = spec.clip ?? { x: 0, y: 0, w: spec.width, h: spec.height };
+  // The frame effects follow the visible edge (visibleInset); everything else keeps the whole clip.
+  const frame = visibleFrame(spec, clip);
   if (m.particles.length) m.particles = m.particles.filter((p) => now - p.born < p.life);
   if (m.pops.length) m.pops = m.pops.filter((p) => now - p.born < p.life);
   if (m.rings.length) m.rings = m.rings.filter((r) => now - r.born < r.life);
@@ -1417,11 +1445,19 @@ function paint<S>(
   ctx.clip();
   ctx.shadowBlur = 0;
   ctx.setLineDash?.([]);
+  // With a band cut, the frame effects are clipped to the visible part, as the world's edge clips them elsewhere.
+  const framed = frame !== clip;
+  if (framed) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(frame.x, frame.y, frame.w, frame.h);
+    ctx.clip();
+  }
 
   if (!still && flashAge >= 0 && flashAge < 260) {
     ctx.globalAlpha = m.flashAlpha * (1 - flashAge / 260);
     ctx.fillStyle = m.flashColour;
-    ctx.fillRect(clip.x, clip.y, clip.w, clip.h);
+    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
   }
   if (edgeAge >= 0 && edgeAge < ARCADE_FX_MOMENT_MS && arcadeFxEdgeless(spec)) {
     spec.moment?.(ctx, { kind: m.edgeKind, x: m.edgeX, y: m.edgeY, colour: m.edgeColour, ageMs: edgeAge, p: edgeAge / ARCADE_FX_MOMENT_MS, still, lite });
@@ -1431,7 +1467,7 @@ function paint<S>(
     for (let i = 0; i < 2; i++) {
       ctx.globalAlpha = Math.sin(Math.PI * p) * 0.22 * (1 - i / 2);
       ctx.lineWidth = 3 + i * 4;
-      ctx.strokeRect(clip.x + 3, clip.y + 3, clip.w - 6, clip.h - 6);
+      ctx.strokeRect(frame.x + 3, frame.y + 3, frame.w - 6, frame.h - 6);
     }
   }
 
@@ -1444,10 +1480,10 @@ function paint<S>(
     ctx.strokeStyle = colour;
     ctx.globalAlpha = 0.28 * blink;
     ctx.lineWidth = 8;
-    ctx.strokeRect(clip.x + 4, clip.y + 4, clip.w - 8, clip.h - 8);
+    ctx.strokeRect(frame.x + 4, frame.y + 4, frame.w - 8, frame.h - 8);
     ctx.globalAlpha = 0.85 * blink;
     ctx.lineWidth = 2.5;
-    ctx.strokeRect(clip.x + 2, clip.y + 2, clip.w - 4, clip.h - 4);
+    ctx.strokeRect(frame.x + 2, frame.y + 2, frame.w - 4, frame.h - 4);
   }
   // Arena glow: a slight pulsing glow inside the arena's edges while a success
   // text is up, alternating its colours; under reduced motion it holds steady.
@@ -1460,28 +1496,29 @@ function paint<S>(
     for (const [inset, width, alpha] of lite ? ([[1.5, 3, 0.3]] as const) : ([[7, 14, 0.07], [4, 8, 0.12], [1.5, 3, 0.3]] as const)) {
       ctx.globalAlpha = alpha * pulse * fade;
       ctx.lineWidth = width;
-      ctx.strokeRect(clip.x + inset, clip.y + inset, clip.w - inset * 2, clip.h - inset * 2);
+      ctx.strokeRect(frame.x + inset, frame.y + inset, frame.w - inset * 2, frame.h - inset * 2);
     }
   }
   // Colour sweep: a three-colour band races left to right along the top edge
   // and right to left along the bottom edge, 5 px deep.
   if (!still && sweepAge >= 0 && sweepAge < ARCADE_FX_SWEEP_MS) {
     const p = sweepAge / ARCADE_FX_SWEEP_MS;
-    const band = clip.w * 0.45;
+    const band = frame.w * 0.45;
     const colours = [theme.primary, theme.secondary, theme.highlight];
-    const head = -band + p * (clip.w + band);
+    const head = -band + p * (frame.w + band);
     ctx.globalAlpha = 0.9 * Math.sin(Math.PI * p);
     for (let i = 0; i < colours.length; i++) {
       ctx.fillStyle = colours[i]!;
       const seg = band / colours.length;
       const x = head + i * seg;
-      ctx.fillRect(clip.x + x, clip.y, seg + 1, 5);
-      ctx.fillRect(clip.x + clip.w - x - seg, clip.y + clip.h - 5, seg + 1, 5);
+      ctx.fillRect(frame.x + x, frame.y, seg + 1, 5);
+      ctx.fillRect(frame.x + frame.w - x - seg, frame.y + frame.h - 5, seg + 1, 5);
     }
   }
 
-  paintBulbs(ctx, m, clip, now, still);
-  paintMisses(ctx, spec.world, m, clip, now, still, lite);
+  paintBulbs(ctx, m, frame, now, still);
+  paintMisses(ctx, spec.world, m, frame, now, still, lite);
+  if (framed) ctx.restore();
 
   const previous = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = "lighter";

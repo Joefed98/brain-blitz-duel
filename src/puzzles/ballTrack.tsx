@@ -47,6 +47,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame, canvasRatio } from "@/lib/battery";
 import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
+import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
+import { useArenaPanelsHidden } from "@/lib/gameFrame/screenMode";
+import { hudInWorld } from "@/lib/arcade/hudPlacement";
 
 /** Practice fallback course (the first bank course). */
 const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
@@ -70,6 +73,10 @@ function view(width: number, height: number, BT_H: number) {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const hudDraw = useArenaHudDraw();
+  // The strip above the board goes to the arena's side panel with the rest of the HUD (P4, desktop size PR 1).
+  const onArena = useArenaMount().arena;
+  const panelsHidden = useArenaPanelsHidden();
+  const stripInPanel = onArena && ARENA_HUD_IN_PANEL && !panelsHidden;
   const data: BallTrackPuzzleData | null = puzzle.type === "balltrack" ? puzzle : null;
   const course = data?.course ?? PRACTICE_COURSE;
   const seed = data?.seed ?? 1;
@@ -199,7 +206,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-          hudDraw(() => btArtDraw(ctx, course, s, game.rotatable));
+          hudDraw(() => {
+            btArtDraw(ctx, course, s, game.rotatable);
+            // On the arena with the HUD in the side panel (P4, desktop size PR 1) the strip above the board is not drawn:
+            // its pills note their figures for the panel here (they draw nothing with the HUD out of the world).
+            if (!hudInWorld()) {
+              btDrawHud(ctx, 400, {
+                home: s.home,
+                total,
+                wrong: s.wrong,
+                streak: btIsV7Play(rev) ? (s.streak ?? 0) : null,
+                golds: btIsV7Play(rev) ? (s.golds ?? 0) : null,
+                switchIn,
+                left: total - s.next,
+              });
+            }
+          });
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
@@ -254,7 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
-      <BtHud
+      {stripInPanel ? null : <BtHud
         view={{
           home: hud.home,
           total,
@@ -264,7 +286,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           switchIn: hud.switchIn,
           left: hud.left,
         }}
-      />
+      />}
       <ArcadeArenaSlot width={BT_W} height={BT_H} scene={ballTrackFill}>
         <div
           ref={board}

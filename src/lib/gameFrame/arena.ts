@@ -8,6 +8,7 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 
 import { checkOverride } from "@/lib/checkOverride";
+import type { HudBand } from "./hudBands";
 import type { LayoutMode } from "@/lib/layoutMode";
 
 /** A sideways tablet wide enough for the arena (a touch screen; the desktop layout has its own query). */
@@ -101,6 +102,8 @@ export interface ArenaMountValue {
   setLeftMount: (el: HTMLElement | null) => void;
   /** A room panel is on screen (its standings are the room's; the game's block goes at its top). */
   roomPanel: boolean;
+  /** The live round's arcade HUD band given back to its board (hudBands.ts); undefined off the arena or for none. */
+  hudBand?: HudBand | undefined;
 }
 export const ArenaMount = createContext<ArenaMountValue>({ arena: false, mount: null, setMount: () => {}, leftMount: null, setLeftMount: () => {}, roomPanel: false });
 export const useArenaMount = () => useContext(ArenaMount);

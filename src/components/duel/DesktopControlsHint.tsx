@@ -3,6 +3,21 @@ import { useEffect, useState } from "react";
 import { useDesktop } from "@/lib/desktop";
 import { mouseLine, screenKeys } from "@/lib/desktopKeys";
 import type { PuzzleType } from "@/lib/duel/types";
+import { fullscreenSupported } from "@/lib/gameFrame/screenMode";
+
+/**
+ * The screen keys this game's hint names (P4, desktop size PR 1): F full screen (where the browser has it) and H the
+ * panels, each only where the game doesn't take the letter itself (its own key line names it, or it types letters).
+ */
+const TYPES_LETTERS: ReadonlySet<PuzzleType> = new Set<PuzzleType>(["strikeout", "codeword", "letterwheel", "tilegrid", "wordhunt", "wordsmith"]);
+function screenModeKeys(type: PuzzleType, keys: readonly (readonly [string, string])[] | undefined): [string, string][] {
+  if (TYPES_LETTERS.has(type)) return [];
+  const taken = (letter: string) => (keys ?? []).some(([k]) => new RegExp(`(^|[^A-Za-z])${letter}([^A-Za-z]|$)`).test(k));
+  const out: [string, string][] = [];
+  if (fullscreenSupported() && !taken("F")) out.push(["F", "full screen"]);
+  if (!taken("H")) out.push(["H", "hide panels"]);
+  return out;
+}
 
 /**
  * The desktop controls hint (31 Oct 2026, presentation only; docs/desktop-layout.md): on a live round at
@@ -45,6 +60,7 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
   }, [desktop, type]);
   const keys = screenKeys(type, desktop);
   const mouse = mouseLine(type);
+  const screen = screenModeKeys(type, keys);
   if (!desktop || (!keys && !mouse) || room < MIN_ROOM) return null;
   return (
     <div
@@ -60,6 +76,12 @@ export function DesktopControlsHint({ type }: { type: PuzzleType }) {
         </span>
       ))}
       {mouse ? <span>{mouse}</span> : null}
+      {/* The arena's screen keys (lib/gameFrame/screenMode.ts), where the game itself doesn't use the letter. */}
+      {screen.map(([key, action]) => (
+        <span key={`screen-${key}`}>
+          <kbd>{key}</kbd> {action}
+        </span>
+      ))}
     </div>
   );
 }

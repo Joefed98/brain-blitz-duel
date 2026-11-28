@@ -30,6 +30,7 @@ import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaS
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { successHud } from "./success.renderer";
 import { drawHudPill, drawHudPillRow, HUD_PILL_FONT, HUD_PILL_GAP } from "./hudPill.renderer";
+import { hudInWorld, noteHud } from "./hudPlacement";
 
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
@@ -1095,6 +1096,12 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
  * bar in the gem's colour.
  */
 function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  // The arena's side panel lists this panel's figures instead (hudPlacement.ts; P4, desktop size PR 1): with the HUD
+  // out of the world, nothing of the panel is drawn, so the board's foot can be given back (hudBands.ts).
+  if (!hudInWorld()) {
+    noteSixGoals(state);
+    return;
+  }
   const x = MATCHUP_BOARD_X - 5, y = MATCHUP_V9_PANEL_Y, w = MATCHUP_BOARD_W + 10, h = SIX_PANEL_H;
   ctx.save();
   ctx.beginPath();
@@ -1144,6 +1151,25 @@ function drawSixGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, t
   if (state.ice2) for (let colour = 0; colour < goals; colour++) drawGoal(colour);
   else for (let kind = 0; kind < MATCHUP_V12_GOALS; kind++) drawGoal(kind);
   ctx.restore();
+}
+
+/** The goals panel's figures for the arena's side panel: its pills, then each goal by its gem's shape. */
+function noteSixGoals(state: MatchupState): void {
+  const iceLeft = (state.ice ?? []).reduce((n, v) => n + (v ? 1 : 0), 0);
+  noteHud({ label: "Ice", value: String(iceLeft) });
+  noteHud({ label: "Treasure", value: `${state.treasures ?? 0}/${matchupTreasuresOf(state)}` });
+  noteHud({ label: "Big lines", value: String(state.bigLines ?? 0) });
+  const need = state.goalNeed ?? [];
+  const left = state.goalLeft ?? [];
+  const count = state.ice2 ? matchupGoalsOf(state) : MATCHUP_V12_GOALS;
+  for (let colour = 0; colour < count; colour++) {
+    const kind = state.ice2 ? matchupKindOfColour(colour) : colour;
+    const shape = matchupGemShape(kind) ?? "gem";
+    const n = need[colour] ?? 0;
+    const l = left[colour] ?? 0;
+    const done = n > 0 && l === 0;
+    noteHud({ label: shape.charAt(0).toUpperCase() + shape.slice(1), value: done ? "✓" : String(l), gold: done });
+  }
 }
 
 /**
