@@ -21,7 +21,7 @@ mask, then the gloss screened on top. Finishes and gems are pre-rendered whole.
   the 32 avatar outlines becomes a moulded vinyl-toy body, and the visor and ridges sit on its surface.
 - Contact sheets: `scripts/identity-art/contact_sheet.py <masters> <out>` writes 2x WebPs at 36, 56, 96 and 168 px and
   dark / light 390 px pages beside today's art (sheet 2's layout); the screenshots are in
-  `screenshots/identity-blender-nov-2026/` (`style-sheet-*` sheet 1, `style-sheet-2-*` sheet 2).
+  `screenshots/identity-blender-nov-2026/` (`style-sheet-*` sheet 1, `style-sheet-2-*` sheet 2, each page in two halves).
 
 Reproduce:
 
