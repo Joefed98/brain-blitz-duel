@@ -132,7 +132,6 @@
   max-width: 100%;
   overflow: hidden;
   font: var(--jz-type-title);
-  font-stretch: var(--jz-width-title);
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
