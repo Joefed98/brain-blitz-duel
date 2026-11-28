@@ -387,22 +387,31 @@ def gem(name, gem_id, stops):
         p.inputs["Coat Weight"].default_value = 1.0
         p.inputs["Coat Roughness"].default_value = 0.02
     elif kind == "pearl":
-        # Nacre: a soft lustre with the rainbow of its layers.
+        # Nacre: smooth, a soft pastel flow of pink, green and blue over the whole pearl (by angle and a slow drift,
+        # low saturation, never metallic: Holographic is the saturated metal one), under a glossy coat.
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        nz = nt.nodes.new("ShaderNodeTexNoise")
+        nz.inputs["Scale"].default_value = 1.8
+        nz.inputs["Detail"].default_value = 1.5
         lw = nt.nodes.new("ShaderNodeLayerWeight")
-        lw.inputs["Blend"].default_value = 0.5
-        ramp = nt.nodes.new("ShaderNodeValToRGB")
-        cr = ramp.color_ramp
-        cr.elements[0].color = ia.hexc("#FFFFFF")
-        cr.elements[1].position = 1.0
-        cr.elements[1].color = ia.hexc("#B9E6FF")
-        cr.elements.new(0.45).color = ia.hexc("#F7E6FF")
-        cr.elements.new(0.75).color = ia.hexc("#FFE3EE")
-        nt.links.new(lw.outputs["Facing"], ramp.inputs["Fac"])
-        nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
-        p.inputs["Subsurface Weight"].default_value = 0.4
-        p.inputs["Roughness"].default_value = 0.25
-        p.inputs["Sheen Weight"].default_value = 1.0
-        p.inputs["Sheen Tint"].default_value = ia.hexc(stops[2])
+        lw.inputs["Blend"].default_value = 0.6
+        add = nt.nodes.new("ShaderNodeMath")
+        add.operation = "MULTIPLY_ADD"
+        add.inputs[1].default_value = 0.9
+        fr = nt.nodes.new("ShaderNodeMath")
+        fr.operation = "FRACT"
+        hsv = nt.nodes.new("ShaderNodeCombineColor")
+        hsv.mode = "HSV"
+        hsv.inputs[1].default_value = 0.42
+        hsv.inputs[2].default_value = 0.82
+        nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
+        nt.links.new(lw.outputs["Facing"], add.inputs[0])
+        nt.links.new(nz.outputs["Fac"], add.inputs[2])
+        nt.links.new(add.outputs[0], fr.inputs[0])
+        nt.links.new(fr.outputs[0], hsv.inputs[0])
+        nt.links.new(hsv.outputs[0], p.inputs["Base Color"])
+        p.inputs["Subsurface Weight"].default_value = 0.3
+        p.inputs["Roughness"].default_value = 0.3
         p.inputs["Coat Weight"].default_value = 1.0
         p.inputs["Coat Roughness"].default_value = 0.05
         p.inputs["Thin Film Thickness"].default_value = 420.0
@@ -1043,7 +1052,8 @@ def gem_cut(b, gid, gems):
     st = gems[gid]["stops"]
     k = gem_glow(gems, gid)
     spec = CUT[gid]
-    strips = gem_studio(1.0)
+    # An opaque pale pearl clips to white under the strips a clear stone needs: half the light for it.
+    strips = gem_studio(0.45 if gid == "pearl" else 1.0)
     b.extras += strips
     camera_only_glow(b)
     stone = cut_material(gid, st)

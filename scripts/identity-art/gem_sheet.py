@@ -57,10 +57,11 @@ section {{ background: {c['panel']}; border: 1px solid {c['line']}; border-radiu
 .tag {{ width: 64px; flex: none; font-size: 13px; color: {c['text3']}; }}
 .big {{ display: flex; justify-content: center; align-items: center; gap: 12px; padding-top: 4px; }}
 </style></head><body><main>
-<h1>Gem glow</h1>
-<p>Each gem avatar glows in its own colour: rim light, a halo round the disc and sparkles, baked in, inside the avatar’s
-box. Brighter the higher the gem: Amber softest, Diamond brightest. {page.capitalize()} page; the still image (the
-app adds a gentle shimmer).</p>
+<h1>Gem avatars: the solid cut gem</h1>
+<p>Joe’s pick (b): the body is the gem, one carved stone with flat facets, light through it, a soft backlight and rim
+bloom in its colour, one or two small sparkles. Brighter the higher the gem: Amber softest, Diamond brightest. All inside
+the avatar’s box; the disc stays the dark, toned-down disc. {page.capitalize()} page; the still image (the app adds a
+gentle shimmer).</p>
 {''.join(body)}
 </main></body></html>"""
         (out / f"{page}.html").write_text(doc)
