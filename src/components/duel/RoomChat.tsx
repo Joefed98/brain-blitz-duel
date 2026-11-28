@@ -81,7 +81,7 @@ export function ReactionLayer({ chat }: { chat: RoomChatState }) {
     >
       {chat.reactions.map((reaction) => (
         <div key={reaction.id} className="animate-reaction-float flex items-center gap-1">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono jz-text-caption uppercase tracking-widest text-muted-foreground">
             {reaction.name}
           </span>
           {emoteOf(reaction.emoji) ? <Emote code={reaction.emoji} height={34} /> : <span className="text-3xl leading-none">{reaction.emoji}</span>}
@@ -453,7 +453,7 @@ export function RoomChat({
         className="w-full max-w-[400px] rounded-md border border-border bg-card p-2"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="px-3 py-2 text-center font-mono text-[11px] uppercase text-muted-foreground">
+        <p className="px-3 py-2 text-center font-mono jz-text-caption uppercase text-muted-foreground">
           {menuFor.sender_name}
         </p>
         {reported ? null : (
@@ -537,7 +537,7 @@ export function RoomChat({
         </RoomChatSlot.Provider>
       ) : null}
       {!open && chat.error && (
-        <p className="shrink-0 text-center text-[11px] text-warn">{chat.error}</p>
+        <p className="shrink-0 text-center jz-text-caption text-warn">{chat.error}</p>
       )}
       {mounted &&
         createPortal(

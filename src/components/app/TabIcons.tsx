@@ -1,6 +1,6 @@
 /**
  * The Play tab's own icon tiles (tab pages refresh, 26 Oct 2026; drawn on the design canvas's T-Play):
- * 44 px glossy gradient tiles (`.ap-tile44`, app-pages.css) with inline SVG art, no text but the
+ * 44 px flat tiles in their category colour (`.jz-tile44`, app-pages.css) with inline SVG art, no text but the
  * challenge's "VS". Display only.
  */
 
@@ -8,7 +8,7 @@
 export function DailyPuzzleTile() {
   const piece = "M0 0h2a1.1 1.1 0 1 1 2 0h2v2a1.1 1.1 0 1 1 0 2v2H0z";
   return (
-    <span aria-hidden="true" data-tile="puzzle" className="ap-tile44">
+    <span aria-hidden="true" data-tile="puzzle" className="jz-tile44">
       <svg width="36" height="34" viewBox="-3 -2 36 34">
         <path d={piece} fill="#FFFFFF" opacity=".38" transform="translate(-2.4 -0.6) rotate(-18) scale(.85)" />
         <path d={piece} fill="#FFFFFF" opacity=".32" transform="translate(28 13) rotate(14) scale(.8)" />
@@ -32,7 +32,7 @@ export function DailyPuzzleTile() {
 /** Daily Arcade: a black game controller on red. */
 export function DailyArcadeTile() {
   return (
-    <span aria-hidden="true" data-tile="arcade" className="ap-tile44">
+    <span aria-hidden="true" data-tile="arcade" className="jz-tile44">
       <svg width="34" height="30" viewBox="0 0 34 30">
         <path
           d="M9 7h16c4.2 0 6.8 3.2 7.6 8.2l1 6.3c.6 3.6-2.6 5.8-5.4 3.6L23.6 21H10.4l-4.6 4.1c-2.8 2.2-6-.1-5.4-3.6l1-6.3C2.2 10.2 4.8 7 9 7z"
@@ -59,7 +59,7 @@ export function DailyArcadeTile() {
 /** Challenge a friend: green and pink player badges with a soft glow, a yellow bolt and "VS", on violet. */
 export function ChallengeTile() {
   return (
-    <span aria-hidden="true" data-tile="challenge" className="ap-tile44">
+    <span aria-hidden="true" data-tile="challenge" className="jz-tile44">
       <svg width="32" height="30" viewBox="0 0 32 30">
         <circle cx="9.5" cy="11" r="6.6" fill="#39F08A" opacity=".35" />
         <circle cx="22.5" cy="11" r="6.6" fill="#FF4FD8" opacity=".35" />
@@ -92,7 +92,7 @@ export function ChallengeTile() {
  */
 export function PlaceDisc({ place, label }: { place: number; label: string }) {
   return (
-    <span role="img" aria-label={label} data-place-disc={place <= 3 ? place : "n"} className="ap-place">
+    <span role="img" aria-label={label} data-place-disc={place <= 3 ? place : "n"} className="jz-place">
       <span aria-hidden="true">{place}</span>
     </span>
   );

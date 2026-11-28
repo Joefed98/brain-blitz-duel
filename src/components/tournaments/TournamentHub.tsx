@@ -367,8 +367,8 @@ export function TrophyCabinet({ trophies, seasons }: { trophies: readonly Trophy
   useAppMoment("newBest", `[data-trophy-event="${fresh ?? ""}"]`, fresh);
   if (!trophies.length && !emblems.length) return null;
   return (
-    <section aria-label="Trophy cabinet" className="ap-section" data-trophy-cabinet>
-      <SectionHeader title="Trophy cabinet" right={<span className="ap-meta">{trophies.length + emblems.length}</span>} />
+    <section aria-label="Trophy cabinet" className="jz-page-section" data-trophy-cabinet>
+      <SectionHeader title="Trophy cabinet" right={<span className="jz-meta-line">{trophies.length + emblems.length}</span>} />
       <Panel pad>
         <ul className="tn-trophies">
           {emblems.map((h, i) => (

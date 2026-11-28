@@ -765,7 +765,8 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
   // The Pass part as the /shop route draws it (src/routes/shop.tsx), from window.__harnessPass.
   pass: () => (
     <PhoneShell tabs="shop" title="Shop">
-      <div className="ap-stack" data-shop-page="pass">
+      {/* Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*) */}
+      <div className="jz-page-stack" data-shop-page="pass">
         <PassScreen />
       </div>
     </PhoneShell>

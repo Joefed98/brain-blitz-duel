@@ -164,7 +164,7 @@ function Rooms() {
 
   return (
     <PhoneShell skin="play">
-      <div className="ap-stack hp-page" data-rooms-page>
+      <div className="jz-page-stack hp-page" data-rooms-page>
         <SubPageHeader title="Rooms" />
         <p className="hp-lead" data-wrap-ok>
           Up to {MAX_PLAYERS} players. Same games, same moment.
@@ -192,10 +192,10 @@ function Rooms() {
               <p className="flex h-11 items-center justify-between gap-2.5 text-muted-foreground jz-body">
                 <MyMiniCard guestLook={look} guestName={accountName ?? name} size={28} />
                 <span className="min-w-0 flex-1 truncate">
-                  Playing as <span className="th-name font-semibold jz-em-name">{accountName ?? name}</span>
+                  Playing as <span className="jz-name font-semibold jz-em-name">{accountName ?? name}</span>
                 </span>
                 {accountName ? null : (
-                  <button type="button" onClick={focusName} className="ap-link press h-11 shrink-0 px-1">
+                  <button type="button" onClick={focusName} className="jz-link press h-11 shrink-0 px-1">
                     Change
                   </button>
                 )}
@@ -278,7 +278,7 @@ function Rooms() {
                 data-icon="sq"
                 className="jz-panel jz-row press"
               >
-                <span className="ap-icon-sq">
+                <span className="jz-icon-sq">
                   <Icon name="rejoin" size={20} style={{ width: 21, height: 21 }} />
                 </span>
                 <span className="jz-row-text">
@@ -292,7 +292,7 @@ function Rooms() {
                         : "Game in progress"}
                   </span>
                 </span>
-                <Icon name="chevron-right" size={20} className="ap-chevron" />
+                <Icon name="chevron-right" size={20} className="jz-chevron" />
               </button>
             );
           })()}
@@ -316,7 +316,7 @@ function Rooms() {
                 <button
                   type="button"
                   onClick={() => void router.navigate({ to: "/tournaments", state: { fromPlayTab: true } as never })}
-                  className="ap-link press -my-2.5 -mr-1 h-11 px-1"
+                  className="jz-link press -my-2.5 -mr-1 h-11 px-1"
                 >
                   All public games
                 </button>
@@ -326,7 +326,7 @@ function Rooms() {
         </div>
 
         <PlaySlot id="challenge" state={slotState(challenges !== null, challenges === true)}>
-          <section aria-label="With a friend" className="ap-section">
+          <section aria-label="With a friend" className="jz-page-section">
             <SectionHeader title="Play at your own time" />
             <ChallengeCard
               available

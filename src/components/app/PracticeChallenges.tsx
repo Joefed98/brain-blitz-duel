@@ -88,11 +88,11 @@ export function PracticeChallenges({
     .sort((a, b) => (filter === "progress" ? b.progress - a.progress : 0));
   const shown = all ? rows : rows.slice(0, FIRST_ROWS);
   return (
-    <section aria-label="Challenges" data-practice-challenges className="ap-section">
+    <section aria-label="Challenges" data-practice-challenges className="jz-page-section">
       <SectionHeader
         title="Challenges"
         right={
-          <span className="ap-meta" data-challenges-done={counts.done}>
+          <span className="jz-meta-line" data-challenges-done={counts.done}>
             {counts.done} of {states.length} done
           </span>
         }
@@ -120,7 +120,7 @@ export function PracticeChallenges({
           ))}
         </div>
       ) : (
-        <p data-challenges-empty className="jz-panel ap-empty">
+        <p data-challenges-empty className="jz-panel jz-empty-line">
           {filter === "done" ? "None done yet" : filter === "progress" ? "None started yet" : "All started"}
         </p>
       )}

@@ -195,14 +195,14 @@ export function CardsRevealPicture({ puzzle, answer }: { puzzle: PuzzleData; ans
         {picture.facts.map((f) => (
           <div key={f.label} data-fact={f.label} className={`flex min-w-0 flex-1 flex-col items-center rounded-xl px-2 py-1.5 ${f.best ? "bg-[var(--jz-gold)] text-[var(--jz-on-gold)]" : "bg-black/35 text-foreground"}`}>
             <span className="font-semibold opacity-80" style={{ fontSize: 13 }}>{f.label}</span>
-            <span className="whitespace-nowrap text-[17px] font-extrabold tabular-nums">{f.value}</span>
+            <span className="whitespace-nowrap jz-text-body font-extrabold tabular-nums">{f.value}</span>
           </div>
         ))}
       </div>
       <TableCanvas picture={picture} />
       {picture.marks ? (
         <div data-cards-reveal-marks="" aria-label={`${picture.marks.label}: ${picture.marks.filled} of ${picture.marks.of}`} className="flex w-full flex-col gap-1">
-          <span className="text-[13px] font-semibold text-foreground">{picture.marks.label}</span>
+          <span className="jz-text-caption font-semibold text-foreground">{picture.marks.label}</span>
           <div className="flex w-full gap-[2px]">
             {Array.from({ length: picture.marks.of }, (_, i) => (
               <span key={i} className={`h-2.5 flex-1 rounded-sm ${i < picture.marks!.filled ? "bg-[var(--jz-gold)]" : "bg-white/15"}`} />
@@ -211,7 +211,7 @@ export function CardsRevealPicture({ puzzle, answer }: { puzzle: PuzzleData; ans
         </div>
       ) : null}
       {picture.sum ? (
-        <p data-cards-reveal-sum="" className="text-center text-[17px] font-extrabold tabular-nums text-foreground">
+        <p data-cards-reveal-sum="" className="text-center jz-text-body font-extrabold tabular-nums text-foreground">
           {/* The sum counts up to the score (the effects kit's count-up, silent: the reveal's score has its own). */}
           {picture.sumTo !== undefined ? (
             <>

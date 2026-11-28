@@ -5,7 +5,7 @@
  */
 
 /* ------------------------------------------------------------------ header and coin counter */
-.ap-header-tools {
+.jz-header-tools {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -284,7 +284,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-bg);
 }
 .cz-look-art > img {
@@ -298,14 +298,14 @@
   height: 40px;
   align-items: center;
   padding: 0 var(--jz-space-8);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-bg);
 }
 .cz-rarity {
   align-self: flex-start;
   padding: 0 var(--jz-space-8);
   border: 1px solid var(--jz-surface-2);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   color: var(--jz-text-2);
   font: var(--jz-type-caption);
   line-height: 20px;
@@ -341,7 +341,7 @@
   align-items: center;
   justify-content: center;
   border: 1.5px dashed var(--jz-surface-2);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   color: var(--jz-text-3);
   font-size: 13px;
 }
@@ -349,7 +349,7 @@
   margin: 0;
   padding: var(--jz-space-12);
   border-left: 3px solid var(--jz-red);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
   color: var(--jz-text);
   font-size: 14px;
@@ -601,7 +601,7 @@ button.cz-gem {
   min-height: 56px;
   align-items: center;
   padding: var(--jz-space-8) var(--jz-space-12);
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: var(--jz-surface);
 }
 .room-podium-cards[data-pair] .room-podium-card[data-podium-card="1"] {

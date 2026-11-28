@@ -456,7 +456,8 @@ try {
       const { context, page } = await openThemeScreen(browser, harness.origin, screen, PHONE);
       await page.waitForTimeout(800);
       check((await page.locator("[data-tournaments-soon]").count()) === 0, "a player with tournaments: no coming-soon page");
-      check((await page.locator(".ap-beta").count()) === 1 && (await page.locator("[data-public-none]").count()) === 1, "a player with tournaments gets the tournaments screens as before");
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      check((await page.locator(".jz-beta-pill").count()) === 1 && (await page.locator("[data-public-none]").count()) === 1, "a player with tournaments gets the tournaments screens as before");
       await context.close();
     }
   } finally {

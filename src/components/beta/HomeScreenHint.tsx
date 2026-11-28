@@ -31,7 +31,7 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="press absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full text-[var(--ap-faint)]"
+        className="press absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full jz-em-detail"
       >
         <Icon name="close" size={20} />
       </button>
@@ -39,14 +39,14 @@ export function HomeScreenHint({ onDismiss }: { onDismiss: () => void }) {
         <Icon name="add-home" size={20} className="shrink-0 text-muted-foreground" />
         <h2 className="jz-row-title">Add to Home Screen</h2>
       </div>
-      <p className="flex flex-wrap items-center gap-x-1 text-[14px] text-muted-foreground">
+      <p className="flex flex-wrap items-center gap-x-1 jz-text-caption text-muted-foreground">
         <span>Tap</span>
         <Icon name="share" size={18} label="Share" className="-m-px" />
         <span className="font-semibold text-foreground">Share</span>
         <span>then</span>
         <span className="font-semibold text-foreground">Add to Home Screen</span>
       </p>
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className="jz-text-caption text-muted-foreground">
         Full screen, and your streak and history stay in the app.
       </p>
     </section>

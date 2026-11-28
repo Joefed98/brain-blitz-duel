@@ -29,12 +29,12 @@ export function ProfileChallenges({ onOpen }: { onOpen: () => void }) {
     .slice(0, CLOSEST);
   if (done === 0 && closest.length === 0) return null;
   return (
-    <section aria-label="Challenges" data-profile-challenges className="ap-section">
+    <section aria-label="Challenges" data-profile-challenges className="jz-page-section">
       <SectionHeader
         title="Challenges"
         right={
           <>
-            <button type="button" onClick={onOpen} data-profile-challenges-done={done} className="ap-link press -my-2.5 -mr-1 h-11 min-w-11 px-1">
+            <button type="button" onClick={onOpen} data-profile-challenges-done={done} className="jz-link press -my-2.5 -mr-1 h-11 min-w-11 px-1">
               {done} of {states.length} done
             </button>
           </>

@@ -150,7 +150,7 @@ export function RoomSettingsSheet({
 
           <section aria-label="Rounds" className="flex flex-col gap-2.5">
             <div className="rs-head">
-              <h3 className="ap-group-title">Rounds</h3>
+              <h3 className="jz-group-title">Rounds</h3>
               <span data-room-rounds-value className="rs-meta">
                 {rounds} rounds, about {minutes} min
               </span>
@@ -186,7 +186,7 @@ export function RoomSettingsSheet({
           </section>
           <section aria-label="Difficulty" data-room-level className="flex flex-col gap-2.5">
             <div className="rs-head">
-              <h3 className="ap-group-title">Difficulty</h3>
+              <h3 className="jz-group-title">Difficulty</h3>
               <LevelMark level={level} label />
             </div>
             <LevelSwitch
@@ -207,7 +207,7 @@ export function RoomSettingsSheet({
           {scoring ? (
             <section aria-label="Scoring" className="flex flex-col gap-2.5">
               <div className="rs-head">
-                <h3 className="ap-group-title">Scoring</h3>
+                <h3 className="jz-group-title">Scoring</h3>
               </div>
               <Segmented
                 label="Scoring"
@@ -226,7 +226,7 @@ export function RoomSettingsSheet({
             </section>
           ) : null}
           {error ? (
-            <p role="alert" className="text-[13px] text-warn">
+            <p role="alert" className="jz-text-caption text-warn">
               {error}
             </p>
           ) : null}

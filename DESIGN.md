@@ -34,8 +34,9 @@ colours kept on game screens, art drawn in-house (no paid commissions).
 
 ## 2. Colour
 
-All values live in `src/design/tokens.css` as `--jz-*` custom properties. The old `--th-*`, `--ap-*` and
-`--rs-*` sets become aliases of these during migration, then are deleted.
+All values live in `src/design/tokens.css` as `--jz-*` custom properties. The old `--th-*` and `--ap-*` aliases
+and the `th-*` / `ap-*` classes were retired in S1 (27 Nov 2026): screens name the tokens, the `jz-*` classes and the
+shared components directly.
 
 ### Neutrals
 
@@ -108,23 +109,36 @@ fixed dark colours have their light form in `polish-layout/light.css`. theme-che
 
 ## 3. Type
 
-Archivo variable font, self-hosted (weights 400–900, widths 62–125 %).
+Archivo variable font, self-hosted (weights 100–900, widths 62–125 %). **One scale: six roles** (style guide round 2;
+S1, 27 Nov 2026), never under 13 px. Each role is a shorthand in `tokens.css` (`--jz-type-<role>`), with its size and
+line apart (`--jz-size-<role>`, `--jz-line-<role>`) for a rule that keeps its own weight; the classes are `.jz-display`
+… `.jz-caption` (the whole role) and `.jz-text-<role>` (size and line only; a `leading-*` class still wins).
 
-| Role | Size / line | Weight | Width | Notes |
+| Role | Size / line | Weight | Width | Use |
 |---|---|---|---|---|
-| Wordmark | 22 / 22 | 900 | 118 % | JOULZ, white, gold bolt after it |
-| Display | 40 / 40 | 800 | 115 % | "You win!", the hero line on Play |
-| Page title | 30 / 32 | 800 | 112 % | Practice, Profile, Tournaments |
-| Screen title | 22 / 24 | 800 | 108 % | Standings, Final round |
-| Section heading | 18 / 22 | 800 | 110 % | Today, Warm up; followed by a 2 px rule |
-| Card title | 16 / 20 | 600 | 100 % | Daily Puzzle, game names |
-| Body | 15 / 21 | 400 | 100 % | |
-| Meta | 14 / 18 | 400 | 100 % | Times, counts, "6 rounds" |
-| Label | 12 / 16 | 600 | 100 % | Captions, column heads |
-| Tab label | 11 / 12 | 600 | 100 % | |
-| Score S / M / L | 18 / 22 / 28 | 800 | 105 % | Always `tabular-nums` |
+| Display | 32 / 38 | 800 | 115 % | Win moment, page heroes |
+| Title | 24 / 30 | 800 | 115 % | Screen and page titles |
+| Heading | 20 / 26 | 800 | 100 % | Section and card titles |
+| Body | 17 / 22 | 700 | 100 % | Buttons, row titles |
+| Label | 15 / 20 | 600 | 100 % | Secondary lines |
+| Caption | 13 / 18 | 600 | 100 % | Meta and counts |
 
-Weights in use: **400, 600, 800**, plus 900 for the wordmark only. Retire 450, 500, 550, 620, 650, 700 and 750.
+Three faces sit on the same sizes: **scores** (`.jz-score-s` / `-m` / `-l` on the heading, title and display sizes;
+800, 120 %, always `tabular-nums`), the **countdown** (`.jz-countdown`: 900, 125 %, tabular; its size the caller's)
+and the **wordmark** (JOULZ, 900, 118 %, white, the gold bolt after it).
+
+**Archivo's width axis is a brand tool** (approved 27 Nov 2026): wide and heavy for display and title text, scores
+and countdowns; normal width for headings (so a card's title fits its card) and reading text. The widths are tokens: `--jz-width-title` 115 %, `--jz-width-score` 120 %,
+`--jz-width-countdown` 125 %, `--jz-width-wordmark` 118 %, `--jz-width-body` 100 %. A `font:` shorthand resets the
+width, so `font-stretch` comes after it.
+
+Tailwind's text sizes inside app chrome land on the roles (`utilities.css`): `text-xs` and `text-sm` caption,
+`text-base` label, `text-lg` body, `text-xl` heading, `text-2xl` title, `text-3xl` and `text-4xl` display; game art
+inside a page keeps Tailwind's own sizes. Two exceptions sit off the scale, never a new step: the **moment** size,
+`--jz-size-moment` 48 / 52 (`.jz-text-moment`), for moment numerals and headlines only (podium and final totals, rating
+reveals, the VS mark, a rated result's headline, the room code); and a glyph inside a fixed disc (the medal's "=" tag).
+
+Weights in use: **600, 700, 800**, plus 400 for long reading text and 900 for the wordmark and the countdown.
 
 ### Text emphasis: one bright thing per panel
 
@@ -151,12 +165,14 @@ A panel has one bright thing; everything else steps down, so the eye lands on wh
 |---|---|---|
 | `--jz-cut-lg` | 14 px angled corners, top-left and bottom-right | Gold and other primary buttons, feature cards (daily, challenge, head-to-head), game cards, the podium blocks |
 | `--jz-cut-sm` | 8 px angled corners | Small primary buttons (Play on a daily card), the LIVE tag |
-| `--jz-radius` / `--jz-radius-sm` | 8 px | Avatars and tags, a segment inside its control (since the components step) |
-| `--jz-radius-md` | 12 px | Secondary and mode buttons, inputs, toasts, the segmented control (style guide round 2) |
-| `--jz-radius-lg` | 16 px | Panels, tiles, stat tiles (style guide round 2) |
-| `--jz-round` | 999 px | Avatars, medals, pills, chips, status dots |
-| `--jz-radius-tile` | 16 px | Game tile art inside its 3 px category border |
+| `--jz-radius-sm` | 8 px | Avatars and tags, a segment inside its control |
+| `--jz-radius-md` | 12 px | Rows, secondary and mode buttons, inputs, toasts, the segmented control |
+| `--jz-radius-lg` | 16 px | Panels, tiles, stat tiles, game tile art inside its 3 px category border |
 | `--jz-radius-sheet` | 20 px top corners | Bottom sheets |
+| `--jz-round` | 999 px | Avatars, medals, pills, chips, status dots |
+
+One radius scale (S1, 27 Nov 2026: `--jz-radius` and `--jz-radius-tile` folded into `-sm` and `-lg`); hairline radii
+of 1–5 px on bars and ticks stay as they are.
 
 Cuts are made with `clip-path` utilities `.jz-cut-lg` and `.jz-cut-sm`. Focus rings must still show: put the ring
 on a wrapper, not the clipped element.
@@ -164,8 +180,10 @@ on a wrapper, not the clipped element.
 **Texture:** the diagonal stripe pattern (`.jz-stripes`) appears only behind the top of tab pages, behind the
 standings header, and inside daily cards. Nowhere else.
 
-**Elevation:** no drop shadows on dark UI. Sheets alone get one shadow (`--jz-shadow-sheet`). Depth comes from
-surface steps and the gold button's ledge.
+**Elevation:** three named levels, no glows and no drop shadows on dark panels. `--jz-shadow-panel` (level 0: a panel
+on the page, none), `--jz-shadow-raised` (level 1: a raised button, the 1 px top highlight and its 4 px ledge) and
+`--jz-shadow-overlay` (level 2: sheets, dialogs and toasts over the scrim; `--jz-shadow-sheet` is its name on sheets).
+Game tiles keep their soft contact shadow (`--jz-shadow-tile`). Depth comes from surface steps and the ledge.
 
 ---
 

@@ -419,7 +419,7 @@ function ChallengeScreen() {
           onBack={home}
           right={
             info.found ? (
-              <span data-tone="gold" className="th-pill shrink-0 whitespace-nowrap">
+              <span data-tone="gold" className="jz-cat-pill shrink-0 whitespace-nowrap">
                 {challengeEndsIn(info.expiresAt, serverNow())}
               </span>
             ) : null
@@ -430,7 +430,7 @@ function ChallengeScreen() {
             <h1 className="whitespace-nowrap font-display text-2xl font-bold uppercase">
               Challenge
             </h1>
-            <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+            <p className="jz-empty-box rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
               This challenge link doesn’t work. Check it with whoever sent it.
             </p>
             <NewChallengeButton onClick={() => setCode(null)} />
@@ -438,7 +438,7 @@ function ChallengeScreen() {
         ) : (
           <>
             <div>
-              <p className="th-kicker flex items-center gap-1.5 text-primary">
+              <p className="jz-kicker flex items-center gap-1.5 text-primary">
                 <Icon name="challenge" size={18} className="-m-px" /> Challenge {info.code}
               </p>
               <h1 className="mt-1 truncate font-display text-2xl font-bold uppercase" data-ellipsis>
@@ -454,10 +454,10 @@ function ChallengeScreen() {
             <Panel as="section"
               data-tint="gold"
               data-challenge-state={info.state}
-              className="th-card flex flex-col gap-3 p-4"
+              className="jz-card flex flex-col gap-3 p-4"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <p className="th-kicker text-primary">{info.roundCount} rounds</p>
+                <p className="jz-kicker text-primary">{info.roundCount} rounds</p>
                 <p className="whitespace-nowrap font-mono text-xs text-muted-foreground">
                   {info.players} of {info.maxPlayers} played
                 </p>
@@ -471,7 +471,7 @@ function ChallengeScreen() {
                     <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="challenge-play-name"
-                        className="th-kicker text-muted-foreground"
+                        className="jz-kicker text-muted-foreground"
                       >
                         Your name on the board
                       </label>
@@ -490,7 +490,7 @@ function ChallengeScreen() {
                   ) : info.state === "play" ? (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="min-w-0 truncate">
-                        Playing as <span className="th-name text-foreground">{accountName ?? name}</span>
+                        Playing as <span className="jz-name text-foreground">{accountName ?? name}</span>
                       </span>
                       {accountName ? null : (
                         <button

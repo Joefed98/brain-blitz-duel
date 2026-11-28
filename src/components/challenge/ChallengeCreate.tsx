@@ -54,11 +54,11 @@ export function ChallengeCreate({
     <div data-challenge-create className="flex flex-col gap-4">
       <Panel as="section"
         data-tint="gold"
-        className="th-card flex flex-col gap-3 p-4"
+        className="jz-card flex flex-col gap-3 p-4"
       >
         {editingName ? (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="challenge-name" className="th-kicker text-muted-foreground">
+            <label htmlFor="challenge-name" className="jz-kicker text-muted-foreground">
               Your name on the board
             </label>
             <Input
@@ -73,7 +73,7 @@ export function ChallengeCreate({
         ) : (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <span className="min-w-0 truncate">
-              Playing as <span className="th-name text-foreground">{name}</span>
+              Playing as <span className="jz-name text-foreground">{name}</span>
             </span>
             {onEditName ? (
               <button
@@ -87,7 +87,7 @@ export function ChallengeCreate({
           </p>
         )}
 
-        <p className="th-kicker text-foreground">Categories</p>
+        <p className="jz-kicker text-foreground">Categories</p>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map(({ label, values }) => (
             <Chip key={label} selected={same(categories, values)} onClick={() => onCategories([...values])}>
@@ -122,7 +122,7 @@ export function ChallengeCreate({
           ))}
         </div>
 
-        <p className="th-kicker text-foreground">Rounds</p>
+        <p className="jz-kicker text-foreground">Rounds</p>
         <Segmented
           label="Rounds"
           value={rounds}

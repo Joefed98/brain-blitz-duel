@@ -87,7 +87,7 @@ function Plinth({
         {inRoom ? null : (
           <>
             <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={place === 1 ? 30 : 26} />
-            <span className="th-name max-w-full truncate text-[13px] font-semibold text-foreground">
+            <span className="jz-name max-w-full truncate jz-text-caption font-semibold text-foreground">
               {standing.name}
             </span>
           </>
@@ -99,12 +99,12 @@ function Plinth({
           quiet
           skip={skip}
           countSound={celebrate}
-          className="th-score text-[19px] tabular-nums text-foreground"
+          className="jz-score jz-text-heading tabular-nums text-foreground"
         />
       </div>
       <div
         data-podium-step={celebrate ? place : undefined}
-        className={`mt-1 flex w-full animate-pop-in items-start justify-center rounded-t-[14px] bg-[var(--ap-panel)] pt-2 ${height}`}
+        className={`mt-1 flex w-full animate-pop-in items-start justify-center rounded-t-2xl jz-fill-surface pt-2 ${height}`}
       >
         <Medal place={place} shared={shared} />
       </div>
@@ -230,11 +230,11 @@ export function Podium({
   return (
     <div ref={root} className="relative flex flex-1 flex-col gap-2.5 text-left animate-phase-in" {...enter}>
       {won ? (
-        <h1 className="text-center text-[30px] font-extrabold leading-tight text-foreground animate-word-scale-in">
+        <h1 className="text-center jz-text-display font-extrabold leading-tight text-foreground animate-word-scale-in">
           {sharedFirst ? "Joint winner!" : "You win!"}
         </h1>
       ) : (
-        <h1 className="whitespace-nowrap text-center text-[22px] font-extrabold text-foreground animate-word-scale-in">
+        <h1 className="whitespace-nowrap text-center jz-text-heading font-extrabold text-foreground animate-word-scale-in">
           You finished {ordinal(mine?.position ?? rows.length)} of {rows.length}
         </h1>
       )}
@@ -261,7 +261,7 @@ export function Podium({
           // Big rooms: under the top three, a line with your place, then your row.
           const placeLine =
             big && !showAll && isMe && row.position > 3 ? (
-              <li key="place-line" data-podium-place-line className="rs-row min-h-9 py-1 text-[13px] font-semibold text-[var(--ap-text-2)]">
+              <li key="place-line" data-podium-place-line className="rs-row min-h-9 py-1 jz-text-caption font-semibold jz-em-detail">
                 Your place: {ordinal(row.position)} of {rows.length}
               </li>
             ) : null;
@@ -287,7 +287,7 @@ export function Podium({
                     <span className="room-player">
                       <NameplateStrip player={plateOf(row.slot, row.name, look)} />
                     </span>
-                    {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                    {isMe ? <span className="rs-you shrink-0 jz-text-caption">(you)</span> : null}
                     {row.status === "inactive" ? <LeftTag /> : null}
                   </span>
                   {mark?.note ? <span data-tie-note className="rs-sub">{mark.note}</span> : null}
@@ -299,7 +299,7 @@ export function Podium({
                   quiet
                   skip={skipped}
                   countSound={celebrate}
-                  className="th-score rs-total"
+                  className="jz-score rs-total"
                 />
                 <Icon name="chevron-down" size={20} tone="text-3" className={`shrink-0 transition-transform ${open === row.slot ? "rotate-180" : ""}`} />
               </button>
@@ -316,9 +316,9 @@ export function Podium({
                     const type = roundOrder[entry.round - 1] ?? "wordsmith";
                     const placing = placings ? roundPlaces(entry.round).get(row.slot) : undefined;
                     return (
-                      <div key={entry.round} className="flex min-h-9 items-center gap-2.5 py-0.5 text-[13px]">
+                      <div key={entry.round} className="flex min-h-9 items-center gap-2.5 py-0.5 jz-text-caption">
                         {hasGameIcon(type) ? <GameIcon type={type as PuzzleType} size={26} /> : <span className="h-[26px] w-[26px]" />}
-                        <span className="min-w-0 flex-1 truncate text-[var(--ap-text-2)]">{puzzleName(type)}</span>
+                        <span className="min-w-0 flex-1 truncate jz-em-detail">{puzzleName(type)}</span>
                         {placing ? (
                           <>
                             <span data-round-place className="rs-gain font-normal">
@@ -344,7 +344,7 @@ export function Podium({
               data-podium-all
               aria-expanded={showAll}
               onClick={() => setShowAll((value) => !value)}
-              className="press flex min-h-11 w-full items-center justify-center gap-1 text-[13px] font-semibold text-[var(--ap-text-2)]"
+              className="press flex min-h-11 w-full items-center justify-center gap-1 jz-text-caption font-semibold jz-em-detail"
             >
               {showAll ? "Show the top three" : `See all ${rows.length} players`}
               <Icon name="chevron-down" size={18} style={{ width: 16, height: 16 }} className={`transition-transform ${showAll ? "rotate-180" : ""}`} />

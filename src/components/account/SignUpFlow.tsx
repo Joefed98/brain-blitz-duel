@@ -751,7 +751,7 @@ function InboxPanel({
         <span className="acct-mail-disc">
           <Icon name="send" size={24} />
         </span>
-        <h1 className="jz-screen-title">Check your inbox</h1>
+        <h1 className="jz-title">Check your inbox</h1>
         <p className="acct-lede">
           We sent a link and a code to <b className="acct-number">{email}</b>. Tap the link or type the code.
         </p>

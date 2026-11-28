@@ -51,7 +51,7 @@ export function SeasonSection() {
   const history = seasons.history;
   if (!peak && !history.length) return null;
   return (
-    <section aria-label="Seasons" data-profile-seasons className="ap-section">
+    <section aria-label="Seasons" data-profile-seasons className="jz-page-section">
       {peak ? (
         <>
           <SectionHeader title="Season peak" />
@@ -60,7 +60,7 @@ export function SeasonSection() {
             <span data-ellipsis className="jz-row-title min-w-0 flex-1">
               {peak.peakLabel ?? SEASON_TIER_NAMES[peak.peak!]}
             </span>
-            <span className="ap-meta" data-season-name>
+            <span className="jz-meta-line" data-season-name>
               {peak.name}
             </span>
           </div>
@@ -76,7 +76,7 @@ export function SeasonSection() {
                 <span data-ellipsis className="jz-row-title min-w-0 flex-1">
                   {h.test ? `${h.name} (test)` : h.name}
                 </span>
-                <span className="ap-meta">{`Peak ${SEASON_TIER_NAMES[h.tier]}`}</span>
+                <span className="jz-meta-line">{`Peak ${SEASON_TIER_NAMES[h.tier]}`}</span>
               </li>
             ))}
           </ul>

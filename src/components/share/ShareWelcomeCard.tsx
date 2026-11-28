@@ -64,7 +64,7 @@ export function ShareWelcomeCard({
       data-share-welcome
       data-tint="gold"
       aria-label="Welcome"
-      className="th-card relative flex flex-col gap-3 p-4"
+      className="jz-card relative flex flex-col gap-3 p-4"
     >
       <button
         type="button"

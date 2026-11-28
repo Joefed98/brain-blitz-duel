@@ -43,7 +43,7 @@ export function SoundsGallery() {
       />
       {games.map(({ game, lines }) => (
         <div key={game} className="flex flex-col gap-2" data-dev-sound-game={game}>
-          <span className="jz-section">{game}</span>
+          <span className="jz-heading">{game}</span>
           {lines.map((line) => (
             <div key={line.slot} className="flex items-center gap-3">
               <Button

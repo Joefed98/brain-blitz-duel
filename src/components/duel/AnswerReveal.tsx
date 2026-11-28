@@ -169,7 +169,7 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
     ? `#${diag.first.index} t${diag.first.t} k${diag.first.k} [${diag.first.a},${diag.first.b},${diag.first.c},${diag.first.d}] ${diag.first.reason}`
     : "none";
   return (
-    <div className="shrink-0 break-all font-mono text-[10px] leading-tight text-muted-foreground opacity-70">
+    <div className="shrink-0 break-all font-mono jz-text-caption leading-tight text-muted-foreground opacity-70">
       <div>
         events {diag.received} · clamped {diag.clamped} · dropped {diag.dropped} · end t
         {diag.replayEndTick} · desync {diag.desyncTick ?? "none"} · {diag.replayMs}ms
@@ -629,7 +629,7 @@ function RevealPlayers({ players, secondsLeft }: { players: RevealPlayer[]; seco
           // One identity everywhere (13 Nov 2026): each player's mini card (a guest's colour and initial).
           <span
             key={p.slot}
-            className={`${cardOf(p.slot, p.name) ? "inline-flex rounded-[6px]" : "rounded-full"} ring-2 ring-[var(--ap-bg)] ${p.score === null ? "opacity-40" : ""}`} /* design-lint-ignore: the ring it had; square round a mini card */
+            className={`${cardOf(p.slot, p.name) ? "inline-flex rounded-[6px]" : "rounded-full"} ring-2 jz-ring-bg ${p.score === null ? "opacity-40" : ""}`} /* design-lint-ignore: the ring it had; square round a mini card */
           >
             <RoomMiniCard slot={p.slot} look={p.look} name={p.name} size={22} />
           </span>

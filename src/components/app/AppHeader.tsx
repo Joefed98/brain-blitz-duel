@@ -25,7 +25,7 @@ export function AppHeader({ title, action }: { title?: string | undefined; actio
   if (placement === "rail") {
     if (!title) return action ?? null;
     const heading = (
-      <h1 data-page-title className="ap-title">
+      <h1 data-page-title className="jz-rail-title">
         {title}
       </h1>
     );
@@ -39,7 +39,7 @@ export function AppHeader({ title, action }: { title?: string | undefined; actio
     );
   }
   return (
-    <header data-app-header className="ap-header jz-nav-header">
+    <header data-app-header className="jz-header jz-nav-header">
       <span className="jz-nav-header-left">
         <AvatarButton size={36} />
         {title ? (
@@ -50,7 +50,7 @@ export function AppHeader({ title, action }: { title?: string | undefined; actio
         {lead ?? null}
       </span>
       {coins === null && !action ? null : (
-        <span className="ap-header-tools">
+        <span className="jz-header-tools">
           {coins === null ? null : <CoinCounter />}
           {action}
         </span>

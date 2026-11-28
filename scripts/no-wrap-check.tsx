@@ -10,7 +10,8 @@
  * tab, anything in the display or mono fonts) must:
  *  - sit on one line (its text's line boxes all on one line), and
  *  - not overflow: not clipped by its own box (scrollWidth past clientWidth), unless it is a
- *    player name (.th-name, or a line listing names, [data-names]) or a leaderboard row's
+ * Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*).
+ *    player name (.jz-name, or a line listing names, [data-names]) or a leaderboard row's
  *    time · verdict · summary line ([data-ellipsis]), which truncate with an ellipsis, and never
  *    past the screen's edge (but inside a horizontally scrolling row, [data-scroll-x], whose items
  *    scroll into view).
@@ -54,7 +55,8 @@ if (args.includes("--list")) {
 /** In-page: every single-line text that wraps or overflows. */
 function wrapProbe() {
   const SINGLE =
-    "h1, h2, h3, button, a, label, summary, [role='button'], .th-kicker, .th-pill, .th-name, .th-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
+    // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+    "h1, h2, h3, button, a, label, summary, [role='button'], .jz-kicker, .jz-cat-pill, .jz-name, .jz-score, .jz-medal, .font-display, .font-mono, [data-practice-filter], [data-tab], [data-category-pill], [data-one-line]"; // [data-one-line] (12 Nov 2026): any element meant to stay on one line
   const NOT_JUDGED = "[data-skin-off], .whitespace-normal, .line-clamp-2, [data-wrap-ok], .sr-only"; // .sr-only: visually hidden, never seen (approved, 7 Nov 2026)
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -104,8 +106,9 @@ function wrapProbe() {
       // Player names (and a line listing them, [data-names]) truncate with an ellipsis.
       if (
         clipped &&
-        !clipped.closest(".th-name, [data-names], [data-ellipsis]") &&
-        !clipped.querySelector?.(".th-name")
+        // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+        !clipped.closest(".jz-name, [data-names], [data-ellipsis]") &&
+        !clipped.querySelector?.(".jz-name")
       )
         problems.push(
           `"${text}" is cut off by ${describe(clipped)} (${clipped.scrollWidth}px of text in ${clipped.clientWidth}px)`,

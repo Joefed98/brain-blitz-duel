@@ -21,12 +21,12 @@ import { RoomMiniCard } from "./RoomPlayer";
 import { youStyle } from "./Standings";
 
 /** A player's own colour (their bar); neutral without one. */
-const colourOf = (look: PlayerLook | undefined) => (look ? PLAYER_COLOURS[look.colour]?.hex : undefined) ?? "var(--ap-text-2)";
+const colourOf = (look: PlayerLook | undefined) => (look ? PLAYER_COLOURS[look.colour]?.hex : undefined) ?? "var(--jz-text-3)";
 
 function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: string }) {
   const rest = summaryWithoutTime(summary);
   return (
-    <p title={summary} className="mt-2 text-[12.5px] leading-snug text-[var(--ap-text-2)]">
+    <p title={summary} className="mt-2 jz-text-caption leading-snug jz-em-detail">
       <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
         <VerdictLabel verdict={verdict} />
       </span>
@@ -127,16 +127,16 @@ export function RoundResult({
             data-you=""
             style={youStyle(myLook)}
             data-round-dim={theyWon ? "" : undefined}
-            className="th-card min-w-0 flex-1 p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
+            className="jz-card min-w-0 flex-1 p-4" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center gap-1.5 text-sm">
               <RoomMiniCard slot={mySlot} look={myLook} name={myName} size={24} />
-              <span className="th-name truncate font-semibold">{myName}</span>
+              <span className="jz-name truncate font-semibold">{myName}</span>
               <span className="rs-you shrink-0">(you)</span>
             </p>
             {/* Below the name only the time used (the buzzer shows the round's full clock). */}
-            <p className="whitespace-nowrap text-[12.5px] tabular-nums text-muted-foreground">{myTime}</p>
-            <p className="th-score mt-2 text-4xl tabular-nums text-foreground">
+            <p className="whitespace-nowrap jz-text-caption tabular-nums text-muted-foreground">{myTime}</p>
+            <p className="jz-score mt-2 text-4xl tabular-nums text-foreground">
               <AnimatedScore value={myRoundScore} />
             </p>
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-background">
@@ -149,14 +149,14 @@ export function RoundResult({
           </Panel>
           <Panel
             data-round-dim={iWon ? "" : undefined}
-            className="th-card min-w-0 flex-1 p-4 text-right" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
+            className="jz-card min-w-0 flex-1 p-4 text-right" /* design-lint-ignore: the existing values; only the dimming changed (audit #3/#4) */
           >
             <p className="flex min-w-0 items-center justify-end gap-1.5 text-sm">
-              <span className="th-name truncate font-semibold">{opponentName}</span>
+              <span className="jz-name truncate font-semibold">{opponentName}</span>
               <RoomMiniCard slot={opponentSlot} look={opponentLook} name={opponentName} size={24} />
             </p>
-            <p className="whitespace-nowrap text-[12.5px] tabular-nums text-muted-foreground">{opponentTime}</p>
-            <p className="th-score mt-2 text-4xl tabular-nums text-foreground">
+            <p className="whitespace-nowrap jz-text-caption tabular-nums text-muted-foreground">{opponentTime}</p>
+            <p className="jz-score mt-2 text-4xl tabular-nums text-foreground">
               <AnimatedScore value={opponentRoundScore} />
             </p>
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-background">

@@ -527,6 +527,9 @@ const CALL_SITES: Record<string, Record<string, number>> = {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the games effects kit, phase 2 step 4): the
   // kit's one call site (lib/fx/kit.ts gameFx: wrong, near miss and the payoff moments, through the same gates).
   "lib/fx/kit.ts": { plan: 1 },
+  // Changed with Joe's approval, 28 Nov 2026 (S1, PR 1 item 5: a light haptic on every press in app chrome): the press
+  // listener's one call (lib/pressFeel.ts, the light tick on a completed tap outside game art).
+  "lib/pressFeel.ts": { tick: 1 },
 };
 /**
  * gameSounds' feel() calls: the arcade moments (success: goal, home run, pot x2, Blockfall's three or four rows at

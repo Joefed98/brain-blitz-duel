@@ -32,7 +32,7 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" data-feedback-link="settings" className="jz-row press">
         <span className="jz-row-title flex-1">Send feedback</span>
-        <Icon name="chat" size={20} className="ap-chevron" />
+        <Icon name="chat" size={20} className="jz-chevron" />
       </a>
     );
   if (small)
@@ -42,7 +42,7 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
         target="_blank"
         rel="noopener noreferrer"
         data-feedback-link="small"
-        className="press tap-target mx-auto flex items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[13px] font-semibold text-muted-foreground"
+        className="press tap-target mx-auto flex items-center justify-center gap-1.5 whitespace-nowrap px-3 jz-text-caption font-semibold text-muted-foreground"
       >
         <Icon name="chat" size={18} className="-m-0.5" />
         Send feedback
@@ -54,7 +54,7 @@ export function FeedbackLink({ small = false, row = false }: { small?: boolean; 
       target="_blank"
       rel="noopener noreferrer"
       data-feedback-link="profile"
-      className="ap-link press flex h-11 shrink-0 items-center"
+      className="jz-link press flex h-11 shrink-0 items-center"
     >
       Send feedback
     </a>

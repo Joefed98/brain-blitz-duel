@@ -12,7 +12,7 @@ export function CategoryPill({
   label?: string;
 }) {
   return (
-    <span data-cat={category} data-category-pill={category} className={`th-pill ${className}`}>
+    <span data-cat={category} data-category-pill={category} className={`jz-cat-pill ${className}`}>
       {label ?? category}
     </span>
   );

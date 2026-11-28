@@ -1134,7 +1134,8 @@ else {
         `${where}: public game button ${pub?.text ?? "missing"} (scheduled: ${publicGame})`,
       );
       check(!!buttons.find((b) => b.label === "Dismiss"), `${where}: no dismiss button`);
-      check(/\bth-card\b/.test(probe.cls), `${where}: not a th-card`);
+      // Changed with Joe's approval, 28 Nov 2026 (S1: the th-* / ap-* classes renamed to jz-*)
+      check(/\bjz-card\b/.test(probe.cls), `${where}: not a jz-card`);
       for (const i of probe.items) {
         if (i.tag === "BUTTON")
           check(

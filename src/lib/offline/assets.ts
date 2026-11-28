@@ -8,8 +8,8 @@ export const OFFLINE_PAGES = ["/", "/practice", "/profile", "/tournaments"] as c
 
 /**
  * The Google-hosted fonts the root route asks for (kept by the worker on a best-effort basis): Press Start 2P only,
- * for the Retro games' art. Every other screen is Archivo, self-hosted (design foundation F3, 6 Nov 2026: Space
- * Grotesk, Inter and JetBrains Mono no longer loaded).
+ * for the Retro games' art. Every other screen is Archivo, self-hosted (design foundation F3, 6 Nov 2026: other
+ * faces no longer loaded).
  */
 export const GOOGLE_FONTS_CSS = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
 

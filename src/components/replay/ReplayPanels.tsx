@@ -41,10 +41,10 @@ export function ReplayFrame({
   return (
     <Panel as="section"
       data-replay-panel={testId}
-      className="th-card relative flex w-full shrink-0 flex-col items-center gap-1 p-1.5 animate-phase-in"
+      className="jz-card relative flex w-full shrink-0 flex-col items-center gap-1 p-1.5 animate-phase-in"
     >
       <header className="flex w-full items-center gap-2 px-1">
-        <span className="min-w-0 flex-1 truncate text-left font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        <span className="min-w-0 flex-1 truncate text-left font-mono jz-text-caption font-bold uppercase tracking-widest text-primary">
           {heading}
         </span>
         {action}
@@ -52,7 +52,7 @@ export function ReplayFrame({
           <button
             type="button"
             onClick={onSkip}
-            className="press shrink-0 rounded border border-border px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-foreground/80"
+            className="press shrink-0 rounded border border-border px-2 py-0.5 font-mono jz-text-caption font-bold uppercase text-foreground/80"
             data-replay-skip
           >
             {skipLabel}
@@ -265,13 +265,13 @@ export function MomentCardView({ card }: { card: MomentCard }) {
       className="mx-auto flex w-full flex-col items-center justify-center gap-0.5 rounded-md border border-primary/50 bg-background px-3 py-3 animate-pop-in"
       data-moment-card={card.id}
     >
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+      <span className="font-mono jz-text-caption font-bold uppercase tracking-widest text-muted-foreground">
         {card.title}
       </span>
       <span className="font-display text-3xl font-bold tabular-nums text-primary">
         {card.value}
       </span>
-      <span className="font-mono text-[11px] text-foreground/80">{card.detail}</span>
+      <span className="font-mono jz-text-caption text-foreground/80">{card.detail}</span>
     </div>
   );
 }
@@ -455,7 +455,7 @@ function PuzzleTimelapseBoard({
       data-timelapse-frame={frame}
     >
       <span
-        className="rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-foreground"
+        className="rounded bg-background/90 px-1.5 py-0.5 font-mono jz-text-caption font-bold tabular-nums text-foreground"
         data-timelapse-counter
       >
         {plan.spec.unit} {done} / {plan.total}
@@ -510,7 +510,7 @@ function PuzzleFinalBoardView({
       data-replay-final={puzzle.type}
     >
       <span
-        className="rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-foreground"
+        className="rounded bg-background/90 px-1.5 py-0.5 font-mono jz-text-caption font-bold tabular-nums text-foreground"
         data-replay-unavailable
       >
         No replay for this game yet, {score} {score === 1 ? "pt" : "pts"}

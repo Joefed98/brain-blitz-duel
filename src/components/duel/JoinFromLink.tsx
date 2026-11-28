@@ -129,7 +129,7 @@ export function JoinFromLink({
     return (
       <>
         <p className="rs-code">{roomCode}</p>
-        <h1 className="text-[24px] font-extrabold">{title}</h1>
+        <h1 className="jz-text-title font-extrabold">{title}</h1>
         <p className="text-sm text-muted-foreground">{line}</p>
         {home}
       </>
@@ -155,7 +155,7 @@ export function JoinFromLink({
       <div className="flex flex-col gap-2 text-left">
         <label
           htmlFor="link-name"
-          className="pl-1 text-[13px] font-semibold text-muted-foreground"
+          className="pl-1 jz-text-caption font-semibold text-muted-foreground"
         >
           Display name
         </label>

@@ -203,10 +203,10 @@ function PracticeFooter() {
   const [offer, setOffer] = useState(false);
   // Before the account is known: the device's cached account (an account's line from the first paint).
   const isAccount = account.kind === "account" || (account.kind === "unknown" && cachedAccount() !== null);
-  if (isAccount) return <p className="ap-faint jz-meta text-center">Stars and bests are saved to your account.</p>;
+  if (isAccount) return <p className="jz-em-detail jz-caption text-center">Stars and bests are saved to your account.</p>;
   return (
-    <p data-practice-save-progress className="ap-faint jz-meta text-center">
-      <button type="button" onClick={() => setOffer(true)} className="ap-link press -my-3 inline-flex h-11 items-center align-middle">
+    <p data-practice-save-progress className="jz-em-detail jz-caption text-center">
+      <button type="button" onClick={() => setOffer(true)} className="jz-link press -my-3 inline-flex h-11 items-center align-middle">
         Save your progress
       </button>{" "}
       to keep your stars on any phone
@@ -806,7 +806,7 @@ function PracticeScreen() {
             <>
               {/* The fresh start (10 Nov 2026): a one-time note, once per player (the server remembers it). */}
               {progressView && !progressView.noteSeen ? (
-                <p role="status" data-practice-refresh-note className="jz-panel ap-empty">
+                <p role="status" data-practice-refresh-note className="jz-panel jz-empty-line">
                   {PRACTICE_REFRESH_NOTE}
                 </p>
               ) : null}
@@ -814,7 +814,7 @@ function PracticeScreen() {
               {/* Offline practice: Add to Home Screen (iPhone Safari only, shown from <html data-offline-install>). */}
               <OfflineInstallCard />
               {notice ? (
-                <p role="status" data-practice-notice className="jz-panel ap-empty">
+                <p role="status" data-practice-notice className="jz-panel jz-empty-line">
                   {notice}
                 </p>
               ) : null}

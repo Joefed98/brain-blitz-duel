@@ -19,7 +19,7 @@ export function ChallengeCard({ available, onOpen }: { available: boolean; onOpe
             Play a set, then dare them to beat it
           </span>
         </span>
-        <Icon name="chevron-right" size={20} className="ap-chevron" />
+        <Icon name="chevron-right" size={20} className="jz-chevron" />
       </button>
     </div>
   );

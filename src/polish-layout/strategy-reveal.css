@@ -4,7 +4,7 @@
   width: 100%;
   flex-shrink: 0;
   padding: 12px;
-  border-radius: var(--jz-radius);
+  border-radius: var(--jz-radius-sm);
   background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
   box-shadow: inset 0 0 0 1px var(--jz-line);
   font-family: var(--jz-font);

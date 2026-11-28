@@ -129,7 +129,7 @@ export function CelebrationHeadline({ kind, world }: { kind: CelebrationKind; wo
       role="status"
       data-celebration-headline={kind}
       onAnimationEnd={() => setShown(false)}
-      className="arcade-celebration-headline max-w-full rounded-2xl px-2.5 py-1 text-center font-display text-[12px] font-bold uppercase leading-tight tracking-wide"
+      className="arcade-celebration-headline max-w-full rounded-2xl px-2.5 py-1 text-center font-display jz-text-caption font-bold uppercase leading-tight tracking-wide"
       style={{ color: theme.outline, background: theme.primary, boxShadow: `0 0 18px ${theme.primary}` }}
     >
       {HEADLINES[kind]}
