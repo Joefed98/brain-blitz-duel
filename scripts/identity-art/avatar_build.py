@@ -21,7 +21,8 @@ Usage (Blender as a Python module, outside the project; see identity_art.py):
     <venv>/bin/python scripts/identity-art/avatar_build.py <sources dir> <out dir> [ids…] [--variants=a,b] [--px=160]
         [--samples=48] [--font=<Archivo 900 ttf>]
 Writes <out>/<id>/<variant>.png (RGBA, px × px, the 100-unit viewBox exactly: an orthographic camera, so the art sits
-where the old drawing did and every tap box is unchanged). Renders at 2x and downsamples.
+where the old drawing did and every tap box is unchanged). Rendered at px (--ss=2: at twice, then shrunk). The shipped
+set: --px=280 (2x the largest use, the full player card at 137.6 px on a computer) --samples=64.
 """
 import json
 import math
@@ -1138,8 +1139,10 @@ def main():
     variants = opts["variants"].split(",") if "variants" in opts else VARIANTS + [f"gem-{g}" for g in gems]
     px = int(opts.get("px", 160))
     samples = int(opts.get("samples", 48))
+    ss = int(opts.get("ss", 1))
     for rec in [r for r in recs if r["id"] in ids]:
-        ia.reset(px * 2, samples)
+        # Rendered at the shipped size (Cycles' denoised edges are clean there); --ss=2 renders at twice and shrinks.
+        ia.reset(px * ss, samples)
         _MATS.clear()
         font = bpy.data.fonts.load(opts.get("font", str(src / "archivo-900.ttf")))
         b = build_avatar(src, rec, font)
