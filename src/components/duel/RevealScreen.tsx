@@ -12,12 +12,18 @@
  * stage has `container-type: inline-size`, so a family's picture can draw at the stage's width (`cqw` or
  * `useStageSize`); its height is the picture's own.
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button, LevelMark, Segmented } from "@/design/components";
 import { levelsOf } from "@/lib/levels/gameLevels";
 import { LEVEL_LABEL, LEVELS, type Level } from "@/lib/levels/levels";
 import { LeverPicture, leverWords } from "@/lib/levels/leverPicture";
+
+// A game's own views and the stage's size for a game's Reveal live in revealContext.ts (React only), so a game's Reveal
+// reads them without importing the template (A2, 27 Nov 2026: the puzzles' import graph stays clear of the design and
+// identity modules the template draws with).
+export { RevealGameViewsProvider, useGameViewsHost, useRevealStageSize, useRevealViews, type RevealViewGroup, type RevealViewLabel } from "./revealContext";
+import { MAIN_VIEW_GROUP, StageSizeContext, type RevealViewGroup } from "./revealContext";
 
 /** One view of the stage: a board, a picture, the room's chart. */
 export interface RevealView {
@@ -50,80 +56,33 @@ export function useStageSize(): { ref: (el: HTMLElement | null) => void; w: numb
   return { ref, w: size.w, h: size.h };
 }
 
-/**
- * A game's own views on the template's stage (P2, 22 Nov 2026, for the art sessions: A1's Word pairs, Interlock, Slider,
- * Cryptogrid and Swapword, in place of the shared Solution / Yours switch). A game's Reveal calls `useRevealViews`
- * with its views' ids and labels; the template draws the one views control above the stage and the hook answers the
- * chosen id, so the game draws that view itself. While a game has views the shared switch (SolutionSwitch) is not
- * drawn. Outside a template (a check's bare render) the hook answers the first view.
- */
-export interface RevealViewLabel {
-  id: string;
-  label: string;
-}
 
-interface GameViewsHost {
-  register: (views: RevealViewLabel[] | null) => void;
-  current: string | null;
-}
-
-const GameViewsContext = createContext<GameViewsHost | null>(null);
-
-/** For a game's Reveal: its views (two or more) on the template's control; answers the chosen view's id. */
-export function useRevealViews(views: readonly RevealViewLabel[]): string {
-  const host = useContext(GameViewsContext);
-  const key = views.map((v) => `${v.id}:${v.label}`).join("|");
-  useEffect(() => {
-    if (!host) return;
-    host.register(views.length > 1 ? [...views] : null);
-    return () => host.register(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [host?.register, key]);
-  const current = host?.current;
-  return current && views.some((v) => v.id === current) ? current : (views[0]?.id ?? "");
-}
-
-/** For the reveal that holds a game's Reveal (AnswerReveal): the host the hook registers with, and its control. */
-export function useGameViewsHost(): {
-  host: GameViewsHost;
-  views: RevealViewLabel[] | null;
-  current: string | null;
-  setCurrent: (id: string) => void;
-} {
-  const [views, setViews] = useState<RevealViewLabel[] | null>(null);
-  const [current, setCurrent] = useState<string | null>(null);
-  const host = useMemo<GameViewsHost>(
-    () => ({
-      register: (next) => {
-        setViews(next);
-        setCurrent((was) => (next && was && next.some((v) => v.id === was) ? was : (next?.[0]?.id ?? null)));
-      },
-      current,
-    }),
-    [current],
-  );
-  return { host, views, current, setCurrent };
-}
-
-/** The provider a reveal wraps its game's Reveal in (AnswerReveal). */
-export const RevealGameViewsProvider = GameViewsContext.Provider;
-
-/**
- * The stage's size for a game's Reveal (P2, 22 Nov 2026, for A2's Pattern boards, G4): the template's stage box in CSS
- * px, measured on layout and every resize (never a frame). `{ w: 0, h: 0 }` outside a template or before it is laid out.
- * The stage's height is what the template gives the board on a puzzle reveal (the space under the score card).
- */
-const StageSizeContext = createContext<{ w: number; h: number }>({ w: 0, h: 0 });
-export function useRevealStageSize(): { w: number; h: number } {
-  return useContext(StageSizeContext);
-}
 
 /** The views control above the stage: the shared Segmented, driven by the `views` list (no text scraping). */
-export function RevealViews({ views, value, onChange, label = "What to show" }: { views: RevealView[]; value: string; onChange: (id: string) => void; label?: string }) {
+export function RevealViews({
+  views,
+  value,
+  onChange,
+  label = "What to show",
+  group,
+}: {
+  views: (Pick<RevealView, "id" | "label"> & { tone?: "good" | "bad" | undefined })[];
+  value: string;
+  onChange: (id: string) => void;
+  label?: string;
+  /** A game's control's group (A2, 27 Nov 2026: Double Take's two rows), on the row as `data-reveal-views`. */
+  group?: string | undefined;
+}) {
   if (views.length < 2) return null;
   return (
-    <div data-reveal-views="" className="reveal-views">
-      <Segmented options={views.map((v) => ({ value: v.id, label: v.label }))} value={value} onChange={onChange} label={label} radio />
+    <div data-reveal-views={group ?? ""} className="reveal-views">
+      <Segmented
+        options={views.map((v) => ({ value: v.id, label: v.label, ...(v.tone ? { data: { "data-view-tone": v.tone } } : {}) }))}
+        value={value}
+        onChange={onChange}
+        label={label}
+        radio
+      />
     </div>
   );
 }
@@ -178,8 +137,8 @@ export function RevealScreen({
   breakdown?: ReactNode;
   root?: React.Ref<HTMLDivElement> | undefined;
   className?: string | undefined;
-  /** A game's own views (useRevealViews): the control above the one stage, which the game draws itself. */
-  viewControl?: { views: RevealViewLabel[]; value: string; onChange: (id: string) => void } | null | undefined;
+  /** A game's own views (useRevealViews): one control a group above the one stage, which the game draws itself. */
+  viewControl?: { groups: RevealViewGroup[]; onChange: (group: string, id: string) => void } | null | undefined;
 } & Record<`data-${string}`, string | boolean | undefined>) {
   const [own, setOwn] = useState(views?.[0]?.id ?? "");
   const current = view ?? own;
@@ -199,9 +158,18 @@ export function RevealScreen({
           {score}
         </div>
         {views && views.length > 1 ? <RevealViews views={views} value={current} onChange={change} /> : null}
-        {!views && viewControl && viewControl.views.length > 1 ? (
-          <RevealViews views={viewControl.views.map((v) => ({ ...v, node: null }))} value={viewControl.value} onChange={viewControl.onChange} />
-        ) : null}
+        {!views && viewControl
+          ? viewControl.groups.map((g) => (
+              <RevealViews
+                key={g.group}
+                group={g.group === MAIN_VIEW_GROUP ? undefined : g.group}
+                views={g.views}
+                value={g.current}
+                label={g.label}
+                onChange={(id) => viewControl.onChange(g.group, id)}
+              />
+            ))
+          : null}
         <StageSizeContext.Provider value={size}>
         <div ref={stageSize.ref} data-reveal-slot="stage" data-reveal-stage="" className="reveal-slot-stage">
           {views && views.length > 1

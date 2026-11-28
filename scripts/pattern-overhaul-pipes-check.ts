@@ -492,7 +492,7 @@ for (const seed of SEEDS) {
   check(/soundCueAt\("pipes\.flow", pipeFlowRate\(joined\)\)/.test(stage), "fx: the gurgle isn't sized to the join");
   check(/gameFx\("combo", turned\?\.querySelector\("\.pipe-art"\), \{ count: [^}]*silent: true \}\)/.test(stage), "fx: the combo isn't the kit's, silent, on the turned pipe");
   check(/sourceBubbles\(/.test(stage) && /soundCue\("pipes\.bubble"\)/.test(stage), "fx: the solve doesn't bubble the source");
-  check(/gameFx\("win", card \?\? null, \{ silent: true, inGame: false \}\)/.test(stage), "fx: the kit's win isn't on the result");
+  check(/if \(won\) onWinRef\.current\?\.\(\);/.test(stage) && !/closest\("\.answer-reveal-content/.test(stage), "fx: the reveal's win isn't the template's callback"); // Changed with Joe's approval, 27 Nov 2026
   check(/animateWater\n/.test(stage), "fx: the live board doesn't animate the water");
   // Only Pipeline's effects file calls animate, and the solve rush is transform-only CSS.
   for (const file of ["src/puzzles/pipes.tsx", "src/components/puzzles/pattern/pipesArt.tsx"]) check(!/\.animate\(/.test(src(file)), `fx: ${file} animates outside pipesFx.ts`);

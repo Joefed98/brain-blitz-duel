@@ -3,6 +3,8 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useRef, useState } from "react";
 
 import { gameFx } from "@/lib/fx/kit";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
 import { applyMove, countedMoves, decodeMoves, position, replayUnblock, vehicleCells } from "@/lib/duel/unblock";
@@ -171,10 +173,25 @@ function RouteStrip({ chips, step }: { chips: RouteChip[]; step: number }) {
  * solve) as pills, the player's own only under Yours. Every stamp takes this look; older stamps count their moves as
  * their grader did (every slide; unblockRev 4 the slides left on the board).
  */
+/** The reveal's two views on the template's control (G4). */
+const UNBLOCK_REVEAL_VIEWS = [
+  { id: "solution", label: "Solution" },
+  { id: "yours", label: "Yours" },
+] as const;
+
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts, myExtra }: PuzzleRevealProps) {
   const solution = decodeMoves(puzzle.type === "unblock" ? (puzzle.solution ?? "") : "");
   const [step, setStep] = useState(0);
   const keysRef = useRef<HTMLDivElement>(null);
+  // Solution and Yours on the template's views control (the polish plan's G4, 27 Nov 2026), one board at a time at the
+  // stage's size.
+  const view = useRevealViews(UNBLOCK_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const fitWidth = useRevealBoardWidth(rootRef, boardRef, { max: 380 });
+  const fitStyle = fitWidth ? { width: fitWidth } : undefined;
 
   // Stage 2: on a solve, the effects kit's `win` lands on the result (the key numbers row; scale in with a gold burst;
   // silent, the reveal plays its own sounds; no haptic outside a live round). Asked a frame after mount, so the burst
@@ -241,35 +258,37 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const min = storedPar ?? puzzle.par ?? puzzle.minMoves ?? 0;
   const parLabel = (puzzle.unblockRev ?? 0) >= 1 ? "Par" : "Fewest";
   const timeLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
+  // The player's own numbers sit under Yours only, so nothing below the solution reads as the solution's.
+  const yoursHidden = Boolean(hosted && available && yours && view === "solution");
 
   const solutionBoard = (
     <div className="unblock-reveal-space">
-      <div className="unblock-reveal-board" data-unblock-reveal-step={step}>
+      <div ref={view === "solution" ? boardRef : undefined} className="unblock-reveal-board" data-unblock-reveal-step={step} style={fitStyle}>
         <UnblockBoard vehicles={shown} cols={n} />
       </div>
     </div>
   );
   const yoursBoard = yours ? (
     <div className="unblock-reveal-space">
-      <div className="unblock-reveal-board" data-unblock-yours-board={myCorrect ? "solved" : "unfinished"}>
+      <div ref={view === "yours" || !available ? boardRef : undefined} className="unblock-reveal-board" data-unblock-yours-board={myCorrect ? "solved" : "unfinished"} style={fitStyle}>
         <UnblockBoard vehicles={yours} cols={n}>{blockers.length ? <BlockerMarks vehicles={yours} ids={blockers} n={n} /> : null}</UnblockBoard>
       </div>
     </div>
   ) : null;
 
   return (
-    <div className="unblock-reveal flex w-full flex-col items-center gap-2">
+    <div ref={rootRef} className="unblock-reveal flex w-full flex-col items-center gap-2">
       {available && yoursBoard ? (
-        // Two labelled columns: the answer reveal's Solution / Yours switch (SolutionSwitch) shows one at a time, at
-        // full size, the solution first; the time-lapse (data-timelapse) shows only the player's board.
+        // Two labelled columns: the template's Solution / Yours views show one at a time, at full size, the solution
+        // first; the time-lapse (data-timelapse) shows only the player's board.
         <div className="unblock-reveal-pair flex w-full items-start justify-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-solution="">
-            <span className="unblock-reveal-label">Solution</span>
+          <div hidden={hosted && view !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-solution="">
+            <span className={`unblock-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
             {solutionBoard}
             <RouteStrip chips={chips!} step={step} />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-yours="">
-            <span className="unblock-reveal-label">Yours</span>
+          <div hidden={hosted && view !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-yours="">
+            <span className={`unblock-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
             {yoursBoard}
             {blockers.length ? (
               <p className="unblock-reveal-note" data-unblock-blockers={blockers.length}>
@@ -287,7 +306,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         yoursBoard
       ) : start.length > 0 ? (
         <div className="unblock-reveal-space">
-          <div className="unblock-reveal-board">
+          <div ref={boardRef} className="unblock-reveal-board" style={fitStyle}>
             <UnblockBoard vehicles={start} cols={n} />
           </div>
         </div>
@@ -300,18 +319,18 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
           </span>
         ) : null}
         {replay ? (
-          <span className="unblock-key" data-unblock-key="you" data-yours-only="">
+          <span className="unblock-key" data-unblock-key="you" data-yours-only="" hidden={yoursHidden}>
             your moves: <span className="unblock-key-value">{mine}</span>
           </span>
         ) : null}
         {timeLeft !== null ? (
-          <span className="unblock-key" data-unblock-key="time" data-yours-only="">
+          <span className="unblock-key" data-unblock-key="time" data-yours-only="" hidden={yoursHidden}>
             Time left <span className="unblock-key-value">{timeLeft} s</span>
           </span>
         ) : null}
       </div>
       {myCorrect && scoreParts?.kind !== "finish" ? (
-        <p className="unblock-reveal-note" data-yours-only="">
+        <p className="unblock-reveal-note" data-yours-only="" hidden={yoursHidden}>
           {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
         </p>
       ) : null}

@@ -4,7 +4,8 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { tallySprite } from "@/components/puzzles/attention/attentionArt";
 import { tallySpread } from "@/lib/duel/attentionOverhaul";
 import { tallyMarks } from "@/lib/duel/attentionLevels";
-import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 import { FxCountUp } from "@/components/fx/GameFx";
@@ -391,11 +392,10 @@ function useTrayWidth(): { ref: (el: HTMLElement | null) => void; width: number 
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  const [shown, setShown] = useState<number | null>(null);
-  return puzzle.type === "countup" ? <TallyReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} /> : null;
+  return puzzle.type === "countup" ? <TallyReveal puzzle={puzzle} myAnswer={myAnswer} /> : null;
 }
 
-function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuzzleData; myAnswer: string | null | undefined; shown: number | null; setShown: (n: number) => void }) {
+function TallyReveal({ puzzle, myAnswer }: { puzzle: CountUpPuzzleData; myAnswer: string | null | undefined }) {
   const tray = useTrayWidth();
   const revealRef = useRef<HTMLDivElement>(null);
   const rev2 = usesCountRev2(puzzle);
@@ -409,8 +409,14 @@ function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuz
     return { stage, truth, given, exact, near };
   });
   // The Attention overhaul's reveal (15 Nov 2026): one tray at a time, large, the shapes that count ringed gold; the
-  // right count against yours in big numbers; a tab for each tray. The first tray you got wrong opens first.
-  const open = shown ?? Math.max(0, trays.findIndex((t) => !t.exact));
+  // right count against yours in big numbers; a tab for each tray. The first tray you got wrong opens first. The tabs
+  // are the reveal template's views control (G6, A2, 27 Nov 2026), each marked right or wrong.
+  const open = Number(
+    useRevealViews(
+      trays.map((t, i) => ({ id: String(i), label: `Tray ${i + 1}`, tone: t.exact ? ("good" as const) : ("bad" as const) })),
+      { initial: String(Math.max(0, trays.findIndex((t) => !t.exact))), label: "Trays" },
+    ),
+  );
   const trayNow = trays[open]!;
   const right = trays.filter((t) => t.exact).length;
   const off = trayNow.truth !== null && trayNow.given !== null ? Math.abs(trayNow.given - trayNow.truth) : null;
@@ -437,12 +443,6 @@ function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuz
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div ref={revealRef} data-polish-reveal="countup" className="attn-rv" data-attn-reveal="countup">
-      <RevealTabs
-        label="Trays"
-        value={open}
-        onChange={setShown}
-        options={trays.map((t, i) => ({ value: i, label: `Tray ${i + 1}`, tone: t.exact ? "good" : "bad" }))}
-      />
       <p className="text-center font-display text-base font-bold leading-snug" data-tally-question="">{countUpStageQuestion(trayNow.stage)}</p>
       {/* The tray takes the stage's width (G6; was a fixed 340 × 300 field), its height in proportion. */}
       <div ref={tray.ref} className="tally-reveal-tray flex w-full justify-center" data-tally-reveal-tray={open + 1}>

@@ -10,7 +10,7 @@ import { levelOf } from "@/lib/practice/progressRules";
 import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { RevealBreakdown } from "@/components/duel/RevealBreakdown";
 import { SolutionSwitch } from "@/components/duel/SolutionSwitch";
-import { revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
+import { gameViewsHeading, revealHeading, type SwitchState } from "@/lib/duel/revealHeading";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -844,7 +844,7 @@ function LiveAnswerReveal({
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
-  const [switchState, setSwitchState] = useState<SwitchState | null>(null);
+  const [sharedSwitch, setSwitchState] = useState<SwitchState | null>(null);
   // Short phones (15 Nov 2026, Joe): practice's stars join the score lines on a puzzle reveal (see revealLines).
   const shortReveal = useShortReveal();
   const payoffInline = practice && shortReveal && !(ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type));
@@ -963,6 +963,8 @@ function LiveAnswerReveal({
   // A game's own views on the stage (useRevealViews, P2): the template draws their control; the shared Solution /
   // Yours switch steps aside while a game has them.
   const gameViews = useGameViewsHost();
+  // What the board shows: a game's own Solution / Yours view (A2, 27 Nov 2026: the heading follows it), else the shared switch.
+  const switchState = gameViewsHeading(gameViews.current) ?? sharedSwitch;
   // The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike.
   const payoff =
     practice && myScore !== null && answersReady && !payoffInline ? (
@@ -1042,7 +1044,7 @@ function LiveAnswerReveal({
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {/* Drawn from the first frame (P2, 22 Nov 2026): while a room's board is still on its way, its row is held. */}
-          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={!!gameViews.views} /> : !solutionLock && !gameViews.views ? (
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={gameViews.groups.length > 0} /> : !solutionLock && gameViews.groups.length === 0 ? (
             <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending />
           ) : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
@@ -1073,7 +1075,7 @@ function LiveAnswerReveal({
           </div>
         </div>
         }
-        viewControl={gameViews.views && gameViews.current ? { views: gameViews.views, value: gameViews.current, onChange: gameViews.setCurrent } : null}
+        viewControl={gameViews.groups.length ? { groups: gameViews.groups, onChange: gameViews.setView } : null}
         breakdown={
           /* Engine games on the puzzle reveal (P2, for A2's G6): their stored breakdown in the template's breakdown slot,
              under the stage, open (practice) or behind "See breakdown" (rooms). */

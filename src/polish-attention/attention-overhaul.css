@@ -217,23 +217,6 @@ html body .bomb-clues.bomb-clues {
   align-items: center;
   gap: 10px;
 }
-.attn-rv-tabs.attn-rv-tabs {
-  width: 100%;
-}
-.attn-rv-tabs [data-tone="good"]::after,
-.attn-rv-tabs [data-tone="bad"]::after {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 6px;
-  border-radius: 999px;
-  vertical-align: middle;
-  background: var(--jz-gold);
-}
-.attn-rv-tabs [data-tone="bad"]::after {
-  background: var(--warn);
-}
 /* The numbers that explain the score: the reveal template's facts strip (G6, 21 Nov 2026: `.reveal-facts` and
    `.reveal-fact` draw the tiles); only the tones are Attention's own. */
 .attn-rv-stats.reveal-facts {
@@ -257,10 +240,6 @@ html body .bomb-clues.bomb-clues {
 }
 .attn-rv-stat[data-tone="bad"] .reveal-fact-value {
   color: var(--warn);
-}
-/* The switch sits in the template's views row, full width. */
-.attn-rv-views {
-  width: 100%;
 }
 /* The key: one swatch per mark on the board. */
 .attn-rv-legend {
