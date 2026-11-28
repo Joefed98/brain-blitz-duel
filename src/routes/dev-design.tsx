@@ -5,6 +5,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { ComponentsGallery } from "@/design/ComponentsGallery";
 import { GameFxShowcase } from "@/design/GameFxShowcase";
 import { HeaderStylesShowcase } from "@/design/HeaderStylesShowcase";
+import { MotifsShowcase } from "@/design/MotifsShowcase";
 import { SoundsGallery } from "@/design/SoundsGallery";
 import {
   Button,
@@ -90,6 +91,7 @@ function DevDesign() {
         <ComponentsGallery />
         <GameFxShowcase />
         <HeaderStylesShowcase />
+        <MotifsShowcase />
         <h2 className="jz-title">More pieces</h2>
 
         <Block title="Button">
