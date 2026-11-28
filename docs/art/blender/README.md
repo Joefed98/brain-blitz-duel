@@ -6,7 +6,10 @@ Step 1, the style sheets, for Joe's approval before the full set. Nothing in the
 - Sheet 2 (28 Nov 2026): `style-sheet-2/`, the script as it stands: all seven tiers (matte → brushed → polished →
   live current), the avatar helmet at 70 % of the disc, the player-colour tint passes, both podium options, heavier
   and glossier pins, both collection stars.
-- `badge-shapes.md`: the proposed shape for each of the 54 badges (waiting for Joe's OK; no badge is rendered before it).
+- Emblem revision (28 Nov 2026, Joe: Lightning and Top 500 looked alike at 36 px): `emblem-revision/`, Lightning with a
+  thicker, brighter current and a cyan glow, Top 500 in its own platinum-white with gold, a crown of five bolts above
+  the shield and a dark bolt; sheet `screenshots/identity-blender-nov-2026/lightning-top500.webp` (beside sheet 2).
+- `badge-shapes.md` (approved by Joe, 28 Nov 2026): the proposed shape for each of the 54 badges (waiting for Joe's OK; no badge is rendered before it).
 
 Player colours: an avatar's paint is not rendered in 32 colours. Three passes are rendered once per avatar
 (`avatar-<id>-tint-base`: the avatar with the helmet in white paint and no gloss; `-tint-gloss`: only the helmet's

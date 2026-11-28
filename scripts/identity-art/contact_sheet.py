@@ -3,7 +3,10 @@ Before-and-after contact sheets for the Blender identity art (session S5): today
 the app shows them on a phone (36, 56, 96 px and large), on the dark page and the light page.
 
 Usage (any Python with Pillow, e.g. the bpy venv):
-    python scripts/identity-art/contact_sheet.py <renders dir> <out dir>
+    python scripts/identity-art/contact_sheet.py <renders dir> <out dir> [--only=<piece>,…] [--before=<dir>]
+
+--only keeps those pieces (the ladder strips are left out); --before shows an earlier render (that dir's
+<piece>.webp) in the "before" row in place of today's art, for a revision of an approved piece.
 
 Reads <renders>/<piece>.(png|webp) (identity_art.py's RGBA renders), writes into <out>: every piece trimmed and saved as
 WebP at 2x each size (`<piece>-<px>.webp`, what a phone would load), and dark.html / light.html (390 px wide pages
@@ -99,7 +102,15 @@ def tinted(src, hexv):
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
+    opts = dict(a[2:].split("=", 1) for a in sys.argv[3:] if a.startswith("--") and "=" in a)
+    only = set(opts["only"].split(",")) if "only" in opts else None
+    before_dir = Path(opts["before"]) if "before" in opts else None
     pieces = SHEET2
+    if only:
+        pieces = [(g, [it for it in items if it[0] in only]) for g, items in pieces]
+        pieces = [(g, items) for g, items in pieces if items]
+    if before_dir:
+        pieces = [(g, [(n, l, str((before_dir / f"{n}.webp").resolve()), lay) for n, l, _o, lay in items]) for g, items in pieces]
     total, count = {}, 0
     frame_box = {}
     for group, items in pieces:
@@ -133,13 +144,13 @@ def main():
             crop = out / f"today-{name}.png"
             Image.open(ROOT / old).convert("RGBA").crop((127, 77, 337, 287)).save(crop)
             return crop.as_uri()
-        return (ROOT / old).as_uri()
+        return Path(old).as_uri() if old.startswith("/") else (ROOT / old).as_uri()
 
     for page, c in PAGES.items():
         rows = []
         # The ladder strip: every tier side by side, today above, Blender below, at 36 and 56 px.
-        emb = pieces[0][1]
-        for px in (36, 56):
+        emb = pieces[0][1] if len(pieces[0][1]) == 7 else []
+        for px in (36, 56) if emb else ():
             t = "".join(f"<img src='{today_url(n, o)}' width='{px}' height='{px}' style='object-fit:contain'>" for n, _l, o, _ in emb)
             b = "".join(f"<img src='{n}-{px}.webp' width='{px}' height='{px}'>" for n, _l, _o, _ in emb)
             rows.append(f"<section><div class='label'>The ladder at {px} px, Spark → Top 500</div>"
@@ -156,7 +167,7 @@ def main():
                 if old:
                     url = today_url(name, old)
                     before = "".join(f"<img src='{url}' width='{px}' height='{px}' style='object-fit:contain'>" for px in SIZES[:3])
-                    before = f"<div class='row'><span class='tag'>Today</span>{before}</div>"
+                    before = f"<div class='row'><span class='tag'>{'Sheet 2' if before_dir else 'Today'}</span>{before}</div>"
                 after = "".join(f"<img src='{name}-{px}.webp' width='{px}' height='{px}'>" for px in SIZES[:3])
                 rows.append(
                     f"<section><div class='label'>{html.escape(label)}</div>{before}"
@@ -180,8 +191,8 @@ section {{ background: {c['panel']}; border: 1px solid {c['line']}; border-radiu
 .big {{ display: flex; justify-content: center; padding-top: 4px; }}
 .wide {{ display: flex; flex-direction: column; align-items: center; gap: 12px; }}
 </style></head><body><main>
-<h1>Identity art: style sheet 2</h1>
-<p>Blender renders (S5, second pass) beside today’s art, at phone sizes 36, 56 and 96 px and large. {page.capitalize()} page.</p>
+<h1>Identity art: {'Lightning and Top 500' if only else 'style sheet 2'}</h1>
+<p>Blender renders (S5) beside {'the version approved in sheet 2' if before_dir else 'today’s art'}, at phone sizes 36, 56 and 96 px and large. {page.capitalize()} page.</p>
 <p>WebP at 2× ({html.escape(sizes)} for the {count} square pieces).</p>
 {''.join(rows)}
 </main></body></html>"""

@@ -52,6 +52,8 @@ METALS = {
     "platinum": ("#F2FCFF", "#AEEAF7", "#62B9CE", "#D6F7FF"),
     "obsidian": ("#4A5680", "#1E2640", "#0B0F1C", "#36406A"),
 }
+# Top 500's platinum-white: --jz-metal-silver's light stops lifted toward white (stops 1-4, light to dark).
+METALS["pearl"] = ("#FFFFFF", "#F1F5FC", "#C9D3EA", "#FAFCFF")
 CHAMPAGNE = "#E2C07A"
 CYAN = "#22E4FF"
 INK = "#06080F"
@@ -790,11 +792,13 @@ TIERS = {
     "volt": dict(metal="gold", finish="brushed", fins=2, bolt="solid"),
     "surge": dict(metal="platinum", finish="polished", fins=3, bolt="solid", speed=True),
     "storm": dict(metal="obsidian", finish="polished", fins=4, bolt="gold", crown=True),
-    "lightning": dict(metal="gold", finish="polished", fins=4, bolt="ink", crown=True, rays=True, current=True),
-    "top500": dict(metal="gold", finish="polished", fins=4, bolt="ink", crown=True, rays=True, current=True, plate=True),
+    "lightning": dict(metal="gold", finish="polished", fins=4, bolt="ink", crown=True, rays=True, current="strong"),
+    # Top 500 (Joe, 28 Nov 2026: it must read as the top of the ladder at 36 px, not as a second Lightning): its own
+    # platinum-white body under gold wings, rays and a larger crown of five bolts, on the numbered plate.
+    "top500": dict(metal="pearl", finish="polished", fins=4, bolt="inkgold", crown="grand", rays=True, current=True, plate=True),
 }
 FIN = "M104 26 L120 18 L114 34 L104 42 Z"
-INK_ON = {"bronze": "#2A1608", "silver": "#151B2C", "gold": "#1A1206", "platinum": "#08202A"}
+INK_ON = {"bronze": "#2A1608", "silver": "#151B2C", "gold": "#1A1206", "platinum": "#08202A", "pearl": "#151B2C"}
 
 
 def glow_disc(name, frame, cx, cy, r, colour, z, strength=1.6, alpha=0.75):
@@ -837,14 +841,15 @@ def glow_disc(name, frame, cx, cy, r, colour, z, strength=1.6, alpha=0.75):
     return ob
 
 
-def current_arcs(frame, seed, cx, cy, rx, ry, z, n=5):
+def current_arcs(frame, seed, cx, cy, rx, ry, z, n=5, strong=False):
     """The live current: jagged cyan arcs crackling round a piece (a still frame of the app's animated current), from
     a seeded generator, so the same every render."""
     import random
 
     rnd = random.Random(seed)
-    core = glow("arc", "#BFF8FF", 14.0)
-    halo = glow("arc-halo", CYAN, 5.0)
+    core = glow("arc", "#E6FDFF", 40.0 if strong else 14.0)
+    halo = glow("arc-halo", CYAN, 16.0 if strong else 5.0)
+    rc, rh = (0.024, 0.06) if strong else (0.011, 0.026)
     for k in range(n):
         a0 = rnd.uniform(0, 2 * math.pi)
         sweep = rnd.uniform(0.5, 0.9)
@@ -855,8 +860,8 @@ def current_arcs(frame, seed, cx, cy, rx, ry, z, n=5):
             j = rnd.uniform(-4.5, 4.5) if 0 < i < steps else 0
             pts.append((cx + (rx + j) * math.cos(a), cy + (ry + j) * math.sin(a)))
         d = "M" + " L".join(f"{x:.2f} {y:.2f}" for x, y in pts)
-        tube("arc", d, frame, z, 0.011, core)
-        tube("archalo", d, frame, z - 0.01, 0.026, halo, flat=0.3)
+        tube("arc", d, frame, z, rc, core)
+        tube("archalo", d, frame, z - 0.01, rh, halo, flat=0.3)
 
 
 def build_emblem(tier):
@@ -876,6 +881,8 @@ def build_emblem(tier):
 
     if t.get("rays"):
         glow_disc("glow", f, 60, 70, 78, "#F3D894", -0.3, strength=1.4, alpha=0.6)
+        if t.get("current") == "strong":
+            glow_disc("cyanglow", f, 60, 72, 92, CYAN, -0.25, strength=5.0, alpha=0.9)
         for ang in range(0, 360, 30):
             ob = slab("ray", "M53 70 L67 70 L60 -8 Z", f, -0.12, 0.05, 0.015, gold)
             ob.data.transform(__import__("mathutils").Matrix.Rotation(math.radians(-ang), 4, "Z"))
@@ -894,7 +901,10 @@ def build_emblem(tier):
             slab("wing", None, f, 0.0, 0.12, 0.035, wing_m, subs=sub)
             tube("wingrim", None, f, 0.12, 0.012, wing_m, subs=sub, flat=0.6)
     if t.get("crown"):
-        for x, top, sc in ((36, 2, 0.36), (60, -13, 0.5), (84, 2, 0.36)):
+        crown = ((36, 2, 0.36), (60, -13, 0.5), (84, 2, 0.36))
+        if t["crown"] == "grand":
+            crown = ((22, -2, 0.34), (41, -16, 0.44), (60, -30, 0.6), (79, -16, 0.44), (98, -2, 0.34))
+        for x, top, sc in crown:
             slab("crown", BOLT, f, 0.02, 0.11, 0.03, gold, tx=x - 61 * sc, ty=top - 34 * sc, sc=sc)
     # The shield: a thick body, a raised rim, a deeper inner face, then the bolt.
     slab("shield", SHIELD, f, 0.0, 0.2, 0.06, body)
@@ -918,6 +928,9 @@ def build_emblem(tier):
         mod.solver = "EXACT"
         mod.object = box
         box.hide_render = box.hide_viewport = True
+    elif t["bolt"] == "inkgold":
+        slab("bolt", BOLT, f, bolt_top - 0.02, 0.09, 0.03, ink, sc=1.08, about=(61, 69))
+        tube("boltrim", BOLT, f, bolt_top + 0.07, 0.018, gold, sc=1.08, about=(61, 69), flat=0.7)
     elif t["bolt"] == "gold":
         slab("bolt", BOLT, f, bolt_top - 0.02, 0.1, 0.035, gold, sc=1.08, about=(61, 69))
     else:
@@ -941,7 +954,8 @@ def build_emblem(tier):
                 slab("pipsocket", d, f, 0.0, 0.04, 0.012, enamel("socket", "#0B0F1C", 0.1))
                 tube("piprim", d, f, 0.045, 0.014, gold)
     if t.get("current"):
-        current_arcs(f, 11 if tier == "lightning" else 23, 60, 70, 50, 62, 0.3, n=6)
+        current_arcs(f, 11 if tier == "lightning" else 23, 60, 70, 50, 62, 0.3, n=11 if t["current"] == "strong" else 6,
+                     strong=t["current"] == "strong")
     studio_lights()
     camera(3.5, tilt=4, target=(0, -0.05, 0))
 
